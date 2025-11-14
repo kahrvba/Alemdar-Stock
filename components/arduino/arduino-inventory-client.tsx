@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { Activity, useState } from "react";
+import Image from "next/image";
 import { ProductCard } from "@/components/arduino/product-card";
 import { PaginationControls } from "@/components/arduino/pagination-controls";
 import { ArduinoSearch } from "@/components/arduino/arduino-search";
 import type { ArduinoProduct } from "@/lib/services/arduino";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/toast";
-import { useCart } from "@/components/ui/cart";
+import { useArduinoInventory } from "@/hooks/use-arduino-inventory";
+import { downloadExcel, highlightExcel } from "@/lib/excel-export";
 
 type ArduinoInventoryClientProps = {
   items: ArduinoProduct[];
@@ -29,291 +29,70 @@ export function ArduinoInventoryClient({
   query,
   field,
 }: ArduinoInventoryClientProps) {
-  const [isSearching, setIsSearching] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ArduinoProduct | null>(null);
-  const [isAddingProduct, setIsAddingProduct] = useState(false);
-  const [formState, setFormState] = useState({
-    id: 0,
-    english_names: "",
-    turkish_names: "",
-    category: "",
-    barcode: "",
-    quantity: 0,
-    price: "",
-    image_filename: "",
-    description: "",
-  });
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const router = useRouter();
-  const { showToast } = useToast();
-  const { addToCart, openCart } = useCart();
+  const {
+    isSearching,
+    editingProduct,
+    isAddingProduct,
+    formState,
+    isSaving,
+    isUploading,
+    isDeleting,
+    deletingProductId,
+    errorMessage,
+    selectedImageFile,
+    imagePreviewUrl,
+    fileInputRef,
+    setIsSearching,
+    setEditingProduct,
+    setIsAddingProduct,
+    handleFormChange,
+    handleImageSelect,
+    handleDrop,
+    handleDragOver,
+    openFileDialog,
+    handleEditSubmit,
+    handleAddSubmit,
+    handleAddToCart,
+    handleDelete,
+  } = useArduinoInventory();
 
-  useEffect(() => {
-    if (editingProduct) {
-      setFormState({
-        id: editingProduct.id,
-        english_names: editingProduct.english_names ?? "",
-        turkish_names: editingProduct.turkish_names ?? "",
-        category: editingProduct.category ?? "",
-        barcode: editingProduct.barcode ?? "",
-        quantity: editingProduct.quantity ?? 0,
-        price: editingProduct.price ? String(editingProduct.price) : "",
-        image_filename: editingProduct.image_filename ?? "",
-        description: editingProduct.description ?? "",
-      });
-      setSelectedImageFile(null);
-      setImagePreviewUrl(editingProduct.image_filename ?? null);
-      setErrorMessage(null);
-    } else if (isAddingProduct) {
-      setFormState({
-        id: 0,
-        english_names: "",
-        turkish_names: "",
-        category: "",
-        barcode: "",
-        quantity: 0,
-        price: "",
-        image_filename: "",
-        description: "",
-      });
-      setSelectedImageFile(null);
-      setImagePreviewUrl(null);
-      setErrorMessage(null);
-    }
-  }, [editingProduct, isAddingProduct]);
+  const [isExporting, setIsExporting] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (imagePreviewUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreviewUrl);
-      }
-    };
-  }, [imagePreviewUrl]);
-
-  const handleFormChange = (field: string, value: string | number) => {
-    setFormState((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-  };
-
-  const handleImageSelect = (file: File | null) => {
-    if (imagePreviewUrl?.startsWith("blob:")) {
-      URL.revokeObjectURL(imagePreviewUrl);
-    }
-    if (file) {
-      setSelectedImageFile(file);
-      setImagePreviewUrl(URL.createObjectURL(file));
-    } else {
-      setSelectedImageFile(null);
-      setImagePreviewUrl(null);
-    }
-  };
-
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const file = event.dataTransfer.files?.[0];
-    if (file) {
-      handleImageSelect(file);
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-  };
-
-  const openFileDialog = () => {
-    fileInputRef.current?.click();
-  };
-
-  const uploadSelectedImage = async (productId: number): Promise<string | null> => {
-    if (!selectedImageFile || !productId) {
-      return null;
-    }
-    setIsUploading(true);
+  const fetchAllProducts = async (): Promise<ArduinoProduct[]> => {
     try {
-      const formData = new FormData();
-      formData.append("image", selectedImageFile);
-      formData.append("id", String(productId));
-
-      const response = await fetch("/api/arduino/upload", {
-        method: "POST",
-        body: formData,
-      });
-
+      const response = await fetch("/api/arduino?pageSize=10000");
       if (!response.ok) {
-        throw new Error("Failed to upload image");
+        throw new Error("Failed to fetch products");
       }
-
-      const data = (await response.json()) as { url?: string };
-      return data.url ?? null;
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleEditSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!formState.id) return;
-    setIsSaving(true);
-    setErrorMessage(null);
-    let imageFilename = formState.image_filename || null;
-    try {
-      if (selectedImageFile) {
-        const uploadedUrl = await uploadSelectedImage(formState.id);
-        if (uploadedUrl) {
-          imageFilename = uploadedUrl;
-        }
-      }
-
-      const response = await fetch("/api/arduino", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: formState.id,
-          english_names: formState.english_names || null,
-          turkish_names: formState.turkish_names || null,
-          category: formState.category || null,
-          barcode: formState.barcode || null,
-          quantity: Number(formState.quantity) || 0,
-          price: formState.price ? String(formState.price) : null,
-          image_filename: imageFilename,
-          description: formState.description || null,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update product");
-      }
-
-      setEditingProduct(null);
-      if (imagePreviewUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreviewUrl);
-      }
-      setSelectedImageFile(null);
-      setImagePreviewUrl(null);
-      showToast("Product updated successfully", "success");
-      router.refresh();
+      const data = await response.json();
+      return data.items || [];
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Failed to update product";
-      setErrorMessage(errorMsg);
-      showToast(errorMsg, "error");
-    } finally {
-      setIsSaving(false);
+      console.error("Failed to fetch all products:", error);
+      return [];
     }
   };
 
-  const handleAddSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSaving(true);
-    setErrorMessage(null);
+  const handleDownloadExcel = async () => {
+    setIsExporting(true);
     try {
-      const response = await fetch("/api/arduino", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          english_names: formState.english_names || null,
-          turkish_names: formState.turkish_names || null,
-          category: formState.category || null,
-          barcode: formState.barcode || null,
-          quantity: Number(formState.quantity) || 0,
-          price: formState.price ? String(formState.price) : null,
-          image_filename: null,
-          description: formState.description || null,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add product");
-      }
-
-      const result = (await response.json()) as { id?: number };
-      const newProductId = result.id;
-
-      if (selectedImageFile && newProductId) {
-        const uploadedUrl = await uploadSelectedImage(newProductId);
-        if (uploadedUrl) {
-          await fetch("/api/arduino", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              id: newProductId,
-              image_filename: uploadedUrl,
-            }),
-          });
-        }
-      }
-
-      setIsAddingProduct(false);
-      if (imagePreviewUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreviewUrl);
-      }
-      setSelectedImageFile(null);
-      setImagePreviewUrl(null);
-      showToast("Product added successfully", "success");
-      router.refresh();
+      const allProducts = await fetchAllProducts();
+      await downloadExcel(allProducts);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Failed to add product";
-      setErrorMessage(errorMsg);
-      showToast(errorMsg, "error");
+      console.error("Failed to export Excel:", error);
     } finally {
-      setIsSaving(false);
+      setIsExporting(false);
     }
   };
 
-  const handleAddToCart = (product: ArduinoProduct) => {
-    addToCart(product, 1);
-    showToast(
-      `${product.english_names ?? `Product #${product.id}`} added to cart`,
-      "success"
-    );
-    openCart();
-  };
-
-  const handleDelete = async (product: ArduinoProduct) => {
-    if (!confirm(`Are you sure you want to delete "${product.english_names ?? `Product #${product.id}`}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    setIsDeleting(true);
-    setDeletingProductId(product.id);
-    setErrorMessage(null);
-
+  const handleHighlightExcel = async () => {
+    setIsExporting(true);
     try {
-      const response = await fetch("/api/arduino", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id: product.id }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete product");
-      }
-
-      showToast("Product deleted successfully", "success");
-      router.refresh();
+      const allProducts = await fetchAllProducts();
+      await highlightExcel(allProducts);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Failed to delete product";
-      setErrorMessage(errorMsg);
-      showToast(errorMsg, "error");
+      console.error("Failed to export highlighted Excel:", error);
     } finally {
-      setIsDeleting(false);
-      setDeletingProductId(null);
+      setIsExporting(false);
     }
   };
 
@@ -325,13 +104,31 @@ export function ArduinoInventoryClient({
           <h1 className="text-lg font-semibold uppercase tracking-[0.35em] text-muted-foreground">
             Arduino Inventory
           </h1>
-          <button
-            type="button"
-            onClick={() => setIsAddingProduct(true)}
-            className="rounded-2xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-          >
-            Add Product
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadExcel}
+              disabled={isExporting}
+              className="rounded-2xl bg-green-700 hover:bg-green-600 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+            >
+              {isExporting ? "Exporting..." : "Full Excel Sheet"}
+            </button>
+            <button
+              type="button"
+              onClick={handleHighlightExcel}
+              disabled={isExporting}
+              className="rounded-2xl bg-green-700 hover:bg-green-600 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+            >
+              {isExporting ? "Exporting..." : "Highlighted Excel Sheet"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAddingProduct(true)}
+              className="rounded-2xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+            >
+              Add Product
+            </button>
+          </div>
         </div>
         <ArduinoSearch onLoadingChange={setIsSearching} />
       </header>
@@ -380,7 +177,7 @@ export function ArduinoInventoryClient({
         field={field}
       />
     </div>
-      {(editingProduct || isAddingProduct) ? (
+      <Activity mode={(editingProduct || isAddingProduct) ? "visible" : "hidden"}>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur">
           <div className="w-full max-w-2xl rounded-3xl border border-border/60 bg-card p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
@@ -482,22 +279,29 @@ export function ArduinoInventoryClient({
                   >
                     {imagePreviewUrl ? (
                       <div className="flex flex-col items-center gap-2">
-                        <img
-                          src={imagePreviewUrl}
-                          alt="Preview"
-                          className="h-32 w-full rounded-2xl object-cover"
-                        />
+                        <div className="relative h-32 w-full rounded-2xl overflow-hidden">
+                          <Image
+                            src={imagePreviewUrl}
+                            alt="Preview"
+                            fill
+                            className="object-cover"
+                            unoptimized={imagePreviewUrl.startsWith("blob:")}
+                          />
+                        </div>
                         <span className="text-xs text-muted-foreground">
                           {selectedImageFile?.name ?? (editingProduct ? "Current image" : "No image selected")}
                         </span>
                       </div>
                     ) : editingProduct?.image_filename ? (
                       <div className="flex flex-col items-center gap-2">
-                        <img
-                          src={editingProduct.image_filename}
-                          alt="Current"
-                          className="h-32 w-full rounded-2xl object-cover"
-                        />
+                        <div className="relative h-32 w-full rounded-2xl overflow-hidden">
+                          <Image
+                            src={editingProduct.image_filename}
+                            alt="Current"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
                         <span className="text-xs text-muted-foreground">Current image</span>
                       </div>
                     ) : (
@@ -560,7 +364,7 @@ export function ArduinoInventoryClient({
             </form>
           </div>
         </div>
-      ) : null}
+      </Activity>
     </>
   );
 }

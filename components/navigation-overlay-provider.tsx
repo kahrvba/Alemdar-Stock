@@ -8,6 +8,8 @@ import {
   useMemo,
   useRef,
   useState,
+  Activity,
+  useEffectEvent,
 } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -45,12 +47,13 @@ export function NavigationOverlayProvider({ children }: { children: React.ReactN
     }
   };
 
-  const scheduleHide = useCallback(() => {
+  // Use useEffectEvent for scheduleHide since it's an event handler
+  const scheduleHide = useEffectEvent(() => {
     clearHideTimer();
     hideTimerRef.current = setTimeout(() => {
       setIsVisible(false);
     }, 250);
-  }, []);
+  });
 
   useEffect(() => {
     const routeKey = `${pathname}?${searchKey}`;
@@ -63,7 +66,9 @@ export function NavigationOverlayProvider({ children }: { children: React.ReactN
     return () => {
       clearHideTimer();
     };
-  }, [pathname, searchKey, isVisible, scheduleHide]);
+    // scheduleHide is an Effect Event, so it's not a dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, searchKey, isVisible]);
 
   const showOverlay = useCallback(() => {
     clearHideTimer();
@@ -80,19 +85,16 @@ export function NavigationOverlayProvider({ children }: { children: React.ReactN
   return (
     <NavigationOverlayContext.Provider value={value}>
       {children}
-      <NavigationOverlay isVisible={isVisible} />
+      <Activity mode={isVisible ? "visible" : "hidden"}>
+        <NavigationOverlay />
+      </Activity>
     </NavigationOverlayContext.Provider>
   );
 }
 
-function NavigationOverlay({ isVisible }: { isVisible: boolean }) {
+function NavigationOverlay() {
   return (
-    <div
-      className={cn(
-        "fixed inset-0 z-40 flex items-center justify-center bg-background/95 transition-transform duration-300 ease-out",
-        isVisible ? "translate-y-0 pointer-events-auto" : "translate-y-full pointer-events-none"
-      )}
-    >
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/95 transition-transform duration-300 ease-out translate-y-0 pointer-events-auto">
       <div className="flex flex-col items-center gap-4 text-muted-foreground">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-muted/40 border-t-primary" />
         <span className="text-xs uppercase tracking-[0.35em]">Loading</span>

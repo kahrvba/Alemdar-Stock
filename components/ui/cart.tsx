@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, Activity } from "react";
+import Image from "next/image";
 import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import type { ArduinoProduct } from "@/lib/services/arduino";
 import { cn } from "@/lib/utils";
@@ -60,14 +61,9 @@ function saveCartToStorage(items: CartItem[]): void {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  // Use lazy initialization to load from localStorage
+  const [items, setItems] = useState<CartItem[]>(() => loadCartFromStorage());
   const [isOpen, setIsOpen] = useState(false);
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const loadedItems = loadCartFromStorage();
-    setItems(loadedItems);
-  }, []);
 
   // Save cart to localStorage whenever items change
   useEffect(() => {
@@ -175,22 +171,18 @@ function CartSidebar() {
 
   return (
     <>
-      {/* Backdrop */}
-      {isOpen && (
+      <Activity mode={isOpen ? "visible" : "hidden"}>
+        {/* Backdrop */}
         <div
           className="fixed inset-0 z-[90] bg-background/80 backdrop-blur-sm transition-opacity"
           onClick={closeCart}
           aria-hidden="true"
         />
-      )}
 
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed right-0 top-0 z-[100] h-full w-full max-w-md transform border-l border-border/60 bg-card shadow-2xl transition-transform duration-300 ease-out",
-          isOpen ? "translate-x-0" : "translate-x-full"
-        )}
-      >
+        {/* Sidebar */}
+        <aside
+          className="fixed right-0 top-0 z-[100] h-full w-full max-w-md transform border-l border-border/60 bg-card shadow-2xl transition-transform duration-300 ease-out translate-x-0"
+        >
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/60 p-6">
@@ -239,12 +231,13 @@ function CartSidebar() {
                       className="flex gap-4 rounded-2xl border border-border/60 bg-muted/40 p-4"
                     >
                       {/* Product Image */}
-                      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
+                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
                         {item.product.image_filename ? (
-                          <img
+                          <Image
                             src={item.product.image_filename}
                             alt={item.product.english_names ?? "Product"}
-                            className="h-full w-full object-cover"
+                            fill
+                            className="object-cover"
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
@@ -274,7 +267,7 @@ function CartSidebar() {
                                 item.product.english_names ?? `Product #${item.product.id}`
                               )
                             }
-                            className="flex-shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2"
+                            className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2"
                             aria-label="Remove item"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -292,7 +285,7 @@ function CartSidebar() {
                             >
                               <Minus className="h-4 w-4" />
                             </button>
-                            <span className="min-w-[2rem] text-center text-sm font-semibold text-foreground">
+                            <span className="min-w-8 text-center text-sm font-semibold text-foreground">
                               {item.quantity}
                             </span>
                             <button
@@ -344,12 +337,19 @@ function CartSidebar() {
           )}
         </div>
       </aside>
+      </Activity>
     </>
   );
 }
 
 export function CartButton() {
   const { totalItems, toggleCart } = useCart();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Only show badge after client-side hydration to avoid hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   return (
     <button
@@ -359,7 +359,7 @@ export function CartButton() {
       aria-label="Open shopping cart"
     >
       <ShoppingCart className="h-5 w-5" />
-      {totalItems > 0 && (
+      {isMounted && totalItems > 0 && (
         <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
           {totalItems > 99 ? "99+" : totalItems}
         </span>
