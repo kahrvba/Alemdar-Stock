@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useNavigationOverlay } from "@/components/navigation-overlay-provider";
+import { CartButton } from "@/components/ui/cart";
 
 export function SiteHeader() {
   const { showOverlay } = useNavigationOverlay();
@@ -20,7 +21,10 @@ export function SiteHeader() {
         >
           Alemdar Teknik LTD
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-3">
+          <CartButton />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

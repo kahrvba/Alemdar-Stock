@@ -4,6 +4,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
 import { NavigationOverlayProvider } from "@/components/navigation-overlay-provider";
+import { ToastProvider } from "@/components/ui/toast";
+import { CartProvider } from "@/components/ui/cart";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,10 +33,14 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider>
-          <NavigationOverlayProvider>
-            <SiteHeader />
-            <main>{children}</main>
-          </NavigationOverlayProvider>
+          <ToastProvider>
+            <CartProvider>
+              <NavigationOverlayProvider>
+                <SiteHeader />
+                <main>{children}</main>
+              </NavigationOverlayProvider>
+            </CartProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

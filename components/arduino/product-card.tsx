@@ -6,6 +6,7 @@ type ProductCardProps = {
   product: ArduinoProduct;
   onEdit?: (product: ArduinoProduct) => void;
   onDelete?: (product: ArduinoProduct) => void;
+  onAddToCart?: (product: ArduinoProduct) => void;
   isDeleting?: boolean;
 };
 
@@ -15,7 +16,7 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-export function ProductCard({ product, onEdit, onDelete, isDeleting }: ProductCardProps) {
+export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting }: ProductCardProps) {
   const priceLabel =
     product.price && Number(product.price) > 0
       ? usdFormatter.format(Number(product.price))
@@ -71,6 +72,8 @@ export function ProductCard({ product, onEdit, onDelete, isDeleting }: ProductCa
                     ? () => onEdit?.(product)
                     : label === "Delete"
                     ? () => onDelete?.(product)
+                    : label === "Add to cart"
+                    ? () => onAddToCart?.(product)
                     : undefined
                 }
                 disabled={label === "Delete" && isDeleting}

@@ -7,6 +7,8 @@ import { PaginationControls } from "@/components/arduino/pagination-controls";
 import { ArduinoSearch } from "@/components/arduino/arduino-search";
 import type { ArduinoProduct } from "@/lib/services/arduino";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
+import { useCart } from "@/components/ui/cart";
 
 type ArduinoInventoryClientProps = {
   items: ArduinoProduct[];
@@ -50,6 +52,8 @@ export function ArduinoInventoryClient({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
+  const { showToast } = useToast();
+  const { addToCart, openCart } = useCart();
 
   useEffect(() => {
     if (editingProduct) {
@@ -197,11 +201,12 @@ export function ArduinoInventoryClient({
       }
       setSelectedImageFile(null);
       setImagePreviewUrl(null);
+      showToast("Product updated successfully", "success");
       router.refresh();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Failed to update product"
-      );
+      const errorMsg = error instanceof Error ? error.message : "Failed to update product";
+      setErrorMessage(errorMsg);
+      showToast(errorMsg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -258,14 +263,24 @@ export function ArduinoInventoryClient({
       }
       setSelectedImageFile(null);
       setImagePreviewUrl(null);
+      showToast("Product added successfully", "success");
       router.refresh();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Failed to add product"
-      );
+      const errorMsg = error instanceof Error ? error.message : "Failed to add product";
+      setErrorMessage(errorMsg);
+      showToast(errorMsg, "error");
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleAddToCart = (product: ArduinoProduct) => {
+    addToCart(product, 1);
+    showToast(
+      `${product.english_names ?? `Product #${product.id}`} added to cart`,
+      "success"
+    );
+    openCart();
   };
 
   const handleDelete = async (product: ArduinoProduct) => {
@@ -290,11 +305,12 @@ export function ArduinoInventoryClient({
         throw new Error("Failed to delete product");
       }
 
+      showToast("Product deleted successfully", "success");
       router.refresh();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Failed to delete product"
-      );
+      const errorMsg = error instanceof Error ? error.message : "Failed to delete product";
+      setErrorMessage(errorMsg);
+      showToast(errorMsg, "error");
     } finally {
       setIsDeleting(false);
       setDeletingProductId(null);
@@ -334,6 +350,7 @@ export function ArduinoInventoryClient({
                 product={product}
                 onEdit={setEditingProduct}
                 onDelete={handleDelete}
+                onAddToCart={handleAddToCart}
                 isDeleting={isDeleting && deletingProductId === product.id}
               />
             ))
