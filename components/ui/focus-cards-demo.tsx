@@ -15,6 +15,7 @@ export const focusCardsData = [
   {
     title: "Solar Side",
     src: "/Solar%20Panel%20System%20Components.jpg",
+    href: "/solar",
   },
   {
     title: "Sound Side",
