@@ -31,7 +31,7 @@ export function SiteHeader() {
           >
             Alemdar Teknik LTD
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mr-16">
             <CartButton />
             <ThemeToggle />
           </div>
