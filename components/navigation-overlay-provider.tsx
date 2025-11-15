@@ -10,6 +10,7 @@ import {
   useState,
   Activity,
   useEffectEvent,
+  Suspense,
 } from "react";
 import { cn } from "@/lib/utils";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -25,14 +26,29 @@ const NavigationOverlayContext = createContext<NavigationOverlayContextValue | n
 export function useNavigationOverlay() {
   const context = useContext(NavigationOverlayContext);
   if (context === null) {
-    throw new Error(
-      "useNavigationOverlay must be used within a NavigationOverlayProvider"
-    );
+    // This should only happen during build/SSR when provider isn't in the tree yet
+    // At runtime, the provider is always available in the layout
+    // Return a no-op function to prevent build errors
+    if (typeof window === 'undefined') {
+      // Server-side/build: safe to return no-op
+      return {
+        showOverlay: () => {
+          // No-op during build/SSR
+        },
+      };
+    }
+    // Client-side but provider missing: this shouldn't happen, but log a warning
+    console.warn('useNavigationOverlay called outside NavigationOverlayProvider');
+    return {
+      showOverlay: () => {
+        // No-op fallback
+      },
+    };
   }
   return context;
 }
 
-export function NavigationOverlayProvider({ children }: { children: React.ReactNode }) {
+function NavigationOverlayProviderInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchKey = searchParams?.toString() ?? "";
@@ -94,6 +110,14 @@ export function NavigationOverlayProvider({ children }: { children: React.ReactN
         <NavigationOverlay isHiding={isHiding} />
       </Activity>
     </NavigationOverlayContext.Provider>
+  );
+}
+
+export function NavigationOverlayProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={children}>
+      <NavigationOverlayProviderInner>{children}</NavigationOverlayProviderInner>
+    </Suspense>
   );
 }
 

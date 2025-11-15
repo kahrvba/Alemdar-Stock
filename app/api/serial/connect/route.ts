@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
-import { SerialPort } from 'serialport';
+
+// Prevent build-time evaluation of native module
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 declare global {
-  var serialConnection: SerialPort | undefined;
+  var serialConnection: any;
   var serialPortPath: string | undefined;
 }
 
@@ -10,6 +13,9 @@ export async function POST(req: Request) {
   const { port } = await req.json();
 
   try {
+    // Dynamic import to prevent build-time evaluation
+    const { SerialPort } = await import('serialport');
+
     // Close existing connection if any
     if (global.serialConnection) {
       await new Promise<void>((resolve) => {

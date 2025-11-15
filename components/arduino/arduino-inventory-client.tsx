@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Activity, useState, useCallback, useEffect } from "react";
+import React, { Activity, useState, useCallback, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { Settings, Download, FileSpreadsheet, Plus, ChevronDown } from "lucide-react";
 import { ProductCard } from "@/components/arduino/product-card";
@@ -149,7 +149,7 @@ export function ArduinoInventoryClient({
     try {
       const message = `1*${product.id}*${product.quantity}*\n`;
       await serialController.write(message);
-    } catch {
+    } catch (error) {
       showAlert('Failed to send to Arduino', 'error');
       setSerialConnected(false);
       setConnectionStatus('error');
@@ -248,8 +248,10 @@ export function ArduinoInventoryClient({
             </Button>
           </div>
         </div>
-        <ArduinoSearch onLoadingChange={setIsSearching} />
-      </header>
+                <Suspense fallback={<div className="h-10 w-full" />}>
+                  <ArduinoSearch onLoadingChange={setIsSearching} />
+                </Suspense>
+              </header>
 
       <section className="relative">
         <div

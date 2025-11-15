@@ -97,7 +97,7 @@ export const highlightExcel = async (products: ArduinoProduct[]) => {
   worksheet.getRow(1).font = { bold: true };
   worksheet.getRow(1).height = 25;
 
-  products.filter(product => product.quantity <= 3) // Filter products with low quantity
+  products.filter(product => (product.quantity ?? 0) <= 3) // Filter products with low quantity
   .forEach(product => {
     const row = worksheet.addRow([
       product.id,

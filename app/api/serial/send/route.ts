@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SerialPort } from 'serialport';
+
+// Prevent build-time evaluation of native module
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 declare global {
-  var serialConnection: SerialPort | undefined;
+  var serialConnection: any;
 }
 
 export async function POST(req: NextRequest) {
@@ -18,7 +21,7 @@ export async function POST(req: NextRequest) {
         reject(new Error('Write timeout'));
       }, 3000); // 3 second timeout
 
-      global.serialConnection!.write(message, (err) => {
+      global.serialConnection!.write(message, (err: Error | null | undefined) => {
         clearTimeout(timeoutId);
         if (err) {
           console.error('Write error:', err);
