@@ -10,6 +10,7 @@ export const focusCardsData = [
   {
     title: "Cable Side",
     src: "/Shutterstock%201167002386.jpg",
+    href: "/cable",
   },
   {
     title: "Solar Side",

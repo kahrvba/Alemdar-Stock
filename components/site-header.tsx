@@ -9,6 +9,7 @@ import { useNavigationOverlay } from "@/components/navigation-overlay-provider";
 export function SiteHeader() {
   const menuItems = [
     { label: "Arduino", ariaLabel: "Arduino Side", link: "/arduino" },
+    { label: "Cable", ariaLabel: "Cable Side", link: "/cable" },
     { label: "Sound", ariaLabel: "Sound Side", link: "/sound" },
     { label: "Solar", ariaLabel: "Solar Side", link: "/solar" },
     { label: "Invoices", ariaLabel: "Invoices Side", link: "/invoices" },

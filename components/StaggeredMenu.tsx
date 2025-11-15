@@ -1,6 +1,7 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useNavigationOverlay } from '@/components/navigation-overlay-provider';
 import './StaggeredMenu.css';
 
@@ -41,7 +42,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
   displaySocials = true,
   displayItemNumbering = true,
   className,
-  logoUrl = '/src/assets/logos/reactbits-gh-white.svg',
+  logoUrl = '/logo.png',
   menuButtonColor = '#fff',
   openMenuButtonColor = '#fff',
   changeMenuColorOnOpen = true,
@@ -94,9 +95,17 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
 
       const offscreen = position === 'left' ? -100 : 100;
       if (preLayers.length > 0) {
-        gsap.set([panel, ...preLayers], { xPercent: offscreen });
+        gsap.set([panel, ...preLayers], { 
+          xPercent: offscreen,
+          opacity: 1,
+          visibility: 'visible'
+        });
       } else {
-        gsap.set(panel, { xPercent: offscreen });
+        gsap.set(panel, { 
+          xPercent: offscreen,
+          opacity: 1,
+          visibility: 'visible'
+        });
       }
       gsap.set(plusH, { transformOrigin: '50% 50%', rotate: 0 });
       gsap.set(plusV, { transformOrigin: '50% 50%', rotate: 90 });
@@ -154,6 +163,17 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
     }
 
     const tl = gsap.timeline({ paused: true });
+
+    // Make panel and layers visible at the start
+    gsap.set([panel, ...layers], { 
+      opacity: 1, 
+      visibility: 'visible'
+    });
+    // Set pointer-events via style since GSAP doesn't support it
+    panel.style.pointerEvents = 'auto';
+    layers.forEach(layer => {
+      layer.style.pointerEvents = 'auto';
+    });
 
     layerStates.forEach((ls, i) => {
       tl.fromTo(ls.el, { xPercent: ls.start }, { xPercent: 0, duration: 0.5, ease: 'power4.out' }, i * 0.07);
@@ -277,6 +297,16 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
         const socialLinks = Array.from(panel.querySelectorAll('.sm-socials-link')) as HTMLElement[];
         if (socialTitle) gsap.set(socialTitle, { opacity: 0 });
         if (socialLinks.length) gsap.set(socialLinks, { y: 25, opacity: 0 });
+        // Hide panel after closing
+        gsap.set([panel, ...layers], { 
+          opacity: 0, 
+          visibility: 'hidden'
+        });
+        // Set pointer-events via style since GSAP doesn't support it
+        panel.style.pointerEvents = 'none';
+        layers.forEach(layer => {
+          layer.style.pointerEvents = 'none';
+        });
         busyRef.current = false;
       }
     });
@@ -416,8 +446,8 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
       </div>
       <header className="staggered-menu-header" aria-label="Main navigation header">
         <div className="sm-logo" aria-label="Logo">
-          <img
-            src={logoUrl || '/src/assets/logos/reactbits-gh-white.svg'}
+          <Image
+            src={logoUrl || '/logo.png'}
             alt="Logo"
             className="sm-logo-img"
             draggable={false}

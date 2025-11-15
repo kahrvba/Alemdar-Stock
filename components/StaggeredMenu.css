@@ -144,6 +144,10 @@
   padding: 6em 2em 2em 2em;
   overflow-y: auto;
   z-index: 10;
+  /* Hide panel initially to prevent flash on page load - GSAP will control transform */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 [data-position='left'] .staggered-menu-panel {
@@ -166,13 +170,19 @@
   left: 0;
 }
 
+[data-position='left'] .sm-prelayer {
+  /* Same hiding for left position */
+}
+
 .sm-prelayer {
   position: absolute;
   top: 0;
   right: 0;
   height: 100%;
   width: 100%;
-  transform: translateX(0);
+  /* Hide prelayers initially to prevent flash - GSAP will control transform */
+  opacity: 0;
+  visibility: hidden;
 }
 
 .sm-panel-inner {
