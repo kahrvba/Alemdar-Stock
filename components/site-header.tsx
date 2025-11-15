@@ -21,6 +21,10 @@ export function SiteHeader() {
     <>
       <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
+          <div className="flex items-center gap-3">
+            <CartButton />
+            <ThemeToggle />
+          </div>
           <Link
             href="/"
             onClick={(event) => {
@@ -31,10 +35,6 @@ export function SiteHeader() {
           >
             Alemdar Teknik LTD
           </Link>
-          <div className="flex items-center gap-3 mr-16">
-            <CartButton />
-            <ThemeToggle />
-          </div>
         </div>
       </header>
       <StaggeredMenu
