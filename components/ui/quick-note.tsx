@@ -149,7 +149,7 @@ export function QuickNoteButton() {
         type="button"
         onClick={handleToggle}
         className={cn(
-          "fixed bottom-6 right-6 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full border border-border/60 bg-muted/70 text-foreground shadow-xl shadow-black/20 backdrop-blur transition hover:scale-105 hover:bg-muted active:scale-95"
+          "fixed bottom-6 right-6 z-[110] inline-flex h-14 w-14 items-center justify-center rounded-full border border-border/60 bg-muted/70 text-foreground shadow-xl shadow-black/20 backdrop-blur transition hover:scale-105 hover:bg-muted active:scale-95 cursor-pointer"
         )}
         aria-expanded={isOpen}
         aria-label="Toggle quick note"
@@ -158,7 +158,7 @@ export function QuickNoteButton() {
       </button>
 
       {isOpen ? (
-        <div className="fixed bottom-24 right-6 z-50 w-96 rounded-2xl border border-border/60 bg-popover/90 p-5 text-popover-foreground shadow-[0_20px_60px_-15px_rgba(0,0,0,0.45)] backdrop-blur-md">
+        <div className="fixed bottom-24 right-6 z-[110] w-96 rounded-2xl border border-border/60 bg-popover/90 p-5 text-popover-foreground shadow-[0_20px_60px_-15px_rgba(0,0,0,0.45)] backdrop-blur-md">
           <header className="mb-4">
             <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-muted-foreground">
               Quick Note to Ahmed
@@ -184,7 +184,7 @@ export function QuickNoteButton() {
                 "rounded-full px-4 py-2 text-sm font-medium transition active:scale-95",
                 status === "sending"
                   ? "cursor-wait bg-muted text-muted-foreground"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
               )}
             >
               {status === "sending" ? "Sending..." : "Save"}
@@ -212,7 +212,7 @@ export function QuickNoteButton() {
               <span>Activity</span>
               <button
                 type="button"
-                className="text-[0.65rem] uppercase tracking-[0.4em] text-muted-foreground transition hover:text-foreground"
+                className="text-[0.65rem] uppercase tracking-[0.4em] text-muted-foreground transition hover:text-foreground cursor-pointer"
                 onClick={fetchNotes}
               >
                 Refresh
@@ -255,7 +255,7 @@ export function QuickNoteButton() {
                         <button
                           type="button"
                           onClick={() => handleStatusChange(item.id, nextStatus)}
-                          className="rounded-full border border-white/10 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-white transition hover:border-white/30 hover:bg-white/10"
+                          className="rounded-full border border-white/10 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-white transition hover:border-white/30 hover:bg-white/10 cursor-pointer"
                         >
                           {nextStatus === "resolved"
                             ? "Mark Resolved"

@@ -5,20 +5,33 @@ import { handleImageUpload } from '@/lib/imageHandler';
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    const file = formData.get('image') as File;
-    const id = formData.get('id') as string;
+    const file = formData.get('image') as File | null;
+    const id = formData.get('id') as string | null;
 
-    if (!file) {
-      return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+    if (!file || !id) {
+      return NextResponse.json(
+        { error: 'Missing required fields: image and id' },
+        { status: 400 }
+      );
     }
 
-    const result = await handleImageUpload(file, id, 'arduino', pool);
+    if (typeof id !== 'string' || id.trim() === '') {
+      return NextResponse.json(
+        { error: 'Invalid product ID' },
+        { status: 400 }
+      );
+    }
+
+    const result = await handleImageUpload(file, id.trim(), 'arduino', pool);
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Upload error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to upload image';
+    console.error('[arduino/upload]', errorMessage);
+    
+    // Return user-friendly error message
     return NextResponse.json(
-      { error: 'Failed to upload image' }, 
-      { status: 500 }
+      { error: errorMessage },
+      { status: errorMessage.includes('not found') ? 404 : 500 }
     );
   }
 }

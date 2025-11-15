@@ -5,37 +5,36 @@ import pool from '@/lib/db';
 export async function GET(req: Request, context: any) {
   const params = await context.params;
   const invoiceId = params.id;
-  console.log('Requested invoiceId:', invoiceId); // Debug log
+  
   if (!invoiceId) {
     return NextResponse.json({ error: 'Missing invoice ID' }, { status: 400 });
   }
   
   // Parse invoice ID as integer
   const invoiceIdNum = parseInt(invoiceId, 10);
-  if (isNaN(invoiceIdNum)) {
+  if (isNaN(invoiceIdNum) || invoiceIdNum <= 0) {
     return NextResponse.json({ error: 'Invalid invoice ID' }, { status: 400 });
   }
   
+  const client = await pool.connect();
   try {
-    const client = await pool.connect();
     // Fetch invoice
     const invoiceRes = await client.query(
       'SELECT * FROM public.invoices WHERE id = $1',
       [invoiceIdNum]
     );
-    console.log('Invoice query result:', invoiceRes.rows); // Debug log
+    
     if (invoiceRes.rows.length === 0) {
-      client.release();
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
+    
     const invoice = invoiceRes.rows[0];
+    
     // Fetch items
     const itemsRes = await client.query(
       'SELECT * FROM public.invoice_items WHERE invoice_id = $1',
       [invoiceIdNum]
     );
-    console.log('Invoice items query result:', itemsRes.rows); // Debug log
-    client.release();
     // Format for InvoiceTemplate
     function formatDate(dateString: string) {
       if (!dateString) return '';
@@ -64,7 +63,9 @@ export async function GET(req: Request, context: any) {
       total: Number(invoice.total_amount),
     });
   } catch (error) {
-    console.error('Error fetching invoice:', error);
+    console.error('[invoices/[id]] Error fetching invoice:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to fetch invoice' }, { status: 500 });
+  } finally {
+    client.release();
   }
 } 
