@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useEffectEvent } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { ArduinoProduct } from "@/lib/services/arduino";
 import { useToast } from "@/components/ui/toast";
@@ -35,11 +35,6 @@ export function useArduinoInventory() {
   const router = useRouter();
   const { showToast } = useToast();
   const { addToCart, openCart } = useCart();
-
-  // Use useEffectEvent for showToast since it's an event handler that doesn't need to trigger effect re-runs
-  const onShowToast = useEffectEvent((message: string, type?: "success" | "error" | "info" | "warning") => {
-    showToast(message, type);
-  });
 
   // Initialize form state when editing or adding
   useEffect(() => {
@@ -190,16 +185,16 @@ export function useArduinoInventory() {
       }
       setSelectedImageFile(null);
       setImagePreviewUrl(null);
-      onShowToast("Product updated successfully", "success");
+      showToast("Product updated successfully", "success");
       router.refresh();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Failed to update product";
       setErrorMessage(errorMsg);
-      onShowToast(errorMsg, "error");
+      showToast(errorMsg, "error");
     } finally {
       setIsSaving(false);
     }
-  }, [formState, selectedImageFile, imagePreviewUrl, uploadSelectedImage, onShowToast, router]);
+  }, [formState, selectedImageFile, imagePreviewUrl, uploadSelectedImage, showToast, router]);
 
   const handleAddSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -252,25 +247,25 @@ export function useArduinoInventory() {
       }
       setSelectedImageFile(null);
       setImagePreviewUrl(null);
-      onShowToast("Product added successfully", "success");
+      showToast("Product added successfully", "success");
       router.refresh();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Failed to add product";
       setErrorMessage(errorMsg);
-      onShowToast(errorMsg, "error");
+      showToast(errorMsg, "error");
     } finally {
       setIsSaving(false);
     }
-  }, [formState, selectedImageFile, imagePreviewUrl, uploadSelectedImage, onShowToast, router]);
+  }, [formState, selectedImageFile, imagePreviewUrl, uploadSelectedImage, showToast, router]);
 
   const handleAddToCart = useCallback((product: ArduinoProduct) => {
     addToCart(product, 1);
-    onShowToast(
+    showToast(
       `${product.english_names ?? `Product #${product.id}`} added to cart`,
       "success"
     );
     openCart();
-  }, [addToCart, onShowToast, openCart]);
+  }, [addToCart, showToast, openCart]);
 
   const handleDelete = useCallback(async (product: ArduinoProduct) => {
     if (!confirm(`Are you sure you want to delete "${product.english_names ?? `Product #${product.id}`}"? This action cannot be undone.`)) {
@@ -294,17 +289,17 @@ export function useArduinoInventory() {
         throw new Error("Failed to delete product");
       }
 
-      onShowToast("Product deleted successfully", "success");
+      showToast("Product deleted successfully", "success");
       router.refresh();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Failed to delete product";
       setErrorMessage(errorMsg);
-      onShowToast(errorMsg, "error");
+      showToast(errorMsg, "error");
     } finally {
       setIsDeleting(false);
       setDeletingProductId(null);
     }
-  }, [onShowToast, router]);
+  }, [showToast, router]);
 
   return {
     // State

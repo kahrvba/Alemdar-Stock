@@ -1,13 +1,16 @@
 import Image from "next/image";
 import { ArduinoProduct } from "@/lib/services/arduino";
 import { HoverZoom } from "@/components/ui/hover-zoom";
+import { cn } from "@/lib/utils";
 
 type ProductCardProps = {
   product: ArduinoProduct;
   onEdit?: (product: ArduinoProduct) => void;
   onDelete?: (product: ArduinoProduct) => void;
   onAddToCart?: (product: ArduinoProduct) => void;
+  onPrint?: (product: ArduinoProduct) => void;
   isDeleting?: boolean;
+  isSelected?: boolean;
 };
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
@@ -16,14 +19,24 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting }: ProductCardProps) {
+export function ProductCard({ product, onEdit, onDelete, onAddToCart, onPrint, isDeleting, isSelected }: ProductCardProps) {
   const priceLabel =
     product.price && Number(product.price) > 0
       ? usdFormatter.format(Number(product.price))
       : "Contact for price";
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card/80 shadow-[0_25px_80px_-40px_rgba(0,0,0,0.4)] transition hover:border-border hover:bg-card">
+    <article 
+      className={cn(
+        "group flex h-full flex-col overflow-hidden rounded-3xl border-4 bg-card/80 shadow-[0_25px_80px_-40px_rgba(0,0,0,0.4)] transition hover:bg-card cursor-pointer",
+        isSelected ? "border-red-500" : "border-transparent"
+      )}
+      onClick={() => {
+        if (onPrint) {
+          onPrint(product);
+        }
+      }}
+    >
       <div className="relative h-90 w-full overflow-hidden rounded-t-3xl bg-muted">
         {product.image_filename ? (
           <HoverZoom className="relative h-full w-full">
@@ -67,17 +80,20 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
               <button
                 key={label}
                 type="button"
-                onClick={
-                  label === "Edit"
-                    ? () => onEdit?.(product)
-                    : label === "Delete"
-                    ? () => onDelete?.(product)
-                    : label === "Add to cart"
-                    ? () => onAddToCart?.(product)
-                    : undefined
-                }
-                disabled={label === "Delete" && isDeleting}
-                className="rounded-2xl border border-border/60 bg-muted/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted disabled:opacity-60"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (label === "Edit") {
+                    onEdit?.(product);
+                  } else if (label === "Delete") {
+                    onDelete?.(product);
+                  } else if (label === "Print") {
+                    onPrint?.(product);
+                  } else if (label === "Add to cart") {
+                    onAddToCart?.(product);
+                  }
+                }}
+                disabled={(label === "Delete" && isDeleting) || label === "Print"}
+                className="rounded-2xl border border-border/60 bg-muted/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {label === "Delete" && isDeleting ? "Deleting..." : label}
               </button>

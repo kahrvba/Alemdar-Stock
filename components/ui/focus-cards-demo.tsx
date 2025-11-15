@@ -20,8 +20,9 @@ export const focusCardsData = [
     src: "/Producción Pin.jpg",
   },
   {
-    title: "Coming Soon",
-    src: "/Coming%20Soon%20Display%20Background.jpg",
+    title: "Invoices side",
+    src: "/invoice.webp",
+    href: "/invoices",
   },
   {
     title: "Coming Soon",

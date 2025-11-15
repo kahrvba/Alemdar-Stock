@@ -151,6 +151,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 function CartSidebar() {
   const { items, isOpen, closeCart, removeFromCart, updateQuantity, totalItems, totalPrice, clearCart } = useCart();
   const { showToast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
   const usdFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -166,6 +167,134 @@ function CartSidebar() {
     if (confirm("Are you sure you want to clear the cart?")) {
       clearCart();
       showToast("Cart cleared", "info");
+    }
+  };
+
+  const fetchLatestInvoiceNumber = async () => {
+    try {
+      const res = await fetch('/api/invoices');
+      const data = await res.json();
+      if (Array.isArray(data.invoices) && data.invoices.length > 0) {
+        const lastInvoice = data.invoices[0];
+        const lastNumber = parseInt(lastInvoice.invoice_number, 10);
+        if (!isNaN(lastNumber)) {
+          return lastNumber;
+        }
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (items.length === 0) {
+      showToast('Cart is empty', 'error');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // Fetch fresh product data from API to check current stock
+      const productIds = items.map(item => item.product.id).join(',');
+      const productsResponse = await fetch(`/api/arduino?pageSize=10000`);
+      if (!productsResponse.ok) {
+        throw new Error('Failed to fetch product data');
+      }
+      const productsData = await productsResponse.json();
+      const freshProducts = productsData.items || [];
+
+      // Check stock for all items with fresh data
+      for (const item of items) {
+        const freshProduct = freshProducts.find((p: any) => p.id === item.product.id);
+        if (!freshProduct) {
+          showToast(`Product ${item.product.english_names} not found`, 'error');
+          setIsProcessing(false);
+          return;
+        }
+        
+        const currentStock = Number(freshProduct.quantity) || 0;
+        const requestedQuantity = Number(item.quantity) || 0;
+        
+        if (currentStock < requestedQuantity) {
+          showToast(
+            `Not enough stock for ${item.product.english_names}. Available: ${currentStock}, Requested: ${requestedQuantity}`,
+            'error'
+          );
+          setIsProcessing(false);
+          return;
+        }
+      }
+
+      // Update product quantities in DB
+      for (const item of items) {
+        const freshProduct = freshProducts.find((p: any) => p.id === item.product.id);
+        if (!freshProduct) continue;
+        
+        const currentStock = Number(freshProduct.quantity) || 0;
+        const requestedQuantity = Number(item.quantity) || 0;
+        const newQuantity = Math.max(0, currentStock - requestedQuantity);
+        
+        const updatedProduct = { 
+          ...freshProduct, 
+          quantity: newQuantity 
+        };
+        
+        const updateResponse = await fetch('/api/arduino', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedProduct),
+        });
+        
+        if (!updateResponse.ok) {
+          throw new Error(`Failed to update stock for ${item.product.english_names}`);
+        }
+      }
+
+      // Fetch latest invoice number and increment
+      const latestInvoiceNumber = await fetchLatestInvoiceNumber();
+      const newInvoiceNumber = latestInvoiceNumber + 1;
+
+      // Create invoice
+      const invoiceData = {
+        invoiceNumber: String(newInvoiceNumber),
+        date: new Date().toISOString(),
+        products: items.map(item => ({
+          productId: item.product.id,
+          name: item.product.english_names || 'Unnamed product',
+          barcode: item.product.barcode || '',
+          quantity: item.quantity,
+          unitPrice: Number(item.product.price) || 0,
+          total: (Number(item.product.price) || 0) * item.quantity,
+        })),
+        subtotal: totalPrice,
+        total: totalPrice,
+      };
+
+      const response = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(invoiceData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create invoice');
+      }
+
+      const result = await response.json();
+      showToast('Invoice created successfully!', 'success');
+      clearCart();
+      closeCart();
+      
+      // Optionally redirect to invoice page
+      if (result.invoiceId) {
+        window.location.href = `/invoices/${result.invoiceId}`;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      showToast('Error processing checkout. Please try again.', 'error');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -328,9 +457,11 @@ function CartSidebar() {
                 </button>
                 <button
                   type="button"
-                  className="rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+                  onClick={handleCheckout}
+                  disabled={isProcessing}
+                  className="rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Checkout
+                  {isProcessing ? 'Processing...' : 'Checkout'}
                 </button>
               </div>
             </div>

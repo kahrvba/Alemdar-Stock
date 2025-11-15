@@ -1,7 +1,8 @@
 "use client";
 
-import React, { Activity, useState } from "react";
+import React, { Activity, useState, useCallback, useEffect } from "react";
 import Image from "next/image";
+import { Settings, Download, FileSpreadsheet, Plus, ChevronDown } from "lucide-react";
 import { ProductCard } from "@/components/arduino/product-card";
 import { PaginationControls } from "@/components/arduino/pagination-controls";
 import { ArduinoSearch } from "@/components/arduino/arduino-search";
@@ -9,6 +10,10 @@ import type { ArduinoProduct } from "@/lib/services/arduino";
 import { cn } from "@/lib/utils";
 import { useArduinoInventory } from "@/hooks/use-arduino-inventory";
 import { downloadExcel, highlightExcel } from "@/lib/excel-export";
+import { WebSerialController } from "@/lib/webSerial";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/ui/toast";
 
 type ArduinoInventoryClientProps = {
   items: ArduinoProduct[];
@@ -58,6 +63,14 @@ export function ArduinoInventoryClient({
 
   const [isExporting, setIsExporting] = useState(false);
 
+  // Serial connection state
+  const [serialConnected, setSerialConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+  const [serialController] = useState(() => new WebSerialController());
+  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
+  const { showToast: showAlert } = useToast();
+
   const fetchAllProducts = async (): Promise<ArduinoProduct[]> => {
     try {
       const response = await fetch("/api/arduino?pageSize=10000");
@@ -96,6 +109,64 @@ export function ArduinoInventoryClient({
     }
   };
 
+  // Serial connection function - opens port selection and auto-connects
+  const handleConnectArduino = useCallback(async () => {
+    setIsConnecting(true);
+    setConnectionStatus('connecting');
+    
+    try {
+      // This will open the browser's port selection dialog
+      const ports = await serialController.listPorts();
+      
+      if (ports.length === 0) {
+        setConnectionStatus('error');
+        showAlert('No port selected', 'error');
+        setIsConnecting(false);
+        return;
+      }
+
+      // Auto-connect after port selection
+      await serialController.connect();
+      setSerialConnected(true);
+      setConnectionStatus('connected');
+      showAlert('Connected to Arduino!', 'success');
+    } catch (error) {
+      console.error('Connection error:', error);
+      setConnectionStatus('error');
+      setSerialConnected(false);
+      showAlert(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [serialController, showAlert]);
+
+  const sendToArduino = useCallback(async (product: ArduinoProduct) => {
+    if (!serialConnected) {
+      showAlert('Please connect to Arduino first', 'error');
+      return;
+    }
+
+    try {
+      const message = `1*${product.id}*${product.quantity}*\n`;
+      await serialController.write(message);
+    } catch {
+      showAlert('Failed to send to Arduino', 'error');
+      setSerialConnected(false);
+      setConnectionStatus('error');
+    }
+  }, [serialConnected, serialController, showAlert]);
+
+  // Update connection status based on state
+  useEffect(() => {
+    if (serialConnected) {
+      setConnectionStatus('connected');
+    } else if (isConnecting) {
+      setConnectionStatus('connecting');
+    } else {
+      setConnectionStatus('disconnected');
+    }
+  }, [serialConnected, isConnecting]);
+
   return (
     <>
     <div className="flex flex-col gap-12">
@@ -105,29 +176,76 @@ export function ArduinoInventoryClient({
             Arduino Inventory
           </h1>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDownloadExcel}
-              disabled={isExporting}
-              className="rounded-2xl bg-green-700 hover:bg-green-600 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
-            >
-              {isExporting ? "Exporting..." : "Full Excel Sheet"}
-            </button>
-            <button
-              type="button"
-              onClick={handleHighlightExcel}
-              disabled={isExporting}
-              className="rounded-2xl bg-green-700 hover:bg-green-600 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
-            >
-              {isExporting ? "Exporting..." : "Highlighted Excel Sheet"}
-            </button>
-            <button
-              type="button"
+            {/* Excel Export Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={isExporting}
+                  className="flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span>Export</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  onClick={handleDownloadExcel}
+                  disabled={isExporting}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>{isExporting ? "Exporting..." : "Full Excel Sheet"}</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleHighlightExcel}
+                  disabled={isExporting}
+                  className="flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span>{isExporting ? "Exporting..." : "Highlighted Excel Sheet"}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Connect to Arduino Button */}
+            <div className="relative">
+              <Button
+                onClick={handleConnectArduino}
+                disabled={isConnecting || serialConnected}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                {isConnecting ? 'Connecting...' : serialConnected ? 'Connected' : 'Connect'}
+              </Button>
+              <span
+                className={cn(
+                  "absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background",
+                  connectionStatus === 'connected' && "bg-green-500",
+                  connectionStatus === 'connecting' && "bg-yellow-500",
+                  connectionStatus === 'error' && "bg-red-500",
+                  connectionStatus === 'disconnected' && "bg-gray-400"
+                )}
+                aria-label={
+                  connectionStatus === 'connected' ? 'Connected' :
+                  connectionStatus === 'connecting' ? 'Connecting' :
+                  connectionStatus === 'error' ? 'Error' :
+                  'Disconnected'
+                }
+              />
+            </div>
+
+            {/* Add Product Button */}
+            <Button
               onClick={() => setIsAddingProduct(true)}
-              className="rounded-2xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+              className="flex items-center gap-2"
             >
-              Add Product
-            </button>
+              <Plus className="h-4 w-4" />
+              <span>Add Product</span>
+            </Button>
           </div>
         </div>
         <ArduinoSearch onLoadingChange={setIsSearching} />
@@ -148,7 +266,12 @@ export function ArduinoInventoryClient({
                 onEdit={setEditingProduct}
                 onDelete={handleDelete}
                 onAddToCart={handleAddToCart}
+                onPrint={(product) => {
+                  setSelectedProduct(product.id);
+                  sendToArduino(product);
+                }}
                 isDeleting={isDeleting && deletingProductId === product.id}
+                isSelected={selectedProduct === product.id}
               />
             ))
           ) : (

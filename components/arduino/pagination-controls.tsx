@@ -23,8 +23,9 @@ export function PaginationControls({
 }: PaginationControlsProps) {
   const { showOverlay } = useNavigationOverlay();
 
-  const handleClick = (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>, isDisabled: boolean) => {
+    if (isDisabled || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      event.preventDefault();
       return;
     }
     showOverlay();
@@ -48,35 +49,41 @@ export function PaginationControls({
       aria-label="Arduino pagination"
       className="flex items-center justify-center gap-6 text-sm text-muted-foreground"
     >
-      <Link
-        href={buildHref(previousPage)}
-        aria-disabled={page === 1}
-        className={cn(
-          "rounded-full border border-border/60 px-4 py-2 font-medium text-foreground transition hover:border-border hover:bg-muted",
-          page === 1
-            ? "cursor-not-allowed border-border/40 text-muted-foreground"
-            : ""
-        )}
-        onClick={handleClick}
-      >
-        Previous
-      </Link>
+      {page === 1 ? (
+        <span
+          aria-disabled={true}
+          className="rounded-full border border-border/40 px-4 py-2 font-medium text-muted-foreground cursor-not-allowed"
+        >
+          Previous
+        </span>
+      ) : (
+        <Link
+          href={buildHref(previousPage)}
+          className="rounded-full border border-border/60 px-4 py-2 font-medium text-foreground transition hover:border-border hover:bg-muted"
+          onClick={(e) => handleClick(e, false)}
+        >
+          Previous
+        </Link>
+      )}
       <span className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
         Page {page} of {totalPages}
       </span>
-      <Link
-        href={buildHref(nextPage)}
-        aria-disabled={page === totalPages}
-        className={cn(
-          "rounded-full border border-border/60 px-4 py-2 font-medium text-foreground transition hover:border-border hover:bg-muted",
-          page === totalPages
-            ? "cursor-not-allowed border-border/40 text-muted-foreground"
-            : ""
-        )}
-        onClick={handleClick}
-      >
-        Next
-      </Link>
+      {page === totalPages ? (
+        <span
+          aria-disabled={true}
+          className="rounded-full border border-border/40 px-4 py-2 font-medium text-muted-foreground cursor-not-allowed"
+        >
+          Next
+        </span>
+      ) : (
+        <Link
+          href={buildHref(nextPage)}
+          className="rounded-full border border-border/60 px-4 py-2 font-medium text-foreground transition hover:border-border hover:bg-muted"
+          onClick={(e) => handleClick(e, false)}
+        >
+          Next
+        </Link>
+      )}
     </nav>
   );
 }

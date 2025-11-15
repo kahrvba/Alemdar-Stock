@@ -11,8 +11,8 @@ import {
   Activity,
   useEffectEvent,
 } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { usePathname, useSearchParams } from "next/navigation";
 
 type NavigationOverlayContextValue = {
   showOverlay: () => void;
@@ -37,6 +37,7 @@ export function NavigationOverlayProvider({ children }: { children: React.ReactN
   const searchParams = useSearchParams();
   const searchKey = searchParams?.toString() ?? "";
   const [isVisible, setIsVisible] = useState(false);
+  const [isHiding, setIsHiding] = useState(false);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastRouteRef = useRef(`${pathname}?${searchKey}`);
 
@@ -50,9 +51,13 @@ export function NavigationOverlayProvider({ children }: { children: React.ReactN
   // Use useEffectEvent for scheduleHide since it's an event handler
   const scheduleHide = useEffectEvent(() => {
     clearHideTimer();
+    // Start slide-down animation
+    setIsHiding(true);
+    // After animation completes, hide the component
     hideTimerRef.current = setTimeout(() => {
       setIsVisible(false);
-    }, 250);
+      setIsHiding(false);
+    }, 300);
   });
 
   useEffect(() => {
@@ -86,15 +91,18 @@ export function NavigationOverlayProvider({ children }: { children: React.ReactN
     <NavigationOverlayContext.Provider value={value}>
       {children}
       <Activity mode={isVisible ? "visible" : "hidden"}>
-        <NavigationOverlay />
+        <NavigationOverlay isHiding={isHiding} />
       </Activity>
     </NavigationOverlayContext.Provider>
   );
 }
 
-function NavigationOverlay() {
+function NavigationOverlay({ isHiding }: { isHiding: boolean }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/95 transition-transform duration-300 ease-out translate-y-0 pointer-events-auto">
+    <div className={cn(
+      "fixed inset-0 z-40 flex items-center justify-center bg-background/95 pointer-events-auto transition-transform duration-300 ease-out",
+      isHiding ? "translate-y-full" : "translate-y-0 animate-slide-up"
+    )}>
       <div className="flex flex-col items-center gap-4 text-muted-foreground">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-muted/40 border-t-primary" />
         <span className="text-xs uppercase tracking-[0.35em]">Loading</span>
