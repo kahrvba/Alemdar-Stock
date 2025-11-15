@@ -2,7 +2,7 @@
 
 import React, { Activity, useState, useCallback, useEffect, Suspense } from "react";
 import Image from "next/image";
-import { Settings, Download, FileSpreadsheet, Plus, ChevronDown } from "lucide-react";
+import { Settings, Download, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { ProductCard } from "@/components/cable/product-card";
 import { PaginationControls } from "@/components/cable/pagination-controls";
 import { CableSearch } from "@/components/cable/cable-search";
@@ -172,80 +172,87 @@ export function CableInventoryClient({
     <div className="flex flex-col gap-12">
       <header className="flex flex-col items-start gap-4 text-left">
         <div className="flex w-full items-center justify-between">
-          <h1 className="text-lg font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-            Cable Inventory
-          </h1>
-          <div className="flex items-center gap-2">
-            {/* Excel Export Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+              Cable Inventory
+            </h1>
+            <div className="flex items-center gap-2">
+              {/* Excel Export Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={isExporting}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Export</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    onClick={handleDownloadExcel}
+                    disabled={isExporting}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>{isExporting ? "Exporting..." : "Full Excel Sheet"}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleHighlightExcel}
+                    disabled={isExporting}
+                    className="flex items-center gap-2"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>{isExporting ? "Exporting..." : "Highlighted Excel Sheet"}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Connect to Arduino Button */}
+              <div className="relative">
                 <Button
+                  onClick={handleConnectArduino}
+                  disabled={isConnecting || serialConnected}
                   variant="outline"
-                  disabled={isExporting}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 cursor-pointer"
                 >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  <span>Export</span>
-                  <ChevronDown className="h-4 w-4" />
+                  <Settings className="h-4 w-4" />
+                  {isConnecting ? 'Connecting...' : serialConnected ? 'Connected' : 'Connect'}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem
-                  onClick={handleDownloadExcel}
-                  disabled={isExporting}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>{isExporting ? "Exporting..." : "Full Excel Sheet"}</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleHighlightExcel}
-                  disabled={isExporting}
-                  className="flex items-center gap-2"
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  <span>{isExporting ? "Exporting..." : "Highlighted Excel Sheet"}</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <span
+                  className={cn(
+                    "absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background",
+                    connectionStatus === 'connected' && "bg-green-500",
+                    connectionStatus === 'connecting' && "bg-yellow-500",
+                    connectionStatus === 'error' && "bg-red-500",
+                    connectionStatus === 'disconnected' && "bg-gray-400"
+                  )}
+                  aria-label={
+                    connectionStatus === 'connected' ? 'Connected' :
+                    connectionStatus === 'connecting' ? 'Connecting' :
+                    connectionStatus === 'error' ? 'Error' :
+                    'Disconnected'
+                  }
+                />
+              </div>
 
-            {/* Connect to Arduino Button */}
-            <div className="relative">
+              {/* Add Product Button */}
               <Button
-                onClick={handleConnectArduino}
-                disabled={isConnecting || serialConnected}
-                variant="outline"
-                className="flex items-center gap-2"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsAddingProduct(true);
+                }}
+                className="cursor-pointer"
+                style={{ pointerEvents: 'auto' }}
               >
-                <Settings className="h-4 w-4" />
-                {isConnecting ? 'Connecting...' : serialConnected ? 'Connected' : 'Connect'}
+                Add Product
               </Button>
-              <span
-                className={cn(
-                  "absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background",
-                  connectionStatus === 'connected' && "bg-green-500",
-                  connectionStatus === 'connecting' && "bg-yellow-500",
-                  connectionStatus === 'error' && "bg-red-500",
-                  connectionStatus === 'disconnected' && "bg-gray-400"
-                )}
-                aria-label={
-                  connectionStatus === 'connected' ? 'Connected' :
-                  connectionStatus === 'connecting' ? 'Connecting' :
-                  connectionStatus === 'error' ? 'Error' :
-                  'Disconnected'
-                }
-              />
             </div>
-
-            {/* Add Product Button */}
-            <Button
-              onClick={() => setIsAddingProduct(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Product</span>
-            </Button>
           </div>
         </div>
                 <Suspense fallback={<div className="h-10 w-full" />}>

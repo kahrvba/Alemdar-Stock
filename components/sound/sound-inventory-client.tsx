@@ -1,22 +1,20 @@
 "use client";
 
-import React, { Activity, useState, useCallback, useEffect, Suspense } from "react";
+import React, { Activity, useState, Suspense } from "react";
 import Image from "next/image";
-import { Settings, Download, FileSpreadsheet, ChevronDown } from "lucide-react";
-import { ProductCard } from "@/components/arduino/product-card";
-import { PaginationControls } from "@/components/arduino/pagination-controls";
-import { ArduinoSearch } from "@/components/arduino/arduino-search";
-import type { ArduinoProduct } from "@/lib/services/arduino";
+import { Download, FileSpreadsheet, ChevronDown } from "lucide-react";
+import { ProductCard } from "@/components/sound/product-card";
+import { PaginationControls } from "@/components/sound/pagination-controls";
+import { SoundSearch } from "@/components/sound/sound-search";
+import type { SoundProduct } from "@/lib/services/sound";
 import { cn } from "@/lib/utils";
-import { useArduinoInventory } from "@/hooks/use-arduino-inventory";
-import { downloadExcel, highlightExcel } from "@/lib/excel-export";
-import { WebSerialController } from "@/lib/webSerial";
+import { useSoundInventory } from "@/hooks/use-sound-inventory";
+import { downloadSoundExcel, highlightSoundExcel } from "@/lib/excel-export";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/components/ui/toast";
 
-type ArduinoInventoryClientProps = {
-  items: ArduinoProduct[];
+type SoundInventoryClientProps = {
+  items: SoundProduct[];
   page: number;
   totalPages: number;
   previousPage: number;
@@ -25,7 +23,7 @@ type ArduinoInventoryClientProps = {
   field: string | null;
 };
 
-export function ArduinoInventoryClient({
+export function SoundInventoryClient({
   items,
   page,
   totalPages,
@@ -33,7 +31,7 @@ export function ArduinoInventoryClient({
   nextPage,
   query,
   field,
-}: ArduinoInventoryClientProps) {
+}: SoundInventoryClientProps) {
   const {
     isSearching,
     editingProduct,
@@ -59,26 +57,18 @@ export function ArduinoInventoryClient({
     handleAddSubmit,
     handleAddToCart,
     handleDelete,
-  } = useArduinoInventory();
+  } = useSoundInventory();
 
   const [isExporting, setIsExporting] = useState(false);
 
-  // Serial connection state
-  const [serialConnected, setSerialConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
-  const [serialController] = useState(() => new WebSerialController());
-  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
-  const { showToast: showAlert } = useToast();
-
-  const fetchAllProducts = async (): Promise<ArduinoProduct[]> => {
+  const fetchAllProducts = async (): Promise<SoundProduct[]> => {
     try {
-      const response = await fetch("/api/arduino?pageSize=10000");
+      const response = await fetch("/api/sound?all=true");
       if (!response.ok) {
         throw new Error("Failed to fetch products");
       }
       const data = await response.json();
-      return data.items || [];
+      return data.products || [];
     } catch (error) {
       console.error("Failed to fetch all products:", error);
       return [];
@@ -89,7 +79,7 @@ export function ArduinoInventoryClient({
     setIsExporting(true);
     try {
       const allProducts = await fetchAllProducts();
-      await downloadExcel(allProducts);
+      await downloadSoundExcel(allProducts);
     } catch (error) {
       console.error("Failed to export Excel:", error);
     } finally {
@@ -101,71 +91,13 @@ export function ArduinoInventoryClient({
     setIsExporting(true);
     try {
       const allProducts = await fetchAllProducts();
-      await highlightExcel(allProducts);
+      await highlightSoundExcel(allProducts);
     } catch (error) {
       console.error("Failed to export highlighted Excel:", error);
     } finally {
       setIsExporting(false);
     }
   };
-
-  // Serial connection function - opens port selection and auto-connects
-  const handleConnectArduino = useCallback(async () => {
-    setIsConnecting(true);
-    setConnectionStatus('connecting');
-    
-    try {
-      // This will open the browser's port selection dialog
-      const ports = await serialController.listPorts();
-      
-      if (ports.length === 0) {
-        setConnectionStatus('error');
-        showAlert('No port selected', 'error');
-        setIsConnecting(false);
-        return;
-      }
-
-      // Auto-connect after port selection
-      await serialController.connect();
-      setSerialConnected(true);
-      setConnectionStatus('connected');
-      showAlert('Connected to Arduino!', 'success');
-    } catch (error) {
-      console.error('Connection error:', error);
-      setConnectionStatus('error');
-      setSerialConnected(false);
-      showAlert(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`, 'error');
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [serialController, showAlert]);
-
-  const sendToArduino = useCallback(async (product: ArduinoProduct) => {
-    if (!serialConnected) {
-      showAlert('Please connect to Arduino first', 'error');
-      return;
-    }
-
-    try {
-      const message = `1*${product.id}*${product.quantity}*\n`;
-      await serialController.write(message);
-    } catch (error) {
-      showAlert('Failed to send to Arduino', 'error');
-      setSerialConnected(false);
-      setConnectionStatus('error');
-    }
-  }, [serialConnected, serialController, showAlert]);
-
-  // Update connection status based on state
-  useEffect(() => {
-    if (serialConnected) {
-      setConnectionStatus('connected');
-    } else if (isConnecting) {
-      setConnectionStatus('connecting');
-    } else {
-      setConnectionStatus('disconnected');
-    }
-  }, [serialConnected, isConnecting]);
 
   return (
     <>
@@ -174,7 +106,7 @@ export function ArduinoInventoryClient({
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-              Arduino Inventory
+              Sound Inventory
             </h1>
             <div className="flex items-center gap-2">
               {/* Excel Export Dropdown */}
@@ -211,34 +143,6 @@ export function ArduinoInventoryClient({
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Connect to Arduino Button */}
-              <div className="relative">
-                <Button
-                  onClick={handleConnectArduino}
-                  disabled={isConnecting || serialConnected}
-                  variant="outline"
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Settings className="h-4 w-4" />
-                  {isConnecting ? 'Connecting...' : serialConnected ? 'Connected' : 'Connect'}
-                </Button>
-                <span
-                  className={cn(
-                    "absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background",
-                    connectionStatus === 'connected' && "bg-green-500",
-                    connectionStatus === 'connecting' && "bg-yellow-500",
-                    connectionStatus === 'error' && "bg-red-500",
-                    connectionStatus === 'disconnected' && "bg-gray-400"
-                  )}
-                  aria-label={
-                    connectionStatus === 'connected' ? 'Connected' :
-                    connectionStatus === 'connecting' ? 'Connecting' :
-                    connectionStatus === 'error' ? 'Error' :
-                    'Disconnected'
-                  }
-                />
-              </div>
-
               {/* Add Product Button */}
               <Button
                 type="button"
@@ -256,7 +160,7 @@ export function ArduinoInventoryClient({
           </div>
         </div>
                 <Suspense fallback={<div className="h-10 w-full" />}>
-                  <ArduinoSearch onLoadingChange={setIsSearching} />
+                  <SoundSearch onLoadingChange={setIsSearching} />
                 </Suspense>
               </header>
 
@@ -275,12 +179,7 @@ export function ArduinoInventoryClient({
                 onEdit={setEditingProduct}
                 onDelete={handleDelete}
                 onAddToCart={handleAddToCart}
-                onPrint={(product) => {
-                  setSelectedProduct(product.id);
-                  sendToArduino(product);
-                }}
                 isDeleting={isDeleting && deletingProductId === product.id}
-                isSelected={selectedProduct === product.id}
               />
             ))
           ) : (
@@ -318,7 +217,7 @@ export function ArduinoInventoryClient({
                   {isAddingProduct ? "Add New Product" : "Editing Product"}
                 </p>
                 <h2 className="text-2xl font-semibold text-foreground">
-                  {isAddingProduct ? "New Product" : editingProduct?.english_names ?? `#${editingProduct?.id}`}
+                  {isAddingProduct ? "New Product" : editingProduct?.english_name ?? `#${editingProduct?.id}`}
                 </h2>
               </div>
               <button
@@ -338,9 +237,9 @@ export function ArduinoInventoryClient({
                   English Name
                   <input
                     type="text"
-                    value={formState.english_names}
+                    value={formState.english_name}
                     onChange={(event) =>
-                      handleFormChange("english_names", event.target.value)
+                      handleFormChange("english_name", event.target.value)
                     }
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
@@ -349,9 +248,9 @@ export function ArduinoInventoryClient({
                   Turkish Name
                   <input
                     type="text"
-                    value={formState.turkish_names}
+                    value={formState.turkish_name}
                     onChange={(event) =>
-                      handleFormChange("turkish_names", event.target.value)
+                      handleFormChange("turkish_name", event.target.value)
                     }
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
@@ -368,12 +267,34 @@ export function ArduinoInventoryClient({
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+                  Sub Category
+                  <input
+                    type="text"
+                    value={formState.sub_category}
+                    onChange={(event) =>
+                      handleFormChange("sub_category", event.target.value)
+                    }
+                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                   Barcode
                   <input
                     type="text"
                     value={formState.barcode}
                     onChange={(event) =>
                       handleFormChange("barcode", event.target.value)
+                    }
+                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+                  Kodu
+                  <input
+                    type="text"
+                    value={formState.kodu}
+                    onChange={(event) =>
+                      handleFormChange("kodu", event.target.value)
                     }
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
@@ -500,5 +421,4 @@ export function ArduinoInventoryClient({
     </>
   );
 }
-
 

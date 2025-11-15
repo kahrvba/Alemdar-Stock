@@ -19,6 +19,7 @@ export const focusCardsData = [
   {
     title: "Sound Side",
     src: "/Producción Pin.jpg",
+    href: "/sound",
   },
   {
     title: "Invoices side",
