@@ -9,6 +9,7 @@ export async function GET(req: Request) {
   const pageSizeParam = searchParams.get('pageSize');
   const all = searchParams.get('all') === 'true';
   const id = searchParams.get('id');
+  const idsParam = searchParams.get('ids');
 
   const page = Number.isFinite(Number(pageParam)) && Number(pageParam) > 0
     ? Math.floor(Number(pageParam))
@@ -25,6 +26,26 @@ export async function GET(req: Request) {
     let total = 0;
     let currentPage = page;
     const currentPageSize = pageSize;
+
+    const ids = idsParam
+      ? Array.from(
+          new Set(
+            idsParam
+              .split(',')
+              .map((value) => Number(value.trim()))
+              .filter((value) => Number.isFinite(value) && value > 0)
+          )
+        )
+      : [];
+
+    if (ids.length > 0) {
+      const result = await client.query(
+        'SELECT id, name, rating, price, first_price, second_price, third_price, four_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb WHERE id = ANY($1) ORDER BY id ASC',
+        [ids]
+      );
+      client.release();
+      return NextResponse.json({ items: result.rows });
+    }
 
     if (id) {
       // Fetch a single product by ID

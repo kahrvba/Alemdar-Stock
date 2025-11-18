@@ -4,11 +4,27 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Act
 import Image from "next/image";
 import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import type { ArduinoProduct } from "@/lib/services/arduino";
-import { cn } from "@/lib/utils";
 import { useToast } from "./toast";
 
+type InventoryType = "arduino" | "sound" | "solar" | "cable";
+
+type CartProduct = ArduinoProduct & {
+  inventoryType?: InventoryType;
+};
+
+type GenericInventoryProduct = {
+  id: number;
+  quantity?: number | string | null;
+  price?: number | string | null;
+  barcode?: string | null;
+  english_name?: string | null;
+  english_names?: string | null;
+  name?: string | null;
+  [key: string]: unknown;
+};
+
 export interface CartItem {
-  product: ArduinoProduct;
+  product: CartProduct;
   quantity: number;
 }
 
@@ -17,9 +33,9 @@ interface CartContextType {
   isOpen: boolean;
   totalItems: number;
   totalPrice: number;
-  addToCart: (product: ArduinoProduct, quantity?: number) => void;
-  removeFromCart: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  addToCart: (product: CartProduct, quantity?: number) => void;
+  removeFromCart: (productId: number, inventoryType?: InventoryType) => void;
+  updateQuantity: (productId: number, quantity: number, inventoryType?: InventoryType) => void;
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
@@ -37,13 +53,36 @@ export function useCart() {
 }
 
 const CART_STORAGE_KEY = "arduino_cart";
+const DEFAULT_INVENTORY_TYPE: InventoryType = "arduino";
+
+const INVENTORY_ENDPOINTS: Record<InventoryType, string> = {
+  arduino: "/api/arduino",
+  sound: "/api/sound",
+  solar: "/api/solar",
+  cable: "/api/mainSideLeds",
+};
+
+const getInventoryType = (product?: CartProduct): InventoryType =>
+  product?.inventoryType ?? DEFAULT_INVENTORY_TYPE;
+
+const getProductKey = (productId: number, inventoryType: InventoryType) =>
+  `${inventoryType}:${productId}`;
 
 function loadCartFromStorage(): CartItem[] {
   if (typeof window === "undefined") return [];
   try {
     const stored = localStorage.getItem(CART_STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored) as CartItem[];
+      const parsed = JSON.parse(stored) as CartItem[];
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => ({
+          ...item,
+          product: {
+            ...item.product,
+            inventoryType: getInventoryType(item.product),
+          },
+        }));
+      }
     }
   } catch (error) {
     console.error("Failed to load cart from storage:", error);
@@ -70,41 +109,60 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     saveCartToStorage(items);
   }, [items]);
 
-  const addToCart = useCallback((product: ArduinoProduct, quantity: number = 1) => {
+  const addToCart = useCallback((product: CartProduct, quantity: number = 1) => {
+    const inventoryType = getInventoryType(product);
     setItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.product.id === product.id);
-      
+      const targetKey = getProductKey(product.id, inventoryType);
+      const existingItem = prevItems.find(
+        (item) =>
+          getProductKey(item.product.id, getInventoryType(item.product)) === targetKey
+      );
+
       if (existingItem) {
-        // Update quantity if item already exists
         return prevItems.map((item) =>
-          item.product.id === product.id
+          getProductKey(item.product.id, getInventoryType(item.product)) === targetKey
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
-      } else {
-        // Add new item
-        return [...prevItems, { product, quantity }];
       }
+
+      return [
+        ...prevItems,
+        { product: { ...product, inventoryType }, quantity },
+      ];
     });
   }, []);
 
-  const removeFromCart = useCallback((productId: number) => {
-    setItems((prevItems) => prevItems.filter((item) => item.product.id !== productId));
-  }, []);
-
-  const updateQuantity = useCallback((productId: number, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
+  const removeFromCart = useCallback((productId: number, inventoryType: InventoryType = DEFAULT_INVENTORY_TYPE) => {
+    const targetKey = getProductKey(productId, inventoryType);
     setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
+      prevItems.filter(
+        (item) =>
+          getProductKey(item.product.id, getInventoryType(item.product)) !== targetKey
       )
     );
-  }, [removeFromCart]);
+  }, []);
+
+  const updateQuantity = useCallback(
+    (productId: number, quantity: number, inventoryType: InventoryType = DEFAULT_INVENTORY_TYPE) => {
+      if (quantity <= 0) {
+        removeFromCart(productId, inventoryType);
+        return;
+      }
+      const targetKey = getProductKey(productId, inventoryType);
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          getProductKey(item.product.id, getInventoryType(item.product)) === targetKey
+            ? { ...item, quantity }
+            : item
+        )
+      );
+    },
+    [removeFromCart]
+  );
 
   const clearCart = useCallback(() => {
+    saveCartToStorage([]);
     setItems([]);
   }, []);
 
@@ -158,8 +216,13 @@ function CartSidebar() {
     maximumFractionDigits: 2,
   });
 
-  const handleRemove = (productId: number, productName: string) => {
-    removeFromCart(productId);
+  const handleRemove = (cartItem: CartItem) => {
+    const inventoryType = getInventoryType(cartItem.product);
+    removeFromCart(cartItem.product.id, inventoryType);
+    const productName =
+      cartItem.product.english_names ??
+      cartItem.product.turkish_names ??
+      `Product #${cartItem.product.id}`;
     showToast(`${productName} removed from cart`, "info");
   };
 
@@ -182,8 +245,128 @@ function CartSidebar() {
         }
       }
       return 0;
-    } catch (e) {
+    } catch (error) {
+      console.error('Failed to fetch latest invoice number:', error);
       return 0;
+    }
+  };
+
+  type VerifiedLineItem = {
+    cartItem: CartItem;
+    freshProduct: GenericInventoryProduct;
+    inventoryType: InventoryType;
+    unitPrice: number;
+    lineTotal: number;
+  };
+
+  const parsePriceValue = (value: unknown): number => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string") {
+      const normalized = value.replace(",", ".");
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
+
+  const resolveUnitPrice = (
+    inventoryType: InventoryType,
+    freshProduct: GenericInventoryProduct,
+    cartItem: CartItem
+  ) => {
+    return parsePriceValue(freshProduct?.price ?? cartItem.product.price ?? 0);
+  };
+
+  const getProductDisplayName = (
+    inventoryType: InventoryType,
+    freshProduct: GenericInventoryProduct,
+    cartItem: CartItem
+  ) => {
+    switch (inventoryType) {
+      case "sound":
+      case "cable":
+        return (
+          freshProduct?.english_name ??
+          cartItem.product.english_names ??
+          `Product #${cartItem.product.id}`
+        );
+      case "solar":
+        return (
+          freshProduct?.name ??
+          cartItem.product.english_names ??
+          `Product #${cartItem.product.id}`
+        );
+      default:
+        return (
+          freshProduct?.english_names ??
+          cartItem.product.english_names ??
+          `Product #${cartItem.product.id}`
+        );
+    }
+  };
+
+  const buildUpdatePayload = (
+    inventoryType: InventoryType,
+    freshProduct: GenericInventoryProduct,
+    quantity: number
+  ) => {
+    switch (inventoryType) {
+      case "sound":
+        return {
+          id: freshProduct.id,
+          english_name: freshProduct.english_name ?? null,
+          turkish_name: freshProduct.turkish_name ?? null,
+          barcode: freshProduct.barcode ?? null,
+          kodu: freshProduct.kodu ?? null,
+          price: freshProduct.price ?? null,
+          image_filename: freshProduct.image_filename ?? null,
+          category: freshProduct.category ?? null,
+          sub_category: freshProduct.sub_category ?? null,
+          quantity,
+          description: freshProduct.description ?? null,
+        };
+      case "solar":
+        return {
+          id: freshProduct.id,
+          name: freshProduct.name ?? null,
+          rating: freshProduct.rating ?? null,
+          price: freshProduct.price ?? null,
+          first_price: freshProduct.first_price ?? null,
+          second_price: freshProduct.second_price ?? null,
+          third_price: freshProduct.third_price ?? null,
+          four_price: freshProduct.four_price ?? null,
+          image_filename: freshProduct.image_filename ?? null,
+          category: freshProduct.category ?? null,
+          quantity,
+          description: freshProduct.description ?? null,
+        };
+      case "cable":
+        return {
+          id: freshProduct.id,
+          english_name: freshProduct.english_name ?? null,
+          turkish_name: freshProduct.turkish_name ?? null,
+          category: freshProduct.category ?? null,
+          barcode: freshProduct.barcode ?? null,
+          price: freshProduct.price ?? null,
+          image_filename: freshProduct.image_filename ?? null,
+          quantity,
+          description: freshProduct.description ?? null,
+        };
+      case "arduino":
+      default:
+        return {
+          id: freshProduct.id,
+          english_names: freshProduct.english_names ?? null,
+          turkish_names: freshProduct.turkish_names ?? null,
+          category: freshProduct.category ?? null,
+          barcode: freshProduct.barcode ?? null,
+          price: freshProduct.price ?? null,
+          image_filename: freshProduct.image_filename ?? null,
+          description: freshProduct.description ?? null,
+          quantity,
+        };
     }
   };
 
@@ -195,80 +378,128 @@ function CartSidebar() {
 
     setIsProcessing(true);
     try {
-      // Fetch fresh product data from API to check current stock
-      const productIds = items.map(item => item.product.id).join(',');
-      const productsResponse = await fetch(`/api/arduino?pageSize=10000`);
-      if (!productsResponse.ok) {
-        throw new Error('Failed to fetch product data');
-      }
-      const productsData = await productsResponse.json();
-      const freshProducts = productsData.items || [];
-
-      // Check stock for all items with fresh data
-      for (const item of items) {
-        const freshProduct = freshProducts.find((p: any) => p.id === item.product.id);
-        if (!freshProduct) {
-          showToast(`Product ${item.product.english_names} not found`, 'error');
-          setIsProcessing(false);
-          return;
+      const groupedItems = items.reduce<Record<InventoryType, CartItem[]>>((acc, item) => {
+        const type = getInventoryType(item.product);
+        if (!acc[type]) {
+          acc[type] = [];
         }
-        
-        const currentStock = Number(freshProduct.quantity) || 0;
-        const requestedQuantity = Number(item.quantity) || 0;
-        
-        if (currentStock < requestedQuantity) {
-          showToast(
-            `Not enough stock for ${item.product.english_names}. Available: ${currentStock}, Requested: ${requestedQuantity}`,
-            'error'
-          );
-          setIsProcessing(false);
-          return;
+        acc[type]?.push(item);
+        return acc;
+      }, {} as Record<InventoryType, CartItem[]>);
+
+      const verificationResults: VerifiedLineItem[] = [];
+      let computedSubtotal = 0;
+
+      for (const [inventoryType, grouped] of Object.entries(groupedItems) as [InventoryType, CartItem[]][]) {
+        if (!grouped?.length) continue;
+
+        const ids = Array.from(
+          new Set(
+            grouped
+              .map((item) => item.product.id)
+              .filter((id) => Number.isFinite(Number(id)))
+          )
+        );
+
+        if (ids.length === 0) continue;
+
+        const endpoint = INVENTORY_ENDPOINTS[inventoryType];
+        const productsResponse = await fetch(`${endpoint}?ids=${ids.join(',')}`);
+
+        if (!productsResponse.ok) {
+          throw new Error(`Failed to fetch ${inventoryType} product data`);
+        }
+
+        const productsData = await productsResponse.json();
+        const freshProducts = (
+          Array.isArray(productsData.items)
+            ? productsData.items
+            : Array.isArray(productsData.products)
+            ? productsData.products
+            : []
+        ) as GenericInventoryProduct[];
+        const freshProductsMap = new Map<number, GenericInventoryProduct>(
+          freshProducts.map((product) => [Number(product.id), product])
+        );
+
+        for (const item of grouped) {
+          const freshProduct = freshProductsMap.get(item.product.id);
+          if (!freshProduct) {
+            showToast(
+              `Product ${item.product.english_names ?? `#${item.product.id}`} not found in ${inventoryType} inventory`,
+              'error'
+            );
+            setIsProcessing(false);
+            return;
+          }
+
+          const currentStock = Number(freshProduct.quantity) || 0;
+          const requestedQuantity = Number(item.quantity) || 0;
+
+          if (currentStock < requestedQuantity) {
+            showToast(
+              `Not enough stock for ${getProductDisplayName(inventoryType, freshProduct, item)}. Available: ${currentStock}, Requested: ${requestedQuantity}`,
+              'error'
+            );
+            setIsProcessing(false);
+            return;
+          }
+
+          const unitPrice = resolveUnitPrice(inventoryType, freshProduct, item);
+          const lineTotal = unitPrice * requestedQuantity;
+          computedSubtotal += lineTotal;
+
+          verificationResults.push({
+            cartItem: item,
+            freshProduct,
+            inventoryType,
+            unitPrice,
+            lineTotal,
+          });
         }
       }
 
-      // Update product quantities in DB
-      for (const item of items) {
-        const freshProduct = freshProducts.find((p: any) => p.id === item.product.id);
-        if (!freshProduct) continue;
-        
+      for (const line of verificationResults) {
+        const { freshProduct, cartItem, inventoryType } = line;
+        const endpoint = INVENTORY_ENDPOINTS[inventoryType];
         const currentStock = Number(freshProduct.quantity) || 0;
-        const requestedQuantity = Number(item.quantity) || 0;
+        const requestedQuantity = Number(cartItem.quantity) || 0;
         const newQuantity = Math.max(0, currentStock - requestedQuantity);
-        
-        const updatedProduct = { 
-          ...freshProduct, 
-          quantity: newQuantity 
-        };
-        
-        const updateResponse = await fetch('/api/arduino', {
+
+        const updatedProduct = buildUpdatePayload(inventoryType, freshProduct, newQuantity);
+
+        const updateResponse = await fetch(endpoint, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedProduct),
         });
-        
+
         if (!updateResponse.ok) {
-          throw new Error(`Failed to update stock for ${item.product.english_names}`);
+          throw new Error(
+            `Failed to update stock for ${getProductDisplayName(inventoryType, freshProduct, cartItem)}`
+          );
         }
       }
 
-      // Fetch latest invoice number and increment
       const latestInvoiceNumber = await fetchLatestInvoiceNumber();
       const newInvoiceNumber = latestInvoiceNumber + 1;
 
-      // Create invoice
       const invoiceData = {
         invoiceNumber: String(newInvoiceNumber),
         date: new Date().toISOString(),
-        products: items.map(item => ({
-          productId: item.product.id,
-          name: item.product.english_names || 'Unnamed product',
-          barcode: item.product.barcode || '',
-          quantity: item.quantity,
-          unitPrice: Number(item.product.price) || 0,
-          total: (Number(item.product.price) || 0) * item.quantity,
+        products: verificationResults.map((line) => ({
+          productId: line.cartItem.product.id,
+          name: getProductDisplayName(line.inventoryType, line.freshProduct, line.cartItem),
+          barcode:
+            line.cartItem.product.barcode ??
+            line.freshProduct?.barcode ??
+            '',
+          quantity: line.cartItem.quantity,
+          unitPrice: line.unitPrice,
+          total: line.lineTotal,
         })),
-        subtotal: totalPrice,
-        total: totalPrice,
+        subtotal: computedSubtotal,
+        total: computedSubtotal,
       };
 
       const response = await fetch('/api/invoices', {
@@ -286,7 +517,6 @@ function CartSidebar() {
       clearCart();
       closeCart();
       
-      // Optionally redirect to invoice page
       if (result.invoiceId) {
         window.location.href = `/invoices/${result.invoiceId}`;
       }
@@ -303,14 +533,14 @@ function CartSidebar() {
       <Activity mode={isOpen ? "visible" : "hidden"}>
         {/* Backdrop */}
         <div
-          className="fixed inset-0 z-[90] bg-background/80 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 z-90 bg-background/80 backdrop-blur-sm transition-opacity"
           onClick={closeCart}
           aria-hidden="true"
         />
 
         {/* Sidebar */}
         <aside
-          className="fixed right-0 top-0 z-[100] h-full w-full max-w-md transform border-l border-border/60 bg-card shadow-2xl transition-transform duration-300 ease-out translate-x-0"
+          className="fixed right-0 top-0 z-100 h-full w-full max-w-md transform border-l border-border/60 bg-card shadow-2xl transition-transform duration-300 ease-out translate-x-0"
         >
         <div className="flex h-full flex-col">
           {/* Header */}
@@ -390,12 +620,7 @@ function CartSidebar() {
                           </div>
                           <button
                             type="button"
-                            onClick={() =>
-                              handleRemove(
-                                item.product.id,
-                                item.product.english_names ?? `Product #${item.product.id}`
-                              )
-                            }
+                            onClick={() => handleRemove(item)}
                             className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2"
                             aria-label="Remove item"
                           >
@@ -408,7 +633,13 @@ function CartSidebar() {
                           <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-background">
                             <button
                               type="button"
-                              onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                              onClick={() =>
+                                updateQuantity(
+                                  item.product.id,
+                                  item.quantity - 1,
+                                  getInventoryType(item.product)
+                                )
+                              }
                               className="rounded-l-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                               aria-label="Decrease quantity"
                             >
@@ -419,7 +650,13 @@ function CartSidebar() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                              onClick={() =>
+                                updateQuantity(
+                                  item.product.id,
+                                  item.quantity + 1,
+                                  getInventoryType(item.product)
+                                )
+                              }
                               className="rounded-r-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                               aria-label="Increase quantity"
                             >
@@ -479,7 +716,10 @@ export function CartButton() {
 
   // Only show badge after client-side hydration to avoid hydration mismatch
   useEffect(() => {
-    setIsMounted(true);
+    const frame = requestAnimationFrame(() => {
+      setIsMounted(true);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   return (

@@ -294,6 +294,7 @@ export function useSolarInventory() {
       price: product.price,
       image_filename: product.image_filename,
       description: product.description,
+      inventoryType: "solar" as const,
     };
     addToCart(cartProduct, 1);
     showToast(

@@ -259,7 +259,7 @@ export function useArduinoInventory() {
   }, [formState, selectedImageFile, imagePreviewUrl, uploadSelectedImage, showToast, router]);
 
   const handleAddToCart = useCallback((product: ArduinoProduct) => {
-    addToCart(product, 1);
+    addToCart({ ...product, inventoryType: "arduino" }, 1);
     showToast(
       `${product.english_names ?? `Product #${product.id}`} added to cart`,
       "success"

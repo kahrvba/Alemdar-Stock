@@ -270,6 +270,7 @@ export function useCableInventory() {
       price: product.price,
       image_filename: product.image_filename,
       description: product.description,
+      inventoryType: "cable" as const,
     };
     addToCart(cartProduct, 1);
     showToast(

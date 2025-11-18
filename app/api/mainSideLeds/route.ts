@@ -8,6 +8,7 @@ export async function GET(req: Request) {
   const field = searchParams.get('field');
   const pageParam = searchParams.get('page');
   const pageSizeParam = searchParams.get('pageSize');
+  const idsParam = searchParams.get('ids');
 
   const page = Number.isFinite(Number(pageParam)) && Number(pageParam) > 0
     ? Math.floor(Number(pageParam))
@@ -24,6 +25,26 @@ export async function GET(req: Request) {
     let total = 0;
     let currentPage = page;
     let currentPageSize = pageSize;
+
+    const ids = idsParam
+      ? Array.from(
+          new Set(
+            idsParam
+              .split(',')
+              .map((value) => Number(value.trim()))
+              .filter((value) => Number.isFinite(value) && value > 0)
+          )
+        )
+      : [];
+
+    if (ids.length > 0) {
+      const result = await client.query(
+        'SELECT *, COALESCE(quantity, 0) as quantity FROM public.mainled WHERE id = ANY($1) ORDER BY id ASC',
+        [ids]
+      );
+      client.release();
+      return NextResponse.json({ items: result.rows });
+    }
 
     if (barcode) {
       const result = await client.query(

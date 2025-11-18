@@ -34,7 +34,7 @@ export function InvoicesClient({ invoices }: { invoices: Invoice[] }) {
               <tbody>
                 {invoices.map((inv) => (
                   <tr key={inv.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="border-b border-border/60 p-3">{inv.invoice_number}</td>
+                    <td className="border-b border-border/60 p-3">#{inv.id}</td>
                     <td className="border-b border-border/60 p-3">
                       {new Date(inv.date_created).toLocaleString()}
                     </td>

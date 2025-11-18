@@ -8,6 +8,7 @@ export async function GET(req: Request) {
   const field = searchParams.get('field');
   const pageParam = searchParams.get('page');
   const pageSizeParam = searchParams.get('pageSize');
+  const idsParam = searchParams.get('ids');
 
   const page = Number.isFinite(Number(pageParam)) && Number(pageParam) > 0
     ? Math.floor(Number(pageParam))
@@ -25,7 +26,30 @@ export async function GET(req: Request) {
     let currentPage = page;
     let currentPageSize = pageSize;
 
-    if (barcode) {
+    const ids = idsParam
+      ? Array.from(
+          new Set(
+            idsParam
+              .split(',')
+              .map((value) => Number(value.trim()))
+              .filter((id) => Number.isFinite(id) && id > 0)
+          )
+        )
+      : [];
+
+    if (ids.length > 0) {
+      const result = await client.query(
+        `SELECT *, COALESCE(quantity, 0) as quantity
+         FROM public.arduino
+         WHERE id = ANY($1)
+         ORDER BY id ASC`,
+        [ids]
+      );
+      items = result.rows ?? [];
+      total = items.length;
+      currentPage = 1;
+      currentPageSize = total || pageSize;
+    } else if (barcode) {
       const result = await client.query(
         'SELECT *, COALESCE(quantity, 0) as quantity FROM public.arduino WHERE barcode = $1 ORDER BY id ASC',
         [barcode]
