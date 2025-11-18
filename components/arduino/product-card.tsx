@@ -26,9 +26,9 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, onPrint, i
       : "Contact for price";
 
   return (
-    <article 
+    <article
       className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-3xl border-4 bg-card/80 shadow-[0_25px_80px_-40px_rgba(0,0,0,0.4)] transition hover:bg-card cursor-pointer",
+        "group relative flex h-full flex-col overflow-hidden rounded-3xl border-4 bg-card/80 shadow-[0_25px_80px_-40px_rgba(0,0,0,0.4)] transition hover:bg-card cursor-pointer",
         isSelected ? "border-red-500" : "border-transparent"
       )}
       onClick={() => {
@@ -37,6 +37,9 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, onPrint, i
         }
       }}
     >
+      <span className="absolute left-4 top-4 z-10 rounded-full bg-background/95 px-5 py-2 text-base font-bold uppercase tracking-wide text-foreground shadow-lg">
+        id {product.id}
+      </span>
       <div className="relative h-90 w-full overflow-hidden rounded-t-3xl bg-muted">
         {product.image_filename ? (
           <HoverZoom className="relative h-full w-full">
