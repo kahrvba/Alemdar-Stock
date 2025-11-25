@@ -44,41 +44,115 @@ export function PaginationControls({
     return `/cable${queryString ? `?${queryString}` : ""}`;
   };
 
+  // Generate page numbers to display (Google-style)
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const delta = 2; // Number of pages to show on each side of current page
+
+    // Always show first page
+    pages.push(1);
+
+    // Calculate range around current page
+    const rangeStart = Math.max(2, page - delta);
+    const rangeEnd = Math.min(totalPages - 1, page + delta);
+
+    // Add ellipsis after first page if needed
+    if (rangeStart > 2) {
+      pages.push("...");
+    }
+
+    // Add pages around current page
+    for (let i = rangeStart; i <= rangeEnd; i++) {
+      pages.push(i);
+    }
+
+    // Add ellipsis before last page if needed
+    if (rangeEnd < totalPages - 1) {
+      pages.push("...");
+    }
+
+    // Always show last page (if there's more than 1 page)
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
+
+  const pageNumbers = getPageNumbers();
+
   return (
     <nav
       aria-label="Cable pagination"
-      className="flex items-center justify-center gap-6 text-sm text-muted-foreground"
+      className="flex items-center justify-center gap-2 text-sm"
     >
+      {/* Previous Button */}
       {page === 1 ? (
         <span
           aria-disabled={true}
-          className="rounded-full border border-border/40 px-4 py-2 font-medium text-muted-foreground cursor-not-allowed"
+          className="rounded-lg border border-border/40 px-3 py-2 font-medium text-muted-foreground cursor-not-allowed"
         >
           Previous
         </span>
       ) : (
         <Link
           href={buildHref(previousPage)}
-          className="rounded-full border border-border/60 px-4 py-2 font-medium text-foreground transition hover:border-border hover:bg-muted"
+          className="rounded-lg border border-border/60 px-3 py-2 font-medium text-foreground transition hover:border-border hover:bg-muted"
           onClick={(e) => handleClick(e, false)}
         >
           Previous
         </Link>
       )}
-      <span className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-        Page {page} of {totalPages}
-      </span>
+
+      {/* Page Numbers */}
+      <div className="flex items-center gap-1">
+        {pageNumbers.map((pageNum, index) => {
+          if (pageNum === "...") {
+            return (
+              <span
+                key={`ellipsis-${index}`}
+                className="px-3 py-2 text-muted-foreground"
+              >
+                ...
+              </span>
+            );
+          }
+
+          const pageNumber = pageNum as number;
+          const isCurrentPage = pageNumber === page;
+
+          return isCurrentPage ? (
+            <span
+              key={pageNumber}
+              className="rounded-lg bg-primary px-3 py-2 font-semibold text-primary-foreground min-w-[40px] text-center"
+            >
+              {pageNumber}
+            </span>
+          ) : (
+            <Link
+              key={pageNumber}
+              href={buildHref(pageNumber)}
+              className="rounded-lg border border-border/60 px-3 py-2 font-medium text-foreground transition hover:border-border hover:bg-muted min-w-[40px] text-center"
+              onClick={(e) => handleClick(e, false)}
+            >
+              {pageNumber}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Next Button */}
       {page === totalPages ? (
         <span
           aria-disabled={true}
-          className="rounded-full border border-border/40 px-4 py-2 font-medium text-muted-foreground cursor-not-allowed"
+          className="rounded-lg border border-border/40 px-3 py-2 font-medium text-muted-foreground cursor-not-allowed"
         >
           Next
         </span>
       ) : (
         <Link
           href={buildHref(nextPage)}
-          className="rounded-full border border-border/60 px-4 py-2 font-medium text-foreground transition hover:border-border hover:bg-muted"
+          className="rounded-lg border border-border/60 px-3 py-2 font-medium text-foreground transition hover:border-border hover:bg-muted"
           onClick={(e) => handleClick(e, false)}
         >
           Next

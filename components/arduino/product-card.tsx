@@ -11,6 +11,7 @@ type ProductCardProps = {
   onPrint?: (product: ArduinoProduct) => void;
   isDeleting?: boolean;
   isSelected?: boolean;
+  backgroundColor?: string;
 };
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
@@ -19,7 +20,7 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-export function ProductCard({ product, onEdit, onDelete, onAddToCart, onPrint, isDeleting, isSelected }: ProductCardProps) {
+export function ProductCard({ product, onEdit, onDelete, onAddToCart, onPrint, isDeleting, isSelected, backgroundColor = "bg-card/80" }: ProductCardProps) {
   const priceLabel =
     product.price && Number(product.price) > 0
       ? usdFormatter.format(Number(product.price))
@@ -29,7 +30,8 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, onPrint, i
   return (
     <article
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-3xl border-4 bg-card/80 shadow-[0_25px_80px_-40px_rgba(0,0,0,0.4)] transition hover:bg-card cursor-pointer",
+        "group relative flex h-full flex-col overflow-hidden rounded-3xl border-4 shadow-[0_25px_80px_-40px_rgba(0,0,0,0.4)] transition hover:bg-card cursor-pointer",
+        backgroundColor,
         isSelected ? "border-red-500" : "border-transparent"
       )}
       onClick={() => {

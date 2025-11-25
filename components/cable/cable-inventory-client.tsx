@@ -14,6 +14,8 @@ import { WebSerialController } from "@/lib/webSerial";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 type CableInventoryClientProps = {
   items: CableProduct[];
@@ -62,6 +64,7 @@ export function CableInventoryClient({
   } = useCableInventory();
 
   const [isExporting, setIsExporting] = useState(false);
+  const [highlightQuantity, setHighlightQuantity] = useState(false);
 
   // Serial connection state
   const [serialConnected, setSerialConnected] = useState(false);
@@ -239,6 +242,21 @@ export function CableInventoryClient({
                 />
               </div>
 
+              {/* Highlight Quantity Toggle */}
+              <div className="flex items-center gap-2">
+                <div
+                  onClick={() => setHighlightQuantity(!highlightQuantity)}
+                  className="flex items-center gap-2 cursor-pointer rounded-md border border-input bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Checkbox
+                    checked={highlightQuantity}
+                    onCheckedChange={(checked) => setHighlightQuantity(checked as boolean)}
+                    className="h-5 w-5 cursor-pointer pointer-events-none"
+                  />
+                  <span>Highlight Quantity</span>
+                </div>
+              </div>
+
               {/* Add Product Button */}
               <Button
                 type="button"
@@ -255,6 +273,30 @@ export function CableInventoryClient({
             </div>
           </div>
         </div>
+        
+        {/* Color Legend - Only show when highlighting is enabled */}
+        {highlightQuantity && (
+          <div className="flex items-center gap-4 rounded-lg border border-border/60 bg-muted/30 px-4 py-2 text-xs">
+            <span className="font-semibold text-muted-foreground">Color Guide:</span>
+            <div className="flex items-center gap-1">
+              <div className="h-3 w-3 rounded-full bg-red-500" />
+              <span className="text-muted-foreground">Empty (0)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-3 w-3 rounded-full bg-yellow-500" />
+              <span className="text-muted-foreground">Almost Empty (1)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-3 w-3 rounded-full bg-[#d97706]" />
+              <span className="text-muted-foreground">Low (2)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-3 w-3 rounded-full bg-green-500" />
+              <span className="text-muted-foreground">Good (3)</span>
+            </div>
+          </div>
+        )}
+
                 <Suspense fallback={<div className="h-10 w-full" />}>
                   <CableSearch onLoadingChange={setIsSearching} />
                 </Suspense>
@@ -268,21 +310,39 @@ export function CableInventoryClient({
           )}
         >
           {items.length ? (
-            items.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onEdit={setEditingProduct}
-                onDelete={handleDelete}
-                onAddToCart={handleAddToCart}
-                onPrint={(product) => {
-                  setSelectedProduct(product.id);
-                  sendToArduino(product);
-                }}
-                isDeleting={isDeleting && deletingProductId === product.id}
-                isSelected={selectedProduct === product.id}
-              />
-            ))
+            items.map((product) => {
+              // Calculate background color based on quantity
+              let backgroundColor = 'bg-card/80';
+              if (highlightQuantity) {
+                const qty = Number(product.quantity) || 0;
+                if (qty === 0) {
+                  backgroundColor = 'bg-red-500';
+                } else if (qty === 1) {
+                  backgroundColor = 'bg-yellow-500';
+                } else if (qty === 2) {
+                  backgroundColor = 'bg-[#d97706]';
+                } else if (qty === 3) {
+                  backgroundColor = 'bg-green-500';
+                }
+              }
+
+              return (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onEdit={setEditingProduct}
+                  onDelete={handleDelete}
+                  onAddToCart={handleAddToCart}
+                  onPrint={(product) => {
+                    setSelectedProduct(product.id);
+                    sendToArduino(product);
+                  }}
+                  isDeleting={isDeleting && deletingProductId === product.id}
+                  isSelected={selectedProduct === product.id}
+                  backgroundColor={backgroundColor}
+                />
+              );
+            })
           ) : (
             <div className="col-span-full flex h-48 flex-col items-center justify-center rounded-3xl border border-dashed border-border/60 text-sm text-muted-foreground">
               No products match this filter.
