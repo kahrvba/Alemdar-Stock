@@ -62,7 +62,7 @@ export function SolarInventoryClient({
   const [isExporting, setIsExporting] = useState(false);
   const [toptanMultiplier, setToptanMultiplier] = useState<string>("1.3");
   const [minMultiplier, setMinMultiplier] = useState<string>("1.6");
-  const [musteriMultiplier, setMusteriMultiplier] = useState<string>("2.0");
+  const [musteriMultiplier, setMusteriMultiplier] = useState<string>("1.6");
 
   const fetchAllProducts = async (): Promise<SolarProduct[]> => {
     try {
@@ -212,8 +212,21 @@ export function SolarInventoryClient({
       />
     </div>
       <Activity mode={(editingProduct || isAddingProduct) ? "visible" : "hidden"}>
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur overflow-y-auto">
-          <div className="w-full max-w-2xl max-h-[calc(100vh-2rem)] rounded-3xl border border-border/60 bg-card p-6 shadow-2xl overflow-y-auto my-auto">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSaving && !isUploading) {
+              const form = e.currentTarget.querySelector('form');
+              if (form) {
+                form.requestSubmit();
+              }
+            }
+          }}
+        >
+          <div 
+            className="w-full max-w-2xl max-h-[calc(100vh-2rem)] rounded-3xl border border-border/60 bg-card p-6 shadow-2xl overflow-y-auto my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
@@ -313,28 +326,26 @@ export function SolarInventoryClient({
                     </div>
                   </div>
                 </label>
-                <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground">
-                  Cost price (Factory price × Factor)
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formState.cost_price}
-                    readOnly
-                    className="rounded-2xl border border-border/60 bg-muted px-3 py-2 text-sm text-foreground outline-none"
-                  />
+                <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
+                  <span>
+                    Cost price = {formState.factory_price || "factory_price"} × {formState.factor || "factor"}
+                    {formState.factory_price && formState.factor && formState.cost_price ? (
+                      <span className="ml-2 font-semibold text-foreground">
+                        = {formState.cost_price}
+                      </span>
+                    ) : null}
+                  </span>
                 </label>
-                <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground">
-                  Toptan price (Cost price × 1.3)
+                <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
+                  <span>
+                    Toptan price = {formState.cost_price || "cost_price"} × {toptanMultiplier}
+                    {formState.cost_price && formState.wholesale_price ? (
+                      <span className="ml-2 font-semibold text-foreground">
+                        = {formState.wholesale_price}
+                      </span>
+                    ) : null}
+                  </span>
                   <div className="flex flex-col gap-2">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formState.wholesale_price}
-                      onChange={(event) =>
-                        handleFormChange("wholesale_price", event.target.value)
-                      }
-                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                    />
                     <div className="flex flex-wrap gap-2">
                       {[1.3, 1.4, 1.5].map((multiplier) => {
                         const currentMul = Number(
@@ -408,17 +419,15 @@ export function SolarInventoryClient({
                   </div>
                 </label>
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
-                  Min selling price (Cost price × 1.6)
+                  <span>
+                    Min selling price = {formState.cost_price || "cost_price"} × {minMultiplier}
+                    {formState.cost_price && formState.min_selling_price ? (
+                      <span className="ml-2 font-semibold text-foreground">
+                        = {formState.min_selling_price}
+                      </span>
+                    ) : null}
+                  </span>
                   <div className="flex flex-col gap-2">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formState.min_selling_price}
-                      onChange={(event) =>
-                        handleFormChange("min_selling_price", event.target.value)
-                      }
-                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                    />
                     <div className="flex flex-wrap gap-2">
                       {[1.6, 1.7, 1.8].map((multiplier) => {
                         const currentMul = Number(
@@ -490,19 +499,17 @@ export function SolarInventoryClient({
                   </div>
                 </label>
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
-                  Müşteri price (Cost price × 2.0)
+                  <span>
+                    Müşteri price = {formState.cost_price || "cost_price"} × {musteriMultiplier}
+                    {formState.cost_price && formState.selling_price ? (
+                      <span className="ml-2 font-semibold text-foreground">
+                        = {formState.selling_price}
+                      </span>
+                    ) : null}
+                  </span>
                   <div className="flex flex-col gap-2">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formState.selling_price}
-                      onChange={(event) =>
-                        handleFormChange("selling_price", event.target.value)
-                      }
-                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                    />
                     <div className="flex flex-wrap gap-2">
-                      {[1.9, 2.0, 2.1].map((multiplier) => {
+                      {[1.6, 1.7, 1.8, 1.9, 2.0].map((multiplier) => {
                         const currentMul = Number(
                           musteriMultiplier.replace(",", ".")
                         );

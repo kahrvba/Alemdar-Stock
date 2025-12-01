@@ -136,8 +136,8 @@ export function useSolarInventory() {
           const minSelling = roundedCost * 1.6;
           next.min_selling_price = minSelling.toFixed(2);
 
-          // Müşteri price (normal): cost_price * 2.0
-          const selling = roundedCost * 2.0;
+          // Müşteri price (normal): cost_price * 1.6
+          const selling = roundedCost * 1.6;
           next.selling_price = selling.toFixed(2);
         } else {
           next.cost_price = "";
