@@ -19,8 +19,8 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
 
 export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting }: ProductCardProps) {
   const priceLabel =
-    product.price && Number(product.price) > 0
-      ? usdFormatter.format(Number(product.price))
+    product.selling_price && Number(product.selling_price) > 0
+      ? usdFormatter.format(Number(product.selling_price))
       : "null";
 
   return (

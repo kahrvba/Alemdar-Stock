@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { SolarProduct } from "@/lib/services/solar";
+import type { ArduinoProduct } from "@/lib/services/arduino";
 import { useToast } from "@/components/ui/toast";
 import { useCart } from "@/components/ui/cart";
 
@@ -17,11 +18,12 @@ export function useSolarInventory() {
     rating: "",
     category: "",
     quantity: 0,
-    price: "",
-    first_price: "",
-    second_price: "",
-    third_price: "",
-    four_price: "",
+    factory_price: "",
+    wholesale_price: "",
+    min_selling_price: "",
+    selling_price: "",
+    factor: "",
+    cost_price: "",
     image_filename: "",
     description: "",
   });
@@ -48,11 +50,12 @@ export function useSolarInventory() {
         rating: editingProduct.rating ?? "",
         category: editingProduct.category ?? "",
         quantity: editingProduct.quantity ?? 0,
-        price: editingProduct.price ? String(editingProduct.price) : "",
-        first_price: editingProduct.first_price ? String(editingProduct.first_price) : "",
-        second_price: editingProduct.second_price ? String(editingProduct.second_price) : "",
-        third_price: editingProduct.third_price ? String(editingProduct.third_price) : "",
-        four_price: editingProduct.four_price ? String(editingProduct.four_price) : "",
+        factory_price: editingProduct.factory_price != null ? String(editingProduct.factory_price) : "",
+        wholesale_price: editingProduct.wholesale_price != null ? String(editingProduct.wholesale_price) : "",
+        min_selling_price: editingProduct.min_selling_price != null ? String(editingProduct.min_selling_price) : "",
+        selling_price: editingProduct.selling_price != null ? String(editingProduct.selling_price) : "",
+        factor: editingProduct.factor != null ? String(editingProduct.factor) : "",
+        cost_price: editingProduct.cost_price != null ? String(editingProduct.cost_price) : "",
         image_filename: editingProduct.image_filename ?? "",
         description: editingProduct.description ?? "",
       });
@@ -66,11 +69,12 @@ export function useSolarInventory() {
         rating: "",
         category: "",
         quantity: 0,
-        price: "",
-        first_price: "",
-        second_price: "",
-        third_price: "",
-        four_price: "",
+        factory_price: "",
+        wholesale_price: "",
+        min_selling_price: "",
+        selling_price: "",
+        factor: "",
+        cost_price: "",
         image_filename: "",
         description: "",
       });
@@ -89,12 +93,63 @@ export function useSolarInventory() {
     };
   }, [imagePreviewUrl]);
 
+  // Helper to safely parse numeric strings (supports comma or dot)
+  const parseNumericInput = (input: string | number | null | undefined): number | null => {
+    if (input === null || input === undefined) return null;
+    if (typeof input === "number") {
+      return Number.isFinite(input) ? input : null;
+    }
+    const normalized = input.replace(",", ".").trim();
+    if (!normalized) return null;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
   // Handler functions
   const handleFormChange = useCallback((field: string, value: string | number) => {
-    setFormState((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    setFormState((previous) => {
+      const next = {
+        ...previous,
+        [field]: value,
+      };
+
+      // Automatically compute cost_price = factory_price * factor
+      // and the derived selling prices from cost_price
+      if (field === "factory_price" || field === "factor") {
+        const factoryValue =
+          field === "factory_price" ? value : next.factory_price;
+        const factorValue = field === "factor" ? value : next.factor;
+
+        const factoryNumber = parseNumericInput(factoryValue as string | number);
+        const factorNumber = parseNumericInput(factorValue as string | number);
+
+        if (factoryNumber !== null && factorNumber !== null) {
+          const costPrice = factoryNumber * factorNumber; // base cost
+          const roundedCost = Number(costPrice.toFixed(2));
+          next.cost_price = roundedCost.toFixed(2);
+
+          // Toptan price: cost_price * 1.8
+          const wholesale = roundedCost * 1.8;
+          next.wholesale_price = wholesale.toFixed(2);
+
+          // Min selling price: cost_price * 1.9
+          const minSelling = roundedCost * 1.9;
+          next.min_selling_price = minSelling.toFixed(2);
+
+          // Müşteri price (normal): cost_price * 2.0
+          const selling = roundedCost * 2.0;
+          next.selling_price = selling.toFixed(2);
+        } else {
+          next.cost_price = "";
+          // If base values are invalid, clear the derived prices too
+          next.wholesale_price = "";
+          next.min_selling_price = "";
+          next.selling_price = "";
+        }
+      }
+
+      return next;
+    });
   }, []);
 
   const handleImageSelect = useCallback((file: File | null) => {
@@ -183,11 +238,12 @@ export function useSolarInventory() {
           rating: formState.rating || "",
           category: formState.category || "",
           quantity: Number(formState.quantity) || 0,
-          price: formState.price ? String(formState.price) : "",
-          first_price: formState.first_price ? String(formState.first_price) : null,
-          second_price: formState.second_price ? String(formState.second_price) : null,
-          third_price: formState.third_price ? String(formState.third_price) : null,
-          four_price: formState.four_price ? String(formState.four_price) : null,
+          factory_price: formState.factory_price ? String(formState.factory_price) : null,
+          wholesale_price: formState.wholesale_price ? String(formState.wholesale_price) : null,
+          min_selling_price: formState.min_selling_price ? String(formState.min_selling_price) : null,
+          selling_price: formState.selling_price ? String(formState.selling_price) : null,
+          factor: formState.factor ? String(formState.factor) : null,
+          cost_price: formState.cost_price ? String(formState.cost_price) : null,
           image_filename: imageFilename || null,
           description: formState.description || "",
         }),
@@ -232,11 +288,12 @@ export function useSolarInventory() {
           name: formState.name || null,
           rating: formState.rating || null,
           category: formState.category || null,
-          price: formState.price ? String(formState.price) : null,
-          first_price: formState.first_price ? String(formState.first_price) : null,
-          second_price: formState.second_price ? String(formState.second_price) : null,
-          third_price: formState.third_price ? String(formState.third_price) : null,
-          four_price: formState.four_price ? String(formState.four_price) : null,
+          factory_price: formState.factory_price ? String(formState.factory_price) : null,
+          wholesale_price: formState.wholesale_price ? String(formState.wholesale_price) : null,
+          min_selling_price: formState.min_selling_price ? String(formState.min_selling_price) : null,
+          selling_price: formState.selling_price ? String(formState.selling_price) : null,
+          factor: formState.factor ? String(formState.factor) : null,
+          cost_price: formState.cost_price ? String(formState.cost_price) : null,
           image_filename: null,
           description: formState.description || null,
         }),
@@ -284,18 +341,24 @@ export function useSolarInventory() {
 
   const handleAddToCart = useCallback((product: SolarProduct) => {
     // Convert SolarProduct to cart format (using ArduinoProduct structure for cart compatibility)
-    const cartProduct = {
+    const price: string | null =
+      product.selling_price !== null && product.selling_price !== undefined
+        ? String(product.selling_price)
+        : null;
+
+    const cartProduct: ArduinoProduct & { inventoryType: "solar" } = {
       id: product.id,
-      english_names: product.name,
+      english_names: product.name ?? null,
       turkish_names: null,
-      category: product.category,
+      category: product.category ?? null,
       barcode: null,
-      quantity: product.quantity,
-      price: product.price,
-      image_filename: product.image_filename,
-      description: product.description,
-      inventoryType: "solar" as const,
+      quantity: product.quantity ?? null,
+      price,
+      image_filename: product.image_filename ?? null,
+      description: product.description ?? null,
+      inventoryType: "solar",
     };
+
     addToCart(cartProduct, 1);
     showToast(
       `${product.name ?? `Product #${product.id}`} added to cart`,

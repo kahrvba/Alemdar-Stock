@@ -40,7 +40,7 @@ export async function GET(req: Request) {
 
     if (ids.length > 0) {
       const result = await client.query(
-        'SELECT id, name, rating, price, first_price, second_price, third_price, four_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb WHERE id = ANY($1) ORDER BY id ASC',
+        'SELECT id, name, rating, factory_price, wholesale_price, min_sillig_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb WHERE id = ANY($1) ORDER BY id ASC',
         [ids]
       );
       client.release();
@@ -50,7 +50,7 @@ export async function GET(req: Request) {
     if (id) {
       // Fetch a single product by ID
       const result = await client.query(
-        'SELECT id, name, rating, price, first_price, second_price, third_price, four_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb WHERE id = $1',
+        'SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb WHERE id = $1',
         [id]
       );
       client.release();
@@ -65,7 +65,7 @@ export async function GET(req: Request) {
     if (all) {
       // Return all products without pagination
       const result = await client.query(
-        'SELECT id, name, rating, price, first_price, second_price, third_price, four_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb ORDER BY id ASC'
+        'SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb ORDER BY id ASC'
       );
       const totalResult = await client.query('SELECT COUNT(*) FROM public.solardb');
       client.release();
@@ -119,7 +119,7 @@ export async function GET(req: Request) {
 
     const offset = (currentPage - 1) * currentPageSize;
     const result = await client.query(
-      `SELECT id, name, rating, price, first_price, second_price, third_price, four_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb ${whereClause} ORDER BY id ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+      `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb ${whereClause} ORDER BY id ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
       [...values, currentPageSize, offset]
     );
     items = result.rows ?? [];
@@ -156,7 +156,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const client = await pool.connect();
   try {
-    const { name, rating, price, first_price, second_price, third_price, four_price,
+    const { name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price,
       image_filename, 
       category, description } = await req.json();
     
@@ -179,8 +179,8 @@ export async function POST(req: Request) {
     
     // Insert with the generated ID
     const result = await client.query(
-      'INSERT INTO public.solardb (id, name, rating, price, first_price, second_price, third_price, four_price, image_filename, category, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id',
-      [newId, name, rating, price, first_price, second_price, third_price, four_price, image_filename, category, description]
+      'INSERT INTO public.solardb (id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id',
+      [newId, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, description]
     );
 
     if (!result.rows[0]?.id) {
@@ -203,7 +203,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const client = await pool.connect();
   try {
-    const { id, name, rating, price, first_price, second_price, third_price, four_price,
+    const { id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price,
       image_filename, 
       category, quantity, description } = await req.json();
     
@@ -226,17 +226,18 @@ export async function PUT(req: Request) {
        SET 
          name=$1, 
          rating=$2, 
-         price=$3, 
-         first_price=$4,
-         second_price=$5,
-         third_price=$6,
-         four_price=$7,
-         image_filename=$8,
-         category=$9, 
-         quantity=$10, 
-         description=$11
-       WHERE id=$12`,
-      [name, rating, price, first_price, second_price, third_price, four_price, image_filename, category, quantity, description, id]
+         factory_price=$3,
+         wholesale_price=$4,
+         min_selling_price=$5,
+         selling_price=$6,
+         factor=$7,
+         cost_price=$8,
+         image_filename=$9,
+         category=$10, 
+         quantity=$11, 
+         description=$12
+       WHERE id=$13`,
+      [name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, quantity, description, id]
     );
 
     if (result.rowCount === 0) {

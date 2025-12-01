@@ -452,7 +452,20 @@ export const downloadSolarExcel = async (products: SolarProduct[]) => {
   const worksheet = workbook.addWorksheet('Products');
   
   // Add header row
-  const headers = ['ID', 'Name', 'Rating', 'Category', 'Quantity', 'Price', 'First Price', 'Second Price', 'Third Price', 'Fourth Price', 'Description'];
+  const headers = [
+    'ID',
+    'Name',
+    'Rating',
+    'Category',
+    'Quantity',
+    'Factory Price',
+    'Wholesale Price',
+    'Min Selling Price',
+    'Selling Price',
+    'Factor',
+    'Cost Price',
+    'Description',
+  ];
   worksheet.addRow(headers);
   
   // Set column widths
@@ -461,12 +474,13 @@ export const downloadSolarExcel = async (products: SolarProduct[]) => {
   worksheet.getColumn(3).width = 20;  // Rating
   worksheet.getColumn(4).width = 30;  // Category
   worksheet.getColumn(5).width = 10;  // Quantity
-  worksheet.getColumn(6).width = 15;  // Price
-  worksheet.getColumn(7).width = 15;  // First Price
-  worksheet.getColumn(8).width = 15;  // Second Price
-  worksheet.getColumn(9).width = 15;  // Third Price
-  worksheet.getColumn(10).width = 15; // Fourth Price
-  worksheet.getColumn(11).width = 50; // Description
+  worksheet.getColumn(6).width = 15;  // Factory Price
+  worksheet.getColumn(7).width = 15;  // Wholesale Price
+  worksheet.getColumn(8).width = 15;  // Min Selling Price
+  worksheet.getColumn(9).width = 15;  // Selling Price
+  worksheet.getColumn(10).width = 10; // Factor
+  worksheet.getColumn(11).width = 15; // Cost Price
+  worksheet.getColumn(12).width = 50; // Description
   
   // Style header row
   worksheet.getRow(1).font = { bold: true };
@@ -480,11 +494,12 @@ export const downloadSolarExcel = async (products: SolarProduct[]) => {
       product.rating,
       product.category,
       product.quantity,
-      product.price,
-      product.first_price,
-      product.second_price,
-      product.third_price,
-      product.four_price,
+      product.factory_price,
+      product.wholesale_price,
+      product.min_selling_price,
+      product.selling_price,
+      product.factor,
+      product.cost_price,
       product.description
     ]);
     
@@ -496,7 +511,7 @@ export const downloadSolarExcel = async (products: SolarProduct[]) => {
   // Start from row 2 (after headers)
   for (let i = 2; i <= products.length + 1; i++) {
     const currentRow = worksheet.getRow(i);
-    const quantity = Number(currentRow.getCell(5).value) || 0; // Convert to number and default to 0 (quantity is now column 5)
+    const quantity = Number(currentRow.getCell(5).value) || 0; // quantity is column 5
     
     let fillColor: { argb: string } | null = null;
     
@@ -512,8 +527,8 @@ export const downloadSolarExcel = async (products: SolarProduct[]) => {
     
     // Apply the color to all cells in the row if a color was selected
     if (fillColor) {
-      // Apply to all cells in the row (columns 1-11)
-      for (let col = 1; col <= 11; col++) {
+      // Apply to all cells in the row (columns 1-12)
+      for (let col = 1; col <= 12; col++) {
         currentRow.getCell(col).fill = {
           type: 'pattern',
           pattern: 'solid',
@@ -533,7 +548,19 @@ export const highlightSolarExcel = async (products: SolarProduct[]) => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Products');
 
-  worksheet.addRow(['ID', 'Name', 'Rating', 'Category', 'Quantity', 'Price', 'First Price', 'Second Price', 'Third Price', 'Fourth Price']);
+  worksheet.addRow([
+    'ID',
+    'Name',
+    'Rating',
+    'Category',
+    'Quantity',
+    'Factory Price',
+    'Wholesale Price',
+    'Min Selling Price',
+    'Selling Price',
+    'Factor',
+    'Cost Price',
+  ]);
 
   worksheet.getColumn(1).width = 5;
   worksheet.getColumn(2).width = 40;
@@ -545,6 +572,7 @@ export const highlightSolarExcel = async (products: SolarProduct[]) => {
   worksheet.getColumn(8).width = 15;
   worksheet.getColumn(9).width = 15;
   worksheet.getColumn(10).width = 15;
+  worksheet.getColumn(11).width = 15;
 
   worksheet.getRow(1).font = { bold: true };
   worksheet.getRow(1).height = 25;
@@ -557,11 +585,12 @@ export const highlightSolarExcel = async (products: SolarProduct[]) => {
       product.rating,
       product.category,
       product.quantity,
-      product.price,
-      product.first_price,
-      product.second_price,
-      product.third_price,
-      product.four_price
+      product.factory_price,
+      product.wholesale_price,
+      product.min_selling_price,
+      product.selling_price,
+      product.factor,
+      product.cost_price,
     ]);
     
     row.height = 20;
@@ -569,7 +598,7 @@ export const highlightSolarExcel = async (products: SolarProduct[]) => {
   
   for (let i = 2; i <= filteredProducts.length + 1; i++) {
     const currentRow = worksheet.getRow(i);
-    const quantity = Number(currentRow.getCell(5).value) || 0; // Convert to number and default to 0 (quantity is now column 5)
+    const quantity = Number(currentRow.getCell(5).value) || 0; // quantity is column 5
     
     let fillColor: { argb: string } | null = null;
     
@@ -585,8 +614,8 @@ export const highlightSolarExcel = async (products: SolarProduct[]) => {
     
     // Apply the color to all cells in the row if a color was selected
     if (fillColor) {
-      // Apply to all cells in the row (columns 1-10)
-      for (let col = 1; col <= 10; col++) {
+      // Apply to all cells in the row (columns 1-11)
+      for (let col = 1; col <= 11; col++) {
         currentRow.getCell(col).fill = {
           type: 'pattern',
           pattern: 'solid',

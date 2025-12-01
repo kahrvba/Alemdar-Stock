@@ -276,6 +276,12 @@ function CartSidebar() {
     freshProduct: GenericInventoryProduct,
     cartItem: CartItem
   ) => {
+    if (inventoryType === "solar") {
+      return parsePriceValue(
+        (freshProduct as GenericInventoryProduct & { selling_price?: number | string | null })
+          .selling_price ?? cartItem.product.price ?? 0
+      );
+    }
     return parsePriceValue(freshProduct?.price ?? cartItem.product.price ?? 0);
   };
 
@@ -332,11 +338,12 @@ function CartSidebar() {
           id: freshProduct.id,
           name: freshProduct.name ?? null,
           rating: freshProduct.rating ?? null,
-          price: freshProduct.price ?? null,
-          first_price: freshProduct.first_price ?? null,
-          second_price: freshProduct.second_price ?? null,
-          third_price: freshProduct.third_price ?? null,
-          four_price: freshProduct.four_price ?? null,
+          factory_price: freshProduct.factory_price ?? null,
+          wholesale_price: freshProduct.wholesale_price ?? null,
+          min_selling_price: freshProduct.min_selling_price ?? null,
+          selling_price: freshProduct.selling_price ?? null,
+          factor: freshProduct.factor ?? null,
+          cost_price: freshProduct.cost_price ?? null,
           image_filename: freshProduct.image_filename ?? null,
           category: freshProduct.category ?? null,
           quantity,

@@ -4,11 +4,12 @@ export type SolarProduct = {
   rating: string | null;
   category: string | null;
   quantity: number | null;
-  price: string | null;
-  first_price: string | null;
-  second_price: string | null;
-  third_price: string | null;
-  four_price: string | null;
+  factory_price: number | string | null;
+  wholesale_price: number | string | null;
+  min_selling_price: number | string | null;
+  selling_price: number | string | null;
+  factor: number | string | null;
+  cost_price: number | string | null;
   image_filename: string | null;
   description: string | null;
 };
