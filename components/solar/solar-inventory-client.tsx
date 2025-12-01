@@ -327,7 +327,7 @@ export function SolarInventoryClient({
                   </div>
                 </label>
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
-                  <span>
+                  <span className="text-lg font-medium">
                     Cost price = {formState.factory_price || "factory_price"} × {formState.factor || "factor"}
                     {formState.factory_price && formState.factor && formState.cost_price ? (
                       <span className="ml-2 font-semibold text-foreground">
@@ -337,7 +337,7 @@ export function SolarInventoryClient({
                   </span>
                 </label>
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
-                  <span>
+                  <span className="text-lg font-medium">
                     Toptan price = {formState.cost_price || "cost_price"} × {toptanMultiplier}
                     {formState.cost_price && formState.wholesale_price ? (
                       <span className="ml-2 font-semibold text-foreground">
@@ -345,7 +345,7 @@ export function SolarInventoryClient({
                       </span>
                     ) : null}
                   </span>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 mt-3">
                     <div className="flex flex-wrap gap-2">
                       {[1.3, 1.4, 1.5].map((multiplier) => {
                         const currentMul = Number(
@@ -419,7 +419,7 @@ export function SolarInventoryClient({
                   </div>
                 </label>
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
-                  <span>
+                  <span className="text-lg font-medium">
                     Min selling price = {formState.cost_price || "cost_price"} × {minMultiplier}
                     {formState.cost_price && formState.min_selling_price ? (
                       <span className="ml-2 font-semibold text-foreground">
@@ -427,7 +427,7 @@ export function SolarInventoryClient({
                       </span>
                     ) : null}
                   </span>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 mt-3">
                     <div className="flex flex-wrap gap-2">
                       {[1.6, 1.7, 1.8].map((multiplier) => {
                         const currentMul = Number(
@@ -499,7 +499,7 @@ export function SolarInventoryClient({
                   </div>
                 </label>
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
-                  <span>
+                  <span className="text-lg font-medium">
                     Müşteri price = {formState.cost_price || "cost_price"} × {musteriMultiplier}
                     {formState.cost_price && formState.selling_price ? (
                       <span className="ml-2 font-semibold text-foreground">
@@ -507,7 +507,7 @@ export function SolarInventoryClient({
                       </span>
                     ) : null}
                   </span>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 mt-3">
                     <div className="flex flex-wrap gap-2">
                       {[1.6, 1.7, 1.8, 1.9, 2.0].map((multiplier) => {
                         const currentMul = Number(
