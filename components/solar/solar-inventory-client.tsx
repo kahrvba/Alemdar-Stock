@@ -212,8 +212,8 @@ export function SolarInventoryClient({
       />
     </div>
       <Activity mode={(editingProduct || isAddingProduct) ? "visible" : "hidden"}>
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur">
-          <div className="w-full max-w-2xl rounded-3xl border border-border/60 bg-card p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur overflow-y-auto">
+          <div className="w-full max-w-2xl max-h-[calc(100vh-2rem)] rounded-3xl border border-border/60 bg-card p-6 shadow-2xl overflow-y-auto my-auto">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
