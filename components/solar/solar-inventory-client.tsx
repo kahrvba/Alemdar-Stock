@@ -60,6 +60,9 @@ export function SolarInventoryClient({
   } = useSolarInventory();
 
   const [isExporting, setIsExporting] = useState(false);
+  const [toptanMultiplier, setToptanMultiplier] = useState<string>("1.3");
+  const [minMultiplier, setMinMultiplier] = useState<string>("1.6");
+  const [musteriMultiplier, setMusteriMultiplier] = useState<string>("2.0");
 
   const fetchAllProducts = async (): Promise<SolarProduct[]> => {
     try {
@@ -321,40 +324,254 @@ export function SolarInventoryClient({
                   />
                 </label>
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground">
-                  Toptan price (Cost price × 1.8)
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formState.wholesale_price}
-                    onChange={(event) =>
-                      handleFormChange("wholesale_price", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
+                  Toptan price (Cost price × 1.3)
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formState.wholesale_price}
+                      onChange={(event) =>
+                        handleFormChange("wholesale_price", event.target.value)
+                      }
+                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {[1.3, 1.4, 1.5].map((multiplier) => {
+                        const currentMul = Number(
+                          toptanMultiplier.replace(",", ".")
+                        );
+                        const isActive =
+                          Number.isFinite(currentMul) &&
+                          Math.abs(currentMul - multiplier) < 1e-6;
+                        return (
+                          <button
+                            key={multiplier}
+                            type="button"
+                            onClick={() => {
+                              const rawCost =
+                                typeof formState.cost_price === "string"
+                                  ? formState.cost_price.replace(",", ".")
+                                  : String(formState.cost_price ?? "");
+                              const cost = Number(rawCost);
+                              if (!Number.isFinite(cost) || cost <= 0) return;
+                              const value = (cost * multiplier).toFixed(2);
+                              setToptanMultiplier(multiplier.toFixed(1));
+                              handleFormChange("wholesale_price", value);
+                            }}
+                            className={cn(
+                              "rounded-full border px-3 py-1 text-xs font-semibold transition cursor-pointer",
+                              isActive
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border/60 bg-muted/60 text-foreground hover:border-foreground/40 hover:bg-muted"
+                            )}
+                          >
+                            × {multiplier.toFixed(1)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Custom multiplier</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={toptanMultiplier}
+                        onChange={(event) => setToptanMultiplier(event.target.value)}
+                        className="w-20 rounded-xl border border-border/60 bg-transparent px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const rawCost =
+                            typeof formState.cost_price === "string"
+                              ? formState.cost_price.replace(",", ".")
+                              : String(formState.cost_price ?? "");
+                          const cost = Number(rawCost);
+                          const mul = Number(
+                            toptanMultiplier.replace(",", ".")
+                          );
+                          if (
+                            !Number.isFinite(cost) ||
+                            cost <= 0 ||
+                            !Number.isFinite(mul) ||
+                            mul <= 0
+                          )
+                            return;
+                          const value = (cost * mul).toFixed(2);
+                          handleFormChange("wholesale_price", value);
+                        }}
+                        className="rounded-full border border-border/60 bg-muted/60 px-3 py-1 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
                 </label>
-                <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground">
-                  Min selling price (Cost price × 1.9)
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formState.min_selling_price}
-                    onChange={(event) =>
-                      handleFormChange("min_selling_price", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
+                <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
+                  Min selling price (Cost price × 1.6)
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formState.min_selling_price}
+                      onChange={(event) =>
+                        handleFormChange("min_selling_price", event.target.value)
+                      }
+                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {[1.6, 1.7, 1.8].map((multiplier) => {
+                        const currentMul = Number(
+                          minMultiplier.replace(",", ".")
+                        );
+                        const isActive =
+                          Number.isFinite(currentMul) &&
+                          Math.abs(currentMul - multiplier) < 1e-6;
+                        return (
+                          <button
+                            key={multiplier}
+                            type="button"
+                            onClick={() => {
+                              const rawCost =
+                                typeof formState.cost_price === "string"
+                                  ? formState.cost_price.replace(",", ".")
+                                  : String(formState.cost_price ?? "");
+                              const cost = Number(rawCost);
+                              if (!Number.isFinite(cost) || cost <= 0) return;
+                              const value = (cost * multiplier).toFixed(2);
+                              setMinMultiplier(multiplier.toFixed(1));
+                              handleFormChange("min_selling_price", value);
+                            }}
+                            className={cn(
+                              "rounded-full border px-3 py-1 text-xs font-semibold transition cursor-pointer",
+                              isActive
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border/60 bg-muted/60 text-foreground hover:border-foreground/40 hover:bg-muted"
+                            )}
+                          >
+                            × {multiplier.toFixed(1)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Custom multiplier</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={minMultiplier}
+                        onChange={(event) => setMinMultiplier(event.target.value)}
+                        className="w-20 rounded-xl border border-border/60 bg-transparent px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const rawCost =
+                            typeof formState.cost_price === "string"
+                              ? formState.cost_price.replace(",", ".")
+                              : String(formState.cost_price ?? "");
+                          const cost = Number(rawCost);
+                          const mul = Number(minMultiplier.replace(",", "."));
+                          if (
+                            !Number.isFinite(cost) ||
+                            cost <= 0 ||
+                            !Number.isFinite(mul) ||
+                            mul <= 0
+                          )
+                            return;
+                          const value = (cost * mul).toFixed(2);
+                          handleFormChange("min_selling_price", value);
+                        }}
+                        className="rounded-full border border-border/60 bg-muted/60 px-3 py-1 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
                 </label>
-                <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground">
+                <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
                   Müşteri price (Cost price × 2.0)
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formState.selling_price}
-                    onChange={(event) =>
-                      handleFormChange("selling_price", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formState.selling_price}
+                      onChange={(event) =>
+                        handleFormChange("selling_price", event.target.value)
+                      }
+                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {[1.9, 2.0, 2.1].map((multiplier) => {
+                        const currentMul = Number(
+                          musteriMultiplier.replace(",", ".")
+                        );
+                        const isActive =
+                          Number.isFinite(currentMul) &&
+                          Math.abs(currentMul - multiplier) < 1e-6;
+                        return (
+                          <button
+                            key={multiplier}
+                            type="button"
+                            onClick={() => {
+                              const rawCost =
+                                typeof formState.cost_price === "string"
+                                  ? formState.cost_price.replace(",", ".")
+                                  : String(formState.cost_price ?? "");
+                              const cost = Number(rawCost);
+                              if (!Number.isFinite(cost) || cost <= 0) return;
+                              const value = (cost * multiplier).toFixed(2);
+                              setMusteriMultiplier(multiplier.toFixed(1));
+                              handleFormChange("selling_price", value);
+                            }}
+                            className={cn(
+                              "rounded-full border px-3 py-1 text-xs font-semibold transition cursor-pointer",
+                              isActive
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border/60 bg-muted/60 text-foreground hover:border-foreground/40 hover:bg-muted"
+                            )}
+                          >
+                            × {multiplier.toFixed(1)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Custom multiplier</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={musteriMultiplier}
+                        onChange={(event) => setMusteriMultiplier(event.target.value)}
+                        className="w-20 rounded-xl border border-border/60 bg-transparent px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const rawCost =
+                            typeof formState.cost_price === "string"
+                              ? formState.cost_price.replace(",", ".")
+                              : String(formState.cost_price ?? "");
+                          const cost = Number(rawCost);
+                          const mul = Number(
+                            musteriMultiplier.replace(",", ".")
+                          );
+                          if (
+                            !Number.isFinite(cost) ||
+                            cost <= 0 ||
+                            !Number.isFinite(mul) ||
+                            mul <= 0
+                          )
+                            return;
+                          const value = (cost * mul).toFixed(2);
+                          handleFormChange("selling_price", value);
+                        }}
+                        className="rounded-full border border-border/60 bg-muted/60 px-3 py-1 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
                 </label>
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground">
                   Quantity
