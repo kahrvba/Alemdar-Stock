@@ -60,9 +60,9 @@ export function SolarInventoryClient({
   } = useSolarInventory();
 
   const [isExporting, setIsExporting] = useState(false);
-  const [toptanMultiplier, setToptanMultiplier] = useState<string>("1.3");
-  const [minMultiplier, setMinMultiplier] = useState<string>("1.6");
-  const [musteriMultiplier, setMusteriMultiplier] = useState<string>("1.6");
+  const [toptanMultiplier, setToptanMultiplier] = useState<string>("");
+  const [minMultiplier, setMinMultiplier] = useState<string>("");
+  const [musteriMultiplier, setMusteriMultiplier] = useState<string>("");
 
   const fetchAllProducts = async (): Promise<SolarProduct[]> => {
     try {
@@ -336,9 +336,10 @@ export function SolarInventoryClient({
                     ) : null}
                   </span>
                 </label>
+                {/* Toptan price options */}
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
                   <span className="text-lg font-medium">
-                    Toptan price = {formState.cost_price || "cost_price"} × {toptanMultiplier}
+                    Toptan price = {formState.cost_price || "cost_price"} × {toptanMultiplier || "multiplier"}
                     {formState.cost_price && formState.wholesale_price ? (
                       <span className="ml-2 font-semibold text-foreground">
                         = {formState.wholesale_price}
@@ -347,7 +348,7 @@ export function SolarInventoryClient({
                   </span>
                   <div className="flex flex-col gap-2 mt-3">
                     <div className="flex flex-wrap gap-2">
-                      {[1.3, 1.4, 1.5].map((multiplier) => {
+                      {[1.3, 1.4, 1.5, 1.8].map((multiplier) => {
                         const currentMul = Number(
                           toptanMultiplier.replace(",", ".")
                         );
@@ -381,46 +382,13 @@ export function SolarInventoryClient({
                         );
                       })}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Custom multiplier</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={toptanMultiplier}
-                        onChange={(event) => setToptanMultiplier(event.target.value)}
-                        className="w-20 rounded-xl border border-border/60 bg-transparent px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const rawCost =
-                            typeof formState.cost_price === "string"
-                              ? formState.cost_price.replace(",", ".")
-                              : String(formState.cost_price ?? "");
-                          const cost = Number(rawCost);
-                          const mul = Number(
-                            toptanMultiplier.replace(",", ".")
-                          );
-                          if (
-                            !Number.isFinite(cost) ||
-                            cost <= 0 ||
-                            !Number.isFinite(mul) ||
-                            mul <= 0
-                          )
-                            return;
-                          const value = (cost * mul).toFixed(2);
-                          handleFormChange("wholesale_price", value);
-                        }}
-                        className="rounded-full border border-border/60 bg-muted/60 px-3 py-1 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted cursor-pointer"
-                      >
-                        Apply
-                      </button>
-                    </div>
                   </div>
                 </label>
+
+                {/* Min selling price options */}
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
                   <span className="text-lg font-medium">
-                    Min selling price = {formState.cost_price || "cost_price"} × {minMultiplier}
+                    Min selling price = {formState.cost_price || "cost_price"} × {minMultiplier || "multiplier"}
                     {formState.cost_price && formState.min_selling_price ? (
                       <span className="ml-2 font-semibold text-foreground">
                         = {formState.min_selling_price}
@@ -429,7 +397,7 @@ export function SolarInventoryClient({
                   </span>
                   <div className="flex flex-col gap-2 mt-3">
                     <div className="flex flex-wrap gap-2">
-                      {[1.6, 1.7, 1.8].map((multiplier) => {
+                      {[1.4, 1.5, 1.6, 1.7, 1.8, 1.9].map((multiplier) => {
                         const currentMul = Number(
                           minMultiplier.replace(",", ".")
                         );
@@ -463,44 +431,13 @@ export function SolarInventoryClient({
                         );
                       })}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Custom multiplier</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={minMultiplier}
-                        onChange={(event) => setMinMultiplier(event.target.value)}
-                        className="w-20 rounded-xl border border-border/60 bg-transparent px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const rawCost =
-                            typeof formState.cost_price === "string"
-                              ? formState.cost_price.replace(",", ".")
-                              : String(formState.cost_price ?? "");
-                          const cost = Number(rawCost);
-                          const mul = Number(minMultiplier.replace(",", "."));
-                          if (
-                            !Number.isFinite(cost) ||
-                            cost <= 0 ||
-                            !Number.isFinite(mul) ||
-                            mul <= 0
-                          )
-                            return;
-                          const value = (cost * mul).toFixed(2);
-                          handleFormChange("min_selling_price", value);
-                        }}
-                        className="rounded-full border border-border/60 bg-muted/60 px-3 py-1 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted cursor-pointer"
-                      >
-                        Apply
-                      </button>
-                    </div>
                   </div>
                 </label>
+
+                {/* Müşteri price options */}
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground border-t-2 border-border/80 pt-4 mt-4">
                   <span className="text-lg font-medium">
-                    Müşteri price = {formState.cost_price || "cost_price"} × {musteriMultiplier}
+                    Müşteri price = {formState.cost_price || "cost_price"} × {musteriMultiplier || "multiplier"}
                     {formState.cost_price && formState.selling_price ? (
                       <span className="ml-2 font-semibold text-foreground">
                         = {formState.selling_price}
@@ -509,7 +446,7 @@ export function SolarInventoryClient({
                   </span>
                   <div className="flex flex-col gap-2 mt-3">
                     <div className="flex flex-wrap gap-2">
-                      {[1.6, 1.7, 1.8, 1.9, 2.0].map((multiplier) => {
+                      {[1.5, 1.6, 1.7, 1.8, 1.9, 2.0].map((multiplier) => {
                         const currentMul = Number(
                           musteriMultiplier.replace(",", ".")
                         );
@@ -543,43 +480,11 @@ export function SolarInventoryClient({
                         );
                       })}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Custom multiplier</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={musteriMultiplier}
-                        onChange={(event) => setMusteriMultiplier(event.target.value)}
-                        className="w-20 rounded-xl border border-border/60 bg-transparent px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const rawCost =
-                            typeof formState.cost_price === "string"
-                              ? formState.cost_price.replace(",", ".")
-                              : String(formState.cost_price ?? "");
-                          const cost = Number(rawCost);
-                          const mul = Number(
-                            musteriMultiplier.replace(",", ".")
-                          );
-                          if (
-                            !Number.isFinite(cost) ||
-                            cost <= 0 ||
-                            !Number.isFinite(mul) ||
-                            mul <= 0
-                          )
-                            return;
-                          const value = (cost * mul).toFixed(2);
-                          handleFormChange("selling_price", value);
-                        }}
-                        className="rounded-full border border-border/60 bg-muted/60 px-3 py-1 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted cursor-pointer"
-                      >
-                        Apply
-                      </button>
-                    </div>
                   </div>
                 </label>
+
+                {/* Divider between Müşteri price options and Quantity */}
+                <div className="md:col-span-2 border-t border-border/80 my-4" />
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground">
                   Quantity
                   <input

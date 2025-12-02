@@ -128,16 +128,16 @@ export function useSolarInventory() {
           const roundedCost = Number(costPrice.toFixed(2));
           next.cost_price = roundedCost.toFixed(2);
 
-          // Toptan price: cost_price * 1.3
-          const wholesale = roundedCost * 1.3;
+          // Toptan price: cost_price * 1.8
+          const wholesale = roundedCost * 1.8;
           next.wholesale_price = wholesale.toFixed(2);
 
-          // Min selling price: cost_price * 1.6
-          const minSelling = roundedCost * 1.6;
+          // Min selling price (boss not around): cost_price * 1.9
+          const minSelling = roundedCost * 1.9;
           next.min_selling_price = minSelling.toFixed(2);
 
-          // Müşteri price (normal): cost_price * 1.6
-          const selling = roundedCost * 1.6;
+          // Müşteri price (normal): cost_price * 2.0
+          const selling = roundedCost * 2.0;
           next.selling_price = selling.toFixed(2);
         } else {
           next.cost_price = "";
