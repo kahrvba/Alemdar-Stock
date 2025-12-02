@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Activity, useState, Suspense } from "react";
+import React, { Activity, useState, Suspense, useEffect } from "react";
 import Image from "next/image";
 import { Download, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { ProductCard } from "@/components/solar/product-card";
@@ -63,6 +63,47 @@ export function SolarInventoryClient({
   const [toptanMultiplier, setToptanMultiplier] = useState<string>("");
   const [minMultiplier, setMinMultiplier] = useState<string>("");
   const [musteriMultiplier, setMusteriMultiplier] = useState<string>("");
+
+  // Calculate multipliers from DB prices when editing a product
+  useEffect(() => {
+    if (editingProduct && formState.cost_price && formState.cost_price !== "") {
+      const cost = Number(String(formState.cost_price).replace(",", "."));
+      
+      if (Number.isFinite(cost) && cost > 0) {
+        // Calculate Toptan multiplier
+        if (formState.wholesale_price && formState.wholesale_price !== "") {
+          const wholesale = Number(String(formState.wholesale_price).replace(",", "."));
+          if (Number.isFinite(wholesale) && wholesale > 0) {
+            const ratio = wholesale / cost;
+            setToptanMultiplier(ratio.toFixed(2));
+          }
+        }
+        
+        // Calculate Min selling multiplier
+        if (formState.min_selling_price && formState.min_selling_price !== "") {
+          const minSelling = Number(String(formState.min_selling_price).replace(",", "."));
+          if (Number.isFinite(minSelling) && minSelling > 0) {
+            const ratio = minSelling / cost;
+            setMinMultiplier(ratio.toFixed(2));
+          }
+        }
+        
+        // Calculate Müşteri multiplier
+        if (formState.selling_price && formState.selling_price !== "") {
+          const selling = Number(String(formState.selling_price).replace(",", "."));
+          if (Number.isFinite(selling) && selling > 0) {
+            const ratio = selling / cost;
+            setMusteriMultiplier(ratio.toFixed(2));
+          }
+        }
+      }
+    } else if (!editingProduct && !isAddingProduct) {
+      // Reset multipliers when not editing/adding
+      setToptanMultiplier("");
+      setMinMultiplier("");
+      setMusteriMultiplier("");
+    }
+  }, [editingProduct, formState.cost_price, formState.wholesale_price, formState.min_selling_price, formState.selling_price, isAddingProduct]);
 
   const fetchAllProducts = async (): Promise<SolarProduct[]> => {
     try {
