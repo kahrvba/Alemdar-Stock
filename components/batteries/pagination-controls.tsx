@@ -41,7 +41,7 @@ export function PaginationControls({
       params.set("field", field);
     }
     const queryString = params.toString();
-    return `/arduino${queryString ? `?${queryString}` : ""}`;
+    return `/battery${queryString ? `?${queryString}` : ""}`;
   };
 
   // Generate page numbers to display (Google-style)
@@ -83,7 +83,7 @@ export function PaginationControls({
 
   return (
     <nav
-      aria-label="Arduino pagination"
+      aria-label="Batteries pagination"
       className="flex items-center justify-center gap-2 text-sm"
     >
       {/* Previous Button */}

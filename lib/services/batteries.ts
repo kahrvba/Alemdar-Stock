@@ -1,30 +1,20 @@
-export type SoundProduct = {
+export type BatteryProduct = {
   id: number;
-  english_name: string | null;
-  turkish_name: string | null;
   model: string | null;
   volt: string | null;
-  category: string | null;
-  sub_category: string | null;
-  barcode: string | null;
-  kodu: string | null;
-  quantity: number | null;
-  price: string | null;
-  image_filename: string | null;
-  description: string | null;
 };
 
-type PaginatedSoundResponse = {
-  products?: SoundProduct[];
-  items?: SoundProduct[];
+type PaginatedBatteryResponse = {
+  products?: BatteryProduct[];
+  items?: BatteryProduct[];
   page?: number;
   pageSize?: number;
   total?: number;
   totalPages?: number;
 };
 
-export type SoundPagination = {
-  items: SoundProduct[];
+export type BatteryPagination = {
+  items: BatteryProduct[];
   page: number;
   pageSize: number;
   total: number;
@@ -32,9 +22,9 @@ export type SoundPagination = {
 };
 
 const buildPaginatedResult = (
-  data: PaginatedSoundResponse | SoundProduct[],
+  data: PaginatedBatteryResponse | BatteryProduct[],
   fallbackPage: number
-): SoundPagination => {
+): BatteryPagination => {
   if (Array.isArray(data)) {
     return {
       items: data,
@@ -70,13 +60,13 @@ const buildPaginatedResult = (
   };
 };
 
-export async function fetchSoundProducts(
+export async function fetchBatteryProducts(
   baseUrl: string,
   page: number,
   query?: string | null,
   field?: string | null
-): Promise<SoundPagination> {
-  const url = new URL("/api/sound", baseUrl);
+): Promise<BatteryPagination> {
+  const url = new URL("/api/batteries", baseUrl);
   url.searchParams.set("page", Math.max(1, page).toString());
 
   if (query?.trim()) {
@@ -92,12 +82,12 @@ export async function fetchSoundProducts(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch Sound products: ${response.status}`);
+    throw new Error(`Failed to fetch Battery products: ${response.status}`);
   }
 
   const data = (await response.json()) as
-    | PaginatedSoundResponse
-    | SoundProduct[];
+    | PaginatedBatteryResponse
+    | BatteryProduct[];
 
   return buildPaginatedResult(data, page);
 }

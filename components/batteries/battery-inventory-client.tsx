@@ -3,21 +3,21 @@
 import React, { Activity, useState, useCallback, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { Settings, Download, FileSpreadsheet, ChevronDown } from "lucide-react";
-import { ProductCard } from "@/components/arduino/product-card";
-import { PaginationControls } from "@/components/arduino/pagination-controls";
+import { ProductCard } from "@/components/batteries/product-card";
+import { PaginationControls } from "@/components/batteries/pagination-controls";
 import { ArduinoSearch } from "@/components/arduino/arduino-search";
-import type { ArduinoProduct } from "@/lib/services/arduino";
 import { cn } from "@/lib/utils";
-import { useArduinoInventory } from "@/hooks/use-arduino-inventory";
+import { useBatteriesInventory } from "@/hooks/use-batteries-inventory";
 import { downloadExcel, highlightExcel } from "@/lib/excel-export";
 import { WebSerialController } from "@/lib/webSerial";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/toast";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { BatteryProduct } from "@/lib/services/batteries";
 
-type ArduinoInventoryClientProps = {
-  items: ArduinoProduct[];
+type BatteryInventoryClientProps = {
+  items: BatteryProduct[];
   page: number;
   totalPages: number;
   previousPage: number;
@@ -26,7 +26,7 @@ type ArduinoInventoryClientProps = {
   field: string | null;
 };
 
-export function ArduinoInventoryClient({
+export function BatteriesInventoryClient({
   items,
   page,
   totalPages,
@@ -34,7 +34,7 @@ export function ArduinoInventoryClient({
   nextPage,
   query,
   field,
-}: ArduinoInventoryClientProps) {
+}: BatteryInventoryClientProps) {
   const {
     isSearching,
     editingProduct,
@@ -60,7 +60,7 @@ export function ArduinoInventoryClient({
     handleAddSubmit,
     handleAddToCart,
     handleDelete,
-  } = useArduinoInventory();
+  } = useBatteriesInventory();
 
   const [isExporting, setIsExporting] = useState(false);
   const [highlightQuantity, setHighlightQuantity] = useState(false);
@@ -73,9 +73,9 @@ export function ArduinoInventoryClient({
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const { showToast: showAlert } = useToast();
 
-  const fetchAllProducts = async (): Promise<ArduinoProduct[]> => {
+  const fetchAllProducts = async (): Promise<BatteryProduct[]> => {
     try {
-      const response = await fetch("/api/arduino?pageSize=10000");
+      const response = await fetch("/api/batteries?pageSize=10000");
       if (!response.ok) {
         throw new Error("Failed to fetch products");
       }
@@ -142,14 +142,14 @@ export function ArduinoInventoryClient({
     }
   }, [serialController, showAlert]);
 
-  const sendToArduino = useCallback(async (product: ArduinoProduct) => {
+  const sendToArduino = useCallback(async (product: BatteryProduct) => {
     if (!serialConnected) {
       showAlert('Please connect to Arduino first', 'error');
       return;
     }
 
     try {
-      const message = `1*${product.id}*${product.quantity}*\n`;
+      const message = `1*${product.id}*\n`;
       await serialController.write(message);
     } catch (error) {
       showAlert('Failed to send to Arduino', 'error');
@@ -308,40 +308,17 @@ export function ArduinoInventoryClient({
             isSearching ? "opacity-40 transition-opacity" : "opacity-100"
           )}
         >
-          {items.length ? (
-            items.map((product) => {
-              // Calculate background color based on quantity
-              let backgroundColor = 'bg-card/80';
-              if (highlightQuantity) {
-                const qty = Number(product.quantity) || 0;
-                if (qty === 0) {
-                  backgroundColor = 'bg-red-500';
-                } else if (qty === 1) {
-                  backgroundColor = 'bg-yellow-500';
-                } else if (qty === 2) {
-                  backgroundColor = 'bg-[#d97706]';
-                } else if (qty === 3) {
-                  backgroundColor = 'bg-green-500';
-                }
-              }
-
-              return (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onEdit={setEditingProduct}
-                  onDelete={handleDelete}
-                  onAddToCart={handleAddToCart}
-                  onPrint={(product) => {
-                    setSelectedProduct(product.id);
-                    sendToArduino(product);
-                  }}
-                  isDeleting={isDeleting && deletingProductId === product.id}
-                  isSelected={selectedProduct === product.id}
-                  backgroundColor={backgroundColor}
-                />
-              );
-            })
+              {items.length ? (
+            items.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onEdit={(p) => setEditingProduct(p)}
+                onDelete={handleDelete}
+                onAddToCart={handleAddToCart}
+                isDeleting={isDeleting && deletingProductId === product.id}
+              />
+            ))
           ) : (
             <div className="col-span-full flex h-48 flex-col items-center justify-center rounded-3xl border border-dashed border-border/60 text-sm text-muted-foreground">
               No products match this filter.
@@ -372,12 +349,12 @@ export function ArduinoInventoryClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur">
           <div className="w-full max-w-2xl rounded-3xl border border-border/60 bg-card p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <div>
+                <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
                   {isAddingProduct ? "Add New Product" : "Editing Product"}
                 </p>
                 <h2 className="text-2xl font-semibold text-foreground">
-                  {isAddingProduct ? "New Product" : editingProduct?.english_names ?? `#${editingProduct?.id}`}
+                  {isAddingProduct ? "New Product" : (editingProduct as any)?.model ?? `#${editingProduct?.id}`}
                 </h2>
               </div>
               <button
@@ -394,140 +371,28 @@ export function ArduinoInventoryClient({
             <form className="flex flex-col gap-4" onSubmit={isAddingProduct ? handleAddSubmit : handleEditSubmit}>
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  English Name
+                  Volt
                   <input
                     type="text"
-                    value={formState.english_names}
+                    value={(formState as any).volt ?? ""}
                     onChange={(event) =>
-                      handleFormChange("english_names", event.target.value)
+                      handleFormChange("volt", event.target.value)
                     }
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Turkish Name
+                  Model
                   <input
                     type="text"
-                    value={formState.turkish_names}
+                    value={(formState as any).model ?? ""}
                     onChange={(event) =>
-                      handleFormChange("turkish_names", event.target.value)
+                      handleFormChange("model", event.target.value)
                     }
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Category
-                  <input
-                    type="text"
-                    value={formState.category}
-                    onChange={(event) =>
-                      handleFormChange("category", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Barcode
-                  <input
-                    type="text"
-                    value={formState.barcode}
-                    onChange={(event) =>
-                      handleFormChange("barcode", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Quantity
-                  <input
-                    type="number"
-                    value={formState.quantity}
-                    onChange={(event) =>
-                      handleFormChange("quantity", Number(event.target.value))
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Price (USD)
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formState.price}
-                    onChange={(event) =>
-                      handleFormChange("price", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
-                <div className="md:col-span-2 flex flex-col gap-2 text-sm text-muted-foreground">
-                  <span>Product Image</span>
-                  <div
-                    className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-border/60 bg-muted/40 px-4 py-6 text-center transition hover:border-primary/60 hover:bg-muted/60"
-                    onClick={openFileDialog}
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                  >
-                    {imagePreviewUrl ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="relative h-32 w-full rounded-2xl overflow-hidden">
-                          <Image
-                            src={imagePreviewUrl}
-                            alt="Preview"
-                            fill
-                            className="object-cover"
-                            unoptimized={imagePreviewUrl.startsWith("blob:")}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {selectedImageFile?.name ?? (editingProduct ? "Current image" : "No image selected")}
-                        </span>
-                      </div>
-                    ) : editingProduct?.image_filename ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="relative h-32 w-full rounded-2xl overflow-hidden">
-                          <Image
-                            src={editingProduct.image_filename}
-                            alt="Current"
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">Current image</span>
-                      </div>
-                    ) : (
-                      <>
-                        <span className="text-2xl">📁</span>
-                        <p className="text-sm text-muted-foreground">
-                          Drag & drop an image, or click to browse
-                        </p>
-                        <p className="text-xs text-muted-foreground/80">
-                          JPG, PNG or WEBP files supported
-                        </p>
-                      </>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(event) =>
-                        handleImageSelect(event.target.files?.[0] ?? null)
-                      }
-                    />
-                  </div>
-                </div>
-                <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground">
-                  Description
-                  <textarea
-                    value={formState.description}
-                    onChange={(event) =>
-                      handleFormChange("description", event.target.value)
-                    }
-                    rows={4}
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
+                {/* Batteries only have id, model, and volt - no extra fields */}
               </div>
               {errorMessage ? (
                 <p className="text-sm text-destructive">{errorMessage}</p>
