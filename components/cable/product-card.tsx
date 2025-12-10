@@ -8,7 +8,7 @@ type ProductCardProps = {
   onEdit?: (product: CableProduct) => void;
   onDelete?: (product: CableProduct) => void;
   onAddToCart?: (product: CableProduct) => void;
-  onPrint?: (product: CableProduct) => void;
+  onSend?: (product: CableProduct) => void;
   isDeleting?: boolean;
   isSelected?: boolean;
   backgroundColor?: string;
@@ -20,7 +20,7 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-export function ProductCard({ product, onEdit, onDelete, onAddToCart, onPrint, isDeleting, isSelected, backgroundColor = "bg-card/80" }: ProductCardProps) {
+export function ProductCard({ product, onEdit, onDelete, onAddToCart, onSend, isDeleting, isSelected, backgroundColor = "bg-card/80" }: ProductCardProps) {
   const priceLabel =
     product.price && Number(product.price) > 0
       ? usdFormatter.format(Number(product.price))
@@ -34,11 +34,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, onPrint, i
         backgroundColor,
         isSelected ? "border-red-500" : "border-transparent"
       )}
-      onClick={() => {
-        if (onPrint) {
-          onPrint(product);
-        }
-      }}
+      onClick={() => onSend?.(product)}
     >
       <span className="absolute left-4 top-4 z-10 rounded-full bg-background/95 px-5 py-2 text-base font-bold uppercase tracking-wide text-foreground shadow-lg">
         id {product.id}
@@ -85,7 +81,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, onPrint, i
             </span>
           </div>
           <div className="grid w-full grid-cols-2 gap-2">
-            {["Edit", "Delete", "Print", "Add to cart"].map((label) => (
+            {["Edit", "Delete", "Add to cart"].map((label) => (
               <button
                 key={label}
                 type="button"
@@ -95,13 +91,11 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, onPrint, i
                     onEdit?.(product);
                   } else if (label === "Delete") {
                     onDelete?.(product);
-                  } else if (label === "Print") {
-                    onPrint?.(product);
                   } else if (label === "Add to cart") {
                     onAddToCart?.(product);
                   }
                 }}
-                disabled={(label === "Delete" && isDeleting) || label === "Print"}
+                disabled={label === "Delete" && isDeleting}
                 className="rounded-2xl border border-border/60 bg-muted/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {label === "Delete" && isDeleting ? "Deleting..." : label}

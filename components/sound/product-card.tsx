@@ -71,7 +71,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
             </span>
           </div>
           <div className="grid w-full grid-cols-2 gap-2">
-            {["Edit", "Delete", "Print", "Add to cart"].map((label) => (
+            {["Edit", "Delete", "Add to cart"].map((label) => (
               <button
                 key={label}
                 type="button"
@@ -85,7 +85,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
                     onAddToCart?.(product);
                   }
                 }}
-                disabled={(label === "Delete" && isDeleting) || label === "Print"}
+                disabled={label === "Delete" && isDeleting}
                 className="rounded-2xl border border-border/60 bg-muted/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {label === "Delete" && isDeleting ? "Deleting..." : label}

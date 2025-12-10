@@ -30,7 +30,7 @@ export const focusCardsData = [
   {
     title: "TV Remotes Side",
     src: "/remote.png",
-    href: "/remotes",
+    href: "/tv-remotes",
   },
   {title: "Batteries Side",
     src: "/battery.png",

@@ -40,7 +40,10 @@ export async function GET(req: Request) {
 
     if (ids.length > 0) {
       const result = await client.query(
-        'SELECT id, name, rating, factory_price, wholesale_price, min_sillig_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb WHERE id = ANY($1) ORDER BY id ASC',
+        `SELECT id, name, rating, factory_price, wholesale_price, min_sillig_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
+         FROM public.solardb
+         WHERE id = ANY($1)
+         ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC`,
         [ids]
       );
       client.release();
@@ -50,7 +53,7 @@ export async function GET(req: Request) {
     if (id) {
       // Fetch a single product by ID
       const result = await client.query(
-        'SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb WHERE id = $1',
+        'SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new FROM public.solardb WHERE id = $1',
         [id]
       );
       client.release();
@@ -65,7 +68,9 @@ export async function GET(req: Request) {
     if (all) {
       // Return all products without pagination
       const result = await client.query(
-        'SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb ORDER BY id ASC'
+        `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
+         FROM public.solardb
+         ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC`
       );
       const totalResult = await client.query('SELECT COUNT(*) FROM public.solardb');
       client.release();
@@ -119,7 +124,11 @@ export async function GET(req: Request) {
 
     const offset = (currentPage - 1) * currentPageSize;
     const result = await client.query(
-      `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description FROM public.solardb ${whereClause} ORDER BY id ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+      `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
+       FROM public.solardb
+       ${whereClause}
+       ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC
+       LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
       [...values, currentPageSize, offset]
     );
     items = result.rows ?? [];
@@ -158,7 +167,8 @@ export async function POST(req: Request) {
   try {
     const { name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price,
       image_filename, 
-      category, description } = await req.json();
+      category, description, is_new } = await req.json();
+    const isNewFlag = typeof is_new === 'boolean' ? is_new : Boolean(is_new);
     
     // Start a transaction
     await client.query('BEGIN');
@@ -179,8 +189,8 @@ export async function POST(req: Request) {
     
     // Insert with the generated ID
     const result = await client.query(
-      'INSERT INTO public.solardb (id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id',
-      [newId, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, description]
+      'INSERT INTO public.solardb (id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, description, is_new) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id',
+      [newId, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, description, isNewFlag]
     );
 
     if (!result.rows[0]?.id) {
@@ -205,7 +215,8 @@ export async function PUT(req: Request) {
   try {
     const { id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price,
       image_filename, 
-      category, quantity, description } = await req.json();
+      category, quantity, description, is_new } = await req.json();
+    const isNewFlag = typeof is_new === 'boolean' ? is_new : (is_new === null ? null : Boolean(is_new));
     
     if (!id) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
@@ -235,9 +246,10 @@ export async function PUT(req: Request) {
          image_filename=$9,
          category=$10, 
          quantity=$11, 
-         description=$12
-       WHERE id=$13`,
-      [name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, quantity, description, id]
+         description=$12,
+         is_new=COALESCE($13, is_new)
+       WHERE id=$14`,
+      [name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, quantity, description, isNewFlag, id]
     );
 
     if (result.rowCount === 0) {

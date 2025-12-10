@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from "@/components/ui/toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { BatteryProduct } from "@/lib/services/batteries";
+import type { ArduinoProduct } from "@/lib/services/arduino";
 
 type BatteryInventoryClientProps = {
   items: BatteryProduct[];
@@ -73,6 +74,19 @@ export function BatteriesInventoryClient({
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const { showToast: showAlert } = useToast();
 
+  // Map simple battery shape into Arduino export schema expected by Excel helpers
+  const mapBatteryToExport = (product: BatteryProduct): ArduinoProduct => ({
+    id: product.id,
+    english_names: product.model ?? null,
+    turkish_names: null,
+    category: product.volt,
+    barcode: null,
+    quantity: null,
+    price: null,
+    image_filename: null,
+    description: null,
+  });
+
   const fetchAllProducts = async (): Promise<BatteryProduct[]> => {
     try {
       const response = await fetch("/api/batteries?pageSize=10000");
@@ -91,7 +105,7 @@ export function BatteriesInventoryClient({
     setIsExporting(true);
     try {
       const allProducts = await fetchAllProducts();
-      await downloadExcel(allProducts);
+      await downloadExcel(allProducts.map(mapBatteryToExport));
     } catch (error) {
       console.error("Failed to export Excel:", error);
     } finally {
@@ -103,7 +117,7 @@ export function BatteriesInventoryClient({
     setIsExporting(true);
     try {
       const allProducts = await fetchAllProducts();
-      await highlightExcel(allProducts);
+      await highlightExcel(allProducts.map(mapBatteryToExport));
     } catch (error) {
       console.error("Failed to export highlighted Excel:", error);
     } finally {
@@ -149,6 +163,7 @@ export function BatteriesInventoryClient({
     }
 
     try {
+      setSelectedProduct(product.id);
       const message = `1*${product.id}*\n`;
       await serialController.write(message);
     } catch (error) {
@@ -316,6 +331,8 @@ export function BatteriesInventoryClient({
                 onEdit={(p) => setEditingProduct(p)}
                 onDelete={handleDelete}
                 onAddToCart={handleAddToCart}
+                onSend={sendToArduino}
+                isSelected={selectedProduct === product.id}
                 isDeleting={isDeleting && deletingProductId === product.id}
               />
             ))

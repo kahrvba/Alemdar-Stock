@@ -17,6 +17,7 @@ export function useSolarInventory() {
     name: "",
     rating: "",
     category: "",
+    is_new: false,
     quantity: 0,
     factory_price: "",
     wholesale_price: "",
@@ -49,6 +50,7 @@ export function useSolarInventory() {
         name: editingProduct.name ?? "",
         rating: editingProduct.rating ?? "",
         category: editingProduct.category ?? "",
+        is_new: Boolean(editingProduct.is_new),
         quantity: editingProduct.quantity ?? 0,
         factory_price: editingProduct.factory_price != null ? String(editingProduct.factory_price) : "",
         wholesale_price: editingProduct.wholesale_price != null ? String(editingProduct.wholesale_price) : "",
@@ -68,6 +70,7 @@ export function useSolarInventory() {
         name: "",
         rating: "",
         category: "",
+        is_new: false,
         quantity: 0,
         factory_price: "",
         wholesale_price: "",
@@ -106,7 +109,7 @@ export function useSolarInventory() {
   };
 
   // Handler functions
-  const handleFormChange = useCallback((field: string, value: string | number) => {
+  const handleFormChange = useCallback((field: string, value: string | number | boolean) => {
     setFormState((previous) => {
       const next = {
         ...previous,
@@ -246,6 +249,7 @@ export function useSolarInventory() {
           cost_price: formState.cost_price ? String(formState.cost_price) : null,
           image_filename: imageFilename || null,
           description: formState.description || "",
+          is_new: Boolean(formState.is_new),
         }),
       });
 
@@ -296,6 +300,7 @@ export function useSolarInventory() {
           cost_price: formState.cost_price ? String(formState.cost_price) : null,
           image_filename: null,
           description: formState.description || null,
+          is_new: Boolean(formState.is_new),
         }),
       });
 
