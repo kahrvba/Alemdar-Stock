@@ -11,11 +11,13 @@ const ALLOWED_IPS: string[] = [
 // use it like this: https://alemadmindashboard.vercel.app/?key=d59e89952d716faa6db181b1f735b794
 const EMERGENCY_KEY = "d59e89952d716faa6db181b1f735b794";
 
-const EXCLUDED_PATHS = ["/favicon.ico", "/robots.txt", "/sitemap.xml"];
+const EXCLUDED_PATHS = ["/favicon.ico"];
 
 function isExcluded(url: URL) {
   const path = url.pathname;
+  // allow Next internals and API calls to bypass the proxy
   if (path.startsWith("/_next/")) return true;
+  if (path.startsWith("/api/")) return true;
   if (EXCLUDED_PATHS.includes(path)) return true;
   return false;
 }
