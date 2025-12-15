@@ -1,5 +1,4 @@
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
 import { fetchBatteryProducts, type BatteryPagination } from "@/lib/services/batteries";
 import { BatteriesInventoryClient } from "@/components/batteries/battery-inventory-client";
 
@@ -34,12 +33,18 @@ export default async function BatteriesPage({
     responseData = await fetchBatteryProducts(apiBaseUrl, currentPage, query, field);
   } catch (error) {
     console.error("[batteries/page] fetch error:", error);
-    return notFound();
+    responseData = {
+      items: [],
+      page: 1,
+      pageSize: 1,
+      total: 0,
+      totalPages: 1,
+    };
   }
 
   const items = responseData?.items ?? [];
-  const totalPages = responseData?.totalPages ?? 1;
-  const page = responseData?.page ?? currentPage;
+  const totalPages = Math.max(1, responseData?.totalPages ?? 1);
+  const page = Math.min(totalPages, Math.max(1, responseData?.page ?? currentPage));
 
   const previousPage = Math.max(1, page - 1);
   const nextPage = Math.min(totalPages, page + 1);

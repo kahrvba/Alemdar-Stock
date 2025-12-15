@@ -13,20 +13,19 @@ import { cn } from "@/lib/utils";
 
 type FilterOption = "id" | "volt" | "model";
 
-type batterySearchProps = {
+type BatterySearchProps = {
   onFilterChange?: (filters: { query: string; field: FilterOption | null }) => void;
   onLoadingChange?: (isLoading: boolean) => void;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function useDebouncedCallback<T extends (...args: any[]) => void>(
-  callback: T,
+function useDebouncedCallback<P extends unknown[]>(
+  callback: (...args: P) => void,
   delay: number
-): (...args: Parameters<T>) => void {
+): (...args: P) => void {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const debounced = useCallback(
-    (...args: Parameters<T>) => {
+    (...args: P) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -48,10 +47,10 @@ function useDebouncedCallback<T extends (...args: any[]) => void>(
   return debounced;
 }
 
-export function batterySearch({
+export function BatterySearch({
   onFilterChange,
   onLoadingChange,
-}: batterySearchProps = {}) {
+}: BatterySearchProps = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -113,20 +112,17 @@ export function batterySearch({
     }, 8000);
   }, [changeLoadingState]);
 
-  // Sync state with URL params when they change externally (e.g., browser back/forward)
-  // Only sync if the URL change didn't come from our own router.replace call
   useEffect(() => {
     const currentUrl = searchParams?.toString() ?? "";
-    
-    // If this is the URL we just set, mark it and don't sync
     if (lastAppliedUrl.current === currentUrl) {
-      lastAppliedUrl.current = null; // Clear after one check
-      stopLoadingIndicator();
+      lastAppliedUrl.current = null;
+      setTimeout(() => {
+        stopLoadingIndicator();
+      }, 0);
       searchParamsSnapshot.current = currentUrl;
       return;
     }
 
-    // If user is actively typing or interacting, don't sync from URL
     if (isUserTyping.current || isUserInteracting.current) {
       searchParamsSnapshot.current = currentUrl;
       return;
@@ -136,7 +132,6 @@ export function batterySearch({
     const currentField = (searchParams?.get("field") as FilterOption | null) ?? null;
     const currentUseFieldFilter = currentField !== null;
 
-    // Only sync if the URL values are actually different from our current state
     const stateQuery = query.trim();
     const stateField = useFieldFilter ? field : null;
     
@@ -153,10 +148,10 @@ export function batterySearch({
     }
 
     searchParamsSnapshot.current = currentUrl;
-    stopLoadingIndicator();
-    // We intentionally only react to searchParams changes to avoid fighting local typing state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, stopLoadingIndicator]);
+    setTimeout(() => {
+      stopLoadingIndicator();
+    }, 0);
+  }, [searchParams, stopLoadingIndicator, decodeSearchParam, query, field, useFieldFilter]);
 
   const updateUrlParams = useCallback(
     (nextQuery: string, nextField: FilterOption | null, activeFieldFilter: boolean) => {
@@ -164,25 +159,19 @@ export function batterySearch({
       const normalizedQuery = nextQuery.trim();
       const normalizedField = activeFieldFilter ? nextField : null;
       
-      // Update query param
       if (normalizedQuery) {
         params.set("query", normalizedQuery);
       } else {
         params.delete("query");
       }
-      
-      // Update field param
       if (normalizedField) {
         params.set("field", normalizedField);
       } else {
         params.delete("field");
       }
-      
-      // Reset to page 1 when filters change
       params.set("page", "1");
       
       const newUrl = params.toString();
-      // Mark this URL as one we're applying so we don't sync back from it
       lastAppliedUrl.current = newUrl;
 
       if (newUrl === searchParamsSnapshot.current) {
@@ -190,11 +179,8 @@ export function batterySearch({
         return;
       }
 
-      // Update URL
       router.replace(`${pathname}?${newUrl}`);
       startLoadingIndicator();
-      
-      // Call optional callback
       if (typeof onFilterChange === "function") {
         onFilterChange({
           query: normalizedQuery,
@@ -209,13 +195,11 @@ export function batterySearch({
   const debouncedUpdate = useDebouncedCallback(updateUrlParams, 300);
 
   useEffect(() => {
-    // Skip debounced update if we're syncing from URL to prevent infinite loop
     if (!isSyncingFromUrl.current) {
       debouncedUpdate(query, field, useFieldFilter);
     }
   }, [query, field, useFieldFilter, debouncedUpdate]);
 
-  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) {
@@ -269,19 +253,15 @@ export function batterySearch({
           onChange={(event) => {
             const newValue = event.target.value;
             setQuery(newValue);
-            // Mark that user is typing
             isUserTyping.current = true;
-            // Clear any existing timeout
             if (typingTimeoutRef.current) {
               clearTimeout(typingTimeoutRef.current);
             }
-            // After user stops typing for 500ms, allow URL sync again
             typingTimeoutRef.current = setTimeout(() => {
               isUserTyping.current = false;
             }, 500);
           }}
           onBlur={() => {
-            // When input loses focus, allow URL sync immediately
             if (typingTimeoutRef.current) {
               clearTimeout(typingTimeoutRef.current);
             }

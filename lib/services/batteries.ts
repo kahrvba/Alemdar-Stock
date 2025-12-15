@@ -1,7 +1,10 @@
 export type BatteryProduct = {
   id: number;
   model: string | null;
-  volt: string | null;
+  volt: number | null;
+  quantity: number | null;
+  price: number | null;
+  image_filename: string | null;
 };
 
 type PaginatedBatteryResponse = {

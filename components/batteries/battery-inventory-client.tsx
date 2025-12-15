@@ -1,24 +1,28 @@
 "use client";
 
-import React, { Activity, useState, useCallback, useEffect, Suspense } from "react";
+import React, { Activity, useState, Suspense } from "react";
 import Image from "next/image";
-import { Settings, Download, FileSpreadsheet, ChevronDown } from "lucide-react";
+import { Download, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { ProductCard } from "@/components/batteries/product-card";
 import { PaginationControls } from "@/components/batteries/pagination-controls";
-import { ArduinoSearch } from "@/components/arduino/arduino-search";
+import { BatterySearch } from "@/components/batteries/battery-search";
 import { cn } from "@/lib/utils";
 import { useBatteriesInventory } from "@/hooks/use-batteries-inventory";
 import { downloadExcel, highlightExcel } from "@/lib/excel-export";
-import { WebSerialController } from "@/lib/webSerial";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/components/ui/toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { BatteryProduct } from "@/lib/services/batteries";
-import type { ArduinoProduct } from "@/lib/services/arduino";
+import type { ExportProduct } from "@/lib/excel-export";
+
+type BatteryListItem = BatteryProduct & {
+  image_filename: string | null;
+  price: number | null;
+  quantity: number | null;
+};
 
 type BatteryInventoryClientProps = {
-  items: BatteryProduct[];
+  items: BatteryListItem[];
   page: number;
   totalPages: number;
   previousPage: number;
@@ -42,48 +46,38 @@ export function BatteriesInventoryClient({
     isAddingProduct,
     formState,
     isSaving,
-    isUploading,
     isDeleting,
     deletingProductId,
     errorMessage,
-    selectedImageFile,
-    imagePreviewUrl,
-    fileInputRef,
     setIsSearching,
     setEditingProduct,
     setIsAddingProduct,
     handleFormChange,
-    handleImageSelect,
-    handleDrop,
-    handleDragOver,
-    openFileDialog,
     handleEditSubmit,
     handleAddSubmit,
     handleAddToCart,
     handleDelete,
+    selectedImageFile,
+    imagePreviewUrl,
+    fileInputRef,
+    handleImageSelect,
+    handleDrop,
+    handleDragOver,
+    openFileDialog,
+    isUploading,
   } = useBatteriesInventory();
 
   const [isExporting, setIsExporting] = useState(false);
   const [highlightQuantity, setHighlightQuantity] = useState(false);
 
-  // Serial connection state
-  const [serialConnected, setSerialConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
-  const [serialController] = useState(() => new WebSerialController());
-  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
-  const { showToast: showAlert } = useToast();
-
-  // Map simple battery shape into Arduino export schema expected by Excel helpers
-  const mapBatteryToExport = (product: BatteryProduct): ArduinoProduct => ({
+  const mapBatteryToExport = (product: BatteryProduct): ExportProduct => ({
     id: product.id,
     english_names: product.model ?? null,
     turkish_names: null,
-    category: product.volt,
-    barcode: null,
-    quantity: null,
-    price: null,
-    image_filename: null,
+    category: product.volt?.toString() ?? null,
+    quantity: product.quantity,
+    price: product.price,
+    image_filename: product.image_filename,
     description: null,
   });
 
@@ -125,65 +119,6 @@ export function BatteriesInventoryClient({
     }
   };
 
-  // Serial connection function - opens port selection and auto-connects
-  const handleConnectArduino = useCallback(async () => {
-    setIsConnecting(true);
-    setConnectionStatus('connecting');
-    
-    try {
-      // This will open the browser's port selection dialog
-      const ports = await serialController.listPorts();
-      
-      if (ports.length === 0) {
-        setConnectionStatus('error');
-        showAlert('No port selected', 'error');
-        setIsConnecting(false);
-        return;
-      }
-
-      // Auto-connect after port selection
-      await serialController.connect();
-      setSerialConnected(true);
-      setConnectionStatus('connected');
-      showAlert('Connected to Arduino!', 'success');
-    } catch (error) {
-      console.error('Connection error:', error);
-      setConnectionStatus('error');
-      setSerialConnected(false);
-      showAlert(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`, 'error');
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [serialController, showAlert]);
-
-  const sendToArduino = useCallback(async (product: BatteryProduct) => {
-    if (!serialConnected) {
-      showAlert('Please connect to Arduino first', 'error');
-      return;
-    }
-
-    try {
-      setSelectedProduct(product.id);
-      const message = `1*${product.id}*\n`;
-      await serialController.write(message);
-    } catch (error) {
-      showAlert('Failed to send to Arduino', 'error');
-      setSerialConnected(false);
-      setConnectionStatus('error');
-    }
-  }, [serialConnected, serialController, showAlert]);
-
-  // Update connection status based on state
-  useEffect(() => {
-    if (serialConnected) {
-      setConnectionStatus('connected');
-    } else if (isConnecting) {
-      setConnectionStatus('connecting');
-    } else {
-      setConnectionStatus('disconnected');
-    }
-  }, [serialConnected, isConnecting]);
-
   return (
     <>
     <div className="flex flex-col gap-12">
@@ -191,10 +126,9 @@ export function BatteriesInventoryClient({
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-              Arduino Inventory
+              Battery Inventory
             </h1>
             <div className="flex items-center gap-2">
-              {/* Excel Export Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -228,35 +162,6 @@ export function BatteriesInventoryClient({
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Connect to Arduino Button */}
-              <div className="relative">
-                <Button
-                  onClick={handleConnectArduino}
-                  disabled={isConnecting || serialConnected}
-                  variant="outline"
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Settings className="h-4 w-4" />
-                  {isConnecting ? 'Connecting...' : serialConnected ? 'Connected' : 'Connect'}
-                </Button>
-                <span
-                  className={cn(
-                    "absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background",
-                    connectionStatus === 'connected' && "bg-green-500",
-                    connectionStatus === 'connecting' && "bg-yellow-500",
-                    connectionStatus === 'error' && "bg-red-500",
-                    connectionStatus === 'disconnected' && "bg-gray-400"
-                  )}
-                  aria-label={
-                    connectionStatus === 'connected' ? 'Connected' :
-                    connectionStatus === 'connecting' ? 'Connecting' :
-                    connectionStatus === 'error' ? 'Error' :
-                    'Disconnected'
-                  }
-                />
-              </div>
-
-              {/* Highlight Quantity Toggle */}
               <div className="flex items-center gap-2">
                 <div
                   onClick={() => setHighlightQuantity(!highlightQuantity)}
@@ -271,7 +176,6 @@ export function BatteriesInventoryClient({
                 </div>
               </div>
 
-              {/* Add Product Button */}
               <Button
                 type="button"
                 onClick={(e) => {
@@ -280,7 +184,6 @@ export function BatteriesInventoryClient({
                   setIsAddingProduct(true);
                 }}
                 className="cursor-pointer"
-                style={{ pointerEvents: 'auto' }}
               >
                 Add Product
               </Button>
@@ -288,7 +191,6 @@ export function BatteriesInventoryClient({
           </div>
         </div>
         
-        {/* Color Legend - Only show when highlighting is enabled */}
         {highlightQuantity && (
           <div className="flex items-center gap-4 rounded-lg border border-border/60 bg-muted/30 px-4 py-2 text-xs">
             <span className="font-semibold text-muted-foreground">Color Guide:</span>
@@ -311,10 +213,10 @@ export function BatteriesInventoryClient({
           </div>
         )}
 
-                <Suspense fallback={<div className="h-10 w-full" />}>
-                  <ArduinoSearch onLoadingChange={setIsSearching} />
-                </Suspense>
-              </header>
+        <Suspense fallback={<div className="h-10 w-full" />}>
+          <BatterySearch onLoadingChange={setIsSearching} />
+        </Suspense>
+      </header>
 
       <section className="relative">
         <div
@@ -324,18 +226,42 @@ export function BatteriesInventoryClient({
           )}
         >
               {items.length ? (
-            items.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onEdit={(p) => setEditingProduct(p)}
-                onDelete={handleDelete}
-                onAddToCart={handleAddToCart}
-                onSend={sendToArduino}
-                isSelected={selectedProduct === product.id}
-                isDeleting={isDeleting && deletingProductId === product.id}
-              />
-            ))
+            items.map((product) => {
+              let backgroundColor = "bg-card/80";
+              if (highlightQuantity) {
+                const qty = Number(product.quantity ?? 0) || 0;
+                if (qty === 0) {
+                  backgroundColor = "bg-red-500";
+                } else if (qty === 1) {
+                  backgroundColor = "bg-yellow-500";
+                } else if (qty === 2) {
+                  backgroundColor = "bg-[#d97706]";
+                } else if (qty === 3) {
+                  backgroundColor = "bg-green-500";
+                }
+              }
+
+              return (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onEdit={(p) =>
+                    setEditingProduct({
+                      id: p.id,
+                      model: p.model ?? null,
+                      volt: p.volt ?? null,
+                      image_filename: p.image_filename ?? null,
+                      quantity: p.quantity ?? null,
+                      price: p.price ?? null,
+                    })
+                  }
+                  onDelete={handleDelete}
+                  onAddToCart={handleAddToCart}
+                  isDeleting={isDeleting && deletingProductId === product.id}
+                  backgroundColor={backgroundColor}
+                />
+              );
+            })
           ) : (
             <div className="col-span-full flex h-48 flex-col items-center justify-center rounded-3xl border border-dashed border-border/60 text-sm text-muted-foreground">
               No products match this filter.
@@ -371,7 +297,9 @@ export function BatteriesInventoryClient({
                   {isAddingProduct ? "Add New Product" : "Editing Product"}
                 </p>
                 <h2 className="text-2xl font-semibold text-foreground">
-                  {isAddingProduct ? "New Product" : (editingProduct as any)?.model ?? `#${editingProduct?.id}`}
+                  {isAddingProduct
+                    ? "New Product"
+                    : editingProduct?.model ?? `#${editingProduct?.id}`}
                 </h2>
               </div>
               <button
@@ -390,11 +318,9 @@ export function BatteriesInventoryClient({
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                   Volt
                   <input
-                    type="text"
-                    value={(formState as any).volt ?? ""}
-                    onChange={(event) =>
-                      handleFormChange("volt", event.target.value)
-                    }
+                    type="number"
+                    value={formState.volt ?? ""}
+                    onChange={(event) => handleFormChange("volt", event.target.value)}
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
@@ -402,14 +328,80 @@ export function BatteriesInventoryClient({
                   Model
                   <input
                     type="text"
-                    value={(formState as any).model ?? ""}
-                    onChange={(event) =>
-                      handleFormChange("model", event.target.value)
-                    }
+                    value={formState.model ?? ""}
+                    onChange={(event) => handleFormChange("model", event.target.value)}
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
-                {/* Batteries only have id, model, and volt - no extra fields */}
+                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+                  Quantity
+                  <input
+                    type="number"
+                    value={formState.quantity ?? ""}
+                    onChange={(event) => handleFormChange("quantity", event.target.value)}
+                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+                  Price
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formState.price ?? ""}
+                    onChange={(event) => handleFormChange("price", event.target.value)}
+                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                </label>
+                <div className="md:col-span-2 flex flex-col gap-2 text-sm text-muted-foreground">
+                  <span>Product Image</span>
+                  <div
+                    className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-border/60 bg-muted/40 px-4 py-6 text-center transition hover:border-primary/60 hover:bg-muted/60"
+                    onClick={openFileDialog}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                  >
+                    {imagePreviewUrl ? (
+                      <div className="flex w-full flex-col items-center gap-2">
+                        <div className="relative h-32 w-full overflow-hidden rounded-2xl">
+                          <Image
+                            src={imagePreviewUrl}
+                            alt="Preview"
+                            fill
+                            className="object-cover"
+                            unoptimized={imagePreviewUrl.startsWith("blob:")}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {selectedImageFile?.name || "Selected image"}
+                        </span>
+                      </div>
+                    ) : editingProduct?.image_filename ? (
+                      <div className="flex w-full flex-col items-center gap-2">
+                        <div className="relative h-32 w-full overflow-hidden rounded-2xl">
+                          <Image
+                            src={editingProduct.image_filename}
+                            alt="Current"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">Current image</span>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-sm text-muted-foreground">Drop or click to upload</span>
+                        <span className="text-xs text-muted-foreground/80">JPG, PNG, or WEBP</span>
+                      </>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(event) => handleImageSelect(event.target.files?.[0] ?? null)}
+                    />
+                  </div>
+                </div>
               </div>
               {errorMessage ? (
                 <p className="text-sm text-destructive">{errorMessage}</p>

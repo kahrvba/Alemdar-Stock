@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     let items = [];
     let total = 0;
     let currentPage = page;
-    let currentPageSize = pageSize;
+    const currentPageSize = pageSize;
 
     const ids = idsParam
       ? Array.from(
@@ -40,7 +40,7 @@ export async function GET(req: Request) {
 
     if (ids.length > 0) {
       const result = await client.query(
-        'SELECT id, model, volt FROM public.batteries WHERE id = ANY($1) ORDER BY id ASC',
+        'SELECT id, model, volt, quantity, price, image_filename FROM public.batteries WHERE id = ANY($1) ORDER BY id ASC',
         [ids]
       );
       client.release();
@@ -48,9 +48,8 @@ export async function GET(req: Request) {
     }
 
     if (id) {
-      // Fetch a single product by ID
       const result = await client.query(
-        'SELECT id, model, volt FROM public.batteries WHERE id = $1',
+        'SELECT id, model, volt, quantity, price, image_filename FROM public.batteries WHERE id = $1',
         [id]
       );
       client.release();
@@ -63,9 +62,8 @@ export async function GET(req: Request) {
     }
 
     if (all) {
-      // Return all products without pagination
       const result = await client.query(
-        'SELECT id, model, volt FROM public.batteries ORDER BY id ASC'
+        'SELECT id, model, volt, quantity, price, image_filename FROM public.batteries ORDER BY id ASC'
       );
       const totalResult = await client.query('SELECT COUNT(*) FROM public.batteries');
       client.release();
@@ -83,7 +81,6 @@ export async function GET(req: Request) {
       if (query) {
         const escapedLike = `%${query.replace(/[%_]/g, "\\$&")}%`;
 
-        // Only allow searching id, model or volt for batteries table
         if (field && ['id', 'model', 'volt'].includes(field)) {
           if (field === 'id') {
             values.push(query);
@@ -93,7 +90,6 @@ export async function GET(req: Request) {
             whereClause = `WHERE ${field} ILIKE $1 ESCAPE '\\'`;
           }
         } else {
-          // Generic search across model and volt, plus id exact match
           values.push(escapedLike, escapedLike, query);
           whereClause = `WHERE (
             model ILIKE $1 ESCAPE '\\' OR
@@ -116,7 +112,7 @@ export async function GET(req: Request) {
 
       const offset = (currentPage - 1) * currentPageSize;
       const result = await client.query(
-        `SELECT id, model, volt FROM public.batteries ${whereClause} ORDER BY id ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+        `SELECT id, model, volt, quantity, price, image_filename FROM public.batteries ${whereClause} ORDER BY id ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
         [...values, currentPageSize, offset]
       );
       items = result.rows ?? [];
@@ -154,29 +150,24 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const client = await pool.connect();
   try {
-    const { model, volt } = await req.json();
+    const { model, volt, quantity, price } = await req.json();
     
-    // Start a transaction
     await client.query('BEGIN');
     await client.query("SET client_encoding = 'UTF8';");
     
-    // Check if sequence exists, if not create it or use MAX+1
     let newId: number;
     try {
-      // Try to use the sequence
       const seqResult = await client.query('SELECT nextval(\'public.batteries_id_seq\') as id');
       newId = seqResult.rows[0].id;
     } catch {
-      // Sequence doesn't exist, use MAX(id) + 1 as fallback
       console.warn('Sequence not found, using MAX(id) + 1 method');
       const maxResult = await client.query('SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM public.batteries');
       newId = maxResult.rows[0].next_id;
     }
     
-    // Insert with the generated ID
     const result = await client.query(
-      'INSERT INTO public.batteries (id, model, volt) VALUES ($1, $2, $3) RETURNING id',
-      [newId, model, volt]
+      'INSERT INTO public.batteries (id, model, volt, quantity, price) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [newId, model, volt, quantity ?? null, price ?? null]
     );
 
     if (!result.rows[0]?.id) {
@@ -199,7 +190,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const client = await pool.connect();
   try {
-    const { id, model, volt } = await req.json();
+    const { id, model, volt, quantity, price } = await req.json();
     
     if (!id) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
@@ -208,7 +199,6 @@ export async function PUT(req: Request) {
     await client.query('BEGIN');
     await client.query("SET client_encoding = 'UTF8';");
     
-    // Check if product exists
     const checkResult = await client.query('SELECT id FROM public.batteries WHERE id = $1', [id]);
     if (checkResult.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -219,9 +209,11 @@ export async function PUT(req: Request) {
       `UPDATE public.batteries 
        SET 
          model=$1,
-         volt=$2
-       WHERE id=$3`,
-      [model, volt, id]
+         volt=$2,
+         quantity=$3,
+         price=$4
+       WHERE id=$5`,
+      [model, volt, quantity ?? null, price ?? null, id]
     );
 
     if (result.rowCount === 0) {
@@ -250,7 +242,6 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
     
-    // Ensure ID is a number
     const productId = Number(id);
     if (isNaN(productId) || productId <= 0) {
       console.error('DELETE: Invalid product ID:', id);
@@ -259,7 +250,6 @@ export async function DELETE(req: Request) {
     
     await client.query('BEGIN');
     
-    // Check if product exists first
     const checkResult = await client.query('SELECT id FROM public.batteries WHERE id = $1', [productId]);
     if (checkResult.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -269,24 +259,19 @@ export async function DELETE(req: Request) {
     
     console.log('DELETE: Attempting to delete product with ID:', productId);
     
-    // Delete the record
     const deleteResult = await client.query('DELETE FROM public.batteries WHERE id=$1', [productId]);
     
     console.log('DELETE: Deletion result - rowCount:', deleteResult.rowCount);
     
-    // Verify deletion was successful
     if (deleteResult.rowCount === 0) {
       await client.query('ROLLBACK');
       console.error('DELETE: No rows deleted for ID:', productId);
       return NextResponse.json({ error: 'Failed to delete product - no rows affected' }, { status: 400 });
     }
     
-    // Update the sequence to the current maximum ID (if sequence exists)
-    // This ensures the sequence stays in sync after deletions
     try {
       await client.query(`SELECT setval('public.batteries_id_seq', COALESCE((SELECT MAX(id) FROM public.batteries), 0));`);
     } catch (seqError) {
-      // Sequence might not exist yet, that's okay - just log it
       console.warn('Could not update batteries_id_seq (sequence may not exist):', seqError);
     }
     

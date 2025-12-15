@@ -7,14 +7,21 @@ import { useToast } from "@/components/ui/toast";
 import { useCart } from "@/components/ui/cart";
 
 export function useBatteriesInventory() {
-  // State management
   const [isSearching, setIsSearching] = useState(false);
   const [editingProduct, setEditingProduct] = useState<BatteryProduct | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
-  const [formState, setFormState] = useState({
+  const [formState, setFormState] = useState<{
+    id: number;
+    model: string;
+    volt: string;
+    quantity: number | null;
+    price: number | null;
+  }>({
     id: 0,
     model: "",
     volt: "",
+    quantity: null,
+    price: null,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -25,18 +32,18 @@ export function useBatteriesInventory() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Dependencies
   const router = useRouter();
   const { showToast } = useToast();
   const { addToCart, openCart } = useCart();
 
-  // Initialize form state when editing or adding
   useEffect(() => {
     if (editingProduct) {
       setFormState({
         id: editingProduct.id,
         model: editingProduct.model ?? "",
-        volt: editingProduct.volt ?? "",
+        volt: editingProduct.volt?.toString() ?? "",
+        quantity: editingProduct.quantity,
+        price: editingProduct.price,
       });
       setSelectedImageFile(null);
       setImagePreviewUrl(null);
@@ -46,6 +53,8 @@ export function useBatteriesInventory() {
         id: 0,
         model: "",
         volt: "",
+        quantity: null,
+        price: null,
       });
       setSelectedImageFile(null);
       setImagePreviewUrl(null);
@@ -53,7 +62,6 @@ export function useBatteriesInventory() {
     }
   }, [editingProduct, isAddingProduct]);
 
-  // Cleanup blob URLs
   useEffect(() => {
     return () => {
       if (imagePreviewUrl?.startsWith("blob:")) {
@@ -62,13 +70,20 @@ export function useBatteriesInventory() {
     };
   }, [imagePreviewUrl]);
 
-  // Handler functions
-  const handleFormChange = useCallback((field: string, value: string | number) => {
-    setFormState((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-  }, []);
+  const handleFormChange = useCallback(
+    (field: "model" | "volt" | "quantity" | "price", value: string | number | null) => {
+      setFormState((previous) => ({
+        ...previous,
+        [field]:
+          field === "quantity" || field === "price"
+            ? value === "" || value === null
+              ? null
+              : Number(value)
+            : (value as string),
+      }));
+    },
+    []
+  );
 
   const handleImageSelect = useCallback((file: File | null) => {
     if (imagePreviewUrl?.startsWith("blob:")) {
@@ -130,9 +145,7 @@ export function useBatteriesInventory() {
     if (!formState.id) return;
     setIsSaving(true);
     setErrorMessage(null);
-      let imageFilename = null;
     try {
-      // No image upload for batteries (table only has model & volt)
       const response = await fetch("/api/batteries", {
         method: "PUT",
         headers: {
@@ -140,13 +153,19 @@ export function useBatteriesInventory() {
         },
         body: JSON.stringify({
           id: formState.id,
-          model: (formState as any).model || null,
-          volt: (formState as any).volt || null,
+          model: formState.model || null,
+          volt: formState.volt || null,
+          quantity: formState.quantity,
+          price: formState.price,
         }),
       });
 
       if (!response.ok) {
         throw new Error("Failed to update product");
+      }
+
+      if (selectedImageFile) {
+        await uploadSelectedImage(formState.id);
       }
 
       setEditingProduct(null);
@@ -177,8 +196,10 @@ export function useBatteriesInventory() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: (formState as any).model || null,
-          volt: (formState as any).volt || null,
+          model: formState.model || null,
+          volt: formState.volt || null,
+          quantity: formState.quantity,
+          price: formState.price,
         }),
       });
 
@@ -189,7 +210,9 @@ export function useBatteriesInventory() {
       const result = (await response.json()) as { id?: number };
       const newProductId = result.id;
 
-      // No image upload step for batteries
+      if (newProductId && selectedImageFile) {
+        await uploadSelectedImage(newProductId);
+      }
 
       setIsAddingProduct(false);
       if (imagePreviewUrl?.startsWith("blob:")) {
@@ -208,15 +231,28 @@ export function useBatteriesInventory() {
     }
   }, [formState, selectedImageFile, imagePreviewUrl, uploadSelectedImage, showToast, router]);
 
-  const handleAddToCart = useCallback((product: BatteryProduct) => {
-    // Cast to any because CartProduct is based on ArduinoProduct shape
-    addToCart({ ...(product as any), inventoryType: "battery" }, 1);
-    showToast(
-    `${product.model ?? `Product #${product.id}`} added to cart`,
-      "success"
-    );
-    openCart();
-  }, [addToCart, showToast, openCart]);
+  const handleAddToCart = useCallback(
+    (product: BatteryProduct) => {
+      addToCart(
+        {
+          id: product.id,
+          english_names: product.model,
+          turkish_names: null,
+          category: product.volt?.toString() ?? null,
+          barcode: null,
+          quantity: product.quantity,
+          price: product.price?.toString() ?? null,
+          image_filename: product.image_filename,
+          description: null,
+          inventoryType: "battery",
+        },
+        1
+      );
+      showToast(`${product.model ?? `Product #${product.id}`} added to cart`, "success");
+      openCart();
+    },
+    [addToCart, showToast, openCart]
+  );
 
   const handleDelete = useCallback(async (product: BatteryProduct) => {
     if (!confirm(`Are you sure you want to delete "${product.model ?? `Product #${product.id}`}"? This action cannot be undone.`)) {

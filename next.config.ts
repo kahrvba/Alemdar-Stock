@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  //force nextjs to bundle those, cuz i dont want to lose exceljs.
+  // TODO: use xlsx instead of exceljs
+  serverExternalPackages: [
+    'exceljs',
+    'unzipper',
+    'fstream',
+    'rimraf',
+  ],
   images: {
     remotePatterns: [
       {
