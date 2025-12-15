@@ -32,6 +32,11 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
       <span className="absolute left-4 top-4 z-10 rounded-full bg-background/95 px-5 py-2 text-base font-bold uppercase tracking-wide text-foreground shadow-lg">
         id {product.id}
       </span>
+      {product.is_new ? (
+        <span className="absolute right-4 top-4 z-10 rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-50 shadow-lg">
+          New
+        </span>
+      ) : null}
       <div className="relative h-90 w-full overflow-hidden rounded-t-3xl bg-muted">
         {product.image_filename ? (
           <HoverZoom className="relative h-full w-full">
@@ -71,7 +76,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
             </span>
           </div>
           <div className="grid w-full grid-cols-2 gap-2">
-            {["Edit", "Delete", "Print", "Add to cart"].map((label) => (
+            {["Edit", "Delete", "Add to cart"].map((label) => (
               <button
                 key={label}
                 type="button"
@@ -85,7 +90,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
                     onAddToCart?.(product);
                   }
                 }}
-                disabled={(label === "Delete" && isDeleting) || label === "Print"}
+                disabled={label === "Delete" && isDeleting}
                 className="rounded-2xl border border-border/60 bg-muted/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
                 {label === "Delete" && isDeleting ? "Deleting..." : label}

@@ -6,7 +6,7 @@ import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import type { ArduinoProduct } from "@/lib/services/arduino";
 import { useToast } from "./toast";
 
-type InventoryType = "arduino" | "sound" | "solar" | "cable";
+type InventoryType = "arduino" | "sound" | "solar" | "cable" | "battery";
 
 type CartProduct = ArduinoProduct & {
   inventoryType?: InventoryType;
@@ -60,6 +60,7 @@ const INVENTORY_ENDPOINTS: Record<InventoryType, string> = {
   sound: "/api/sound",
   solar: "/api/solar",
   cable: "/api/mainSideLeds",
+  battery: "/api/batteries",
 };
 
 const getInventoryType = (product?: CartProduct): InventoryType =>

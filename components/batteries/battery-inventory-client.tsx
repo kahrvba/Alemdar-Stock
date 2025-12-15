@@ -1,23 +1,28 @@
 "use client";
 
-import React, { Activity, useState, useCallback, useEffect, Suspense } from "react";
+import React, { Activity, useState, Suspense } from "react";
 import Image from "next/image";
 import { Download, FileSpreadsheet, ChevronDown } from "lucide-react";
-import { ProductCard } from "@/components/arduino/product-card";
-import { PaginationControls } from "@/components/arduino/pagination-controls";
-import { ArduinoSearch } from "@/components/arduino/arduino-search";
-import type { ArduinoProduct } from "@/lib/services/arduino";
+import { ProductCard } from "@/components/batteries/product-card";
+import { PaginationControls } from "@/components/batteries/pagination-controls";
+import { BatterySearch } from "@/components/batteries/battery-search";
 import { cn } from "@/lib/utils";
-import { useArduinoInventory } from "@/hooks/use-arduino-inventory";
+import { useBatteriesInventory } from "@/hooks/use-batteries-inventory";
 import { downloadExcel, highlightExcel } from "@/lib/excel-export";
-import { WebSerialController } from "@/lib/webSerial";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/components/ui/toast";
+import type { BatteryProduct } from "@/lib/services/batteries";
+import type { ExportProduct } from "@/lib/excel-export";
 
-type ArduinoInventoryClientProps = {
-  items: ArduinoProduct[];
+type BatteryListItem = BatteryProduct & {
+  image_filename: string | null;
+  price: number | null;
+  quantity: number | null;
+};
+
+type BatteryInventoryClientProps = {
+  items: BatteryListItem[];
   page: number;
   totalPages: number;
   previousPage: number;
@@ -26,7 +31,7 @@ type ArduinoInventoryClientProps = {
   field: string | null;
 };
 
-export function ArduinoInventoryClient({
+export function BatteriesInventoryClient({
   items,
   page,
   totalPages,
@@ -34,48 +39,51 @@ export function ArduinoInventoryClient({
   nextPage,
   query,
   field,
-}: ArduinoInventoryClientProps) {
+}: BatteryInventoryClientProps) {
   const {
     isSearching,
     editingProduct,
     isAddingProduct,
     formState,
     isSaving,
-    isUploading,
     isDeleting,
     deletingProductId,
     errorMessage,
-    selectedImageFile,
-    imagePreviewUrl,
-    fileInputRef,
     setIsSearching,
     setEditingProduct,
     setIsAddingProduct,
     handleFormChange,
-    handleImageSelect,
-    handleDrop,
-    handleDragOver,
-    openFileDialog,
     handleEditSubmit,
     handleAddSubmit,
     handleAddToCart,
     handleDelete,
-  } = useArduinoInventory();
+    selectedImageFile,
+    imagePreviewUrl,
+    fileInputRef,
+    handleImageSelect,
+    handleDrop,
+    handleDragOver,
+    openFileDialog,
+    isUploading,
+  } = useBatteriesInventory();
 
   const [isExporting, setIsExporting] = useState(false);
   const [highlightQuantity, setHighlightQuantity] = useState(false);
 
-  // Serial connection state
-  const [serialConnected, setSerialConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
-  const [serialController] = useState(() => new WebSerialController());
-  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
-  const { showToast: showAlert } = useToast();
+  const mapBatteryToExport = (product: BatteryProduct): ExportProduct => ({
+    id: product.id,
+    english_names: product.model ?? null,
+    turkish_names: null,
+    category: product.volt?.toString() ?? null,
+    quantity: product.quantity,
+    price: product.price,
+    image_filename: product.image_filename,
+    description: null,
+  });
 
-  const fetchAllProducts = async (): Promise<ArduinoProduct[]> => {
+  const fetchAllProducts = async (): Promise<BatteryProduct[]> => {
     try {
-      const response = await fetch("/api/arduino?pageSize=10000");
+      const response = await fetch("/api/batteries?pageSize=10000");
       if (!response.ok) {
         throw new Error("Failed to fetch products");
       }
@@ -91,7 +99,7 @@ export function ArduinoInventoryClient({
     setIsExporting(true);
     try {
       const allProducts = await fetchAllProducts();
-      await downloadExcel(allProducts);
+      await downloadExcel(allProducts.map(mapBatteryToExport));
     } catch (error) {
       console.error("Failed to export Excel:", error);
     } finally {
@@ -103,71 +111,13 @@ export function ArduinoInventoryClient({
     setIsExporting(true);
     try {
       const allProducts = await fetchAllProducts();
-      await highlightExcel(allProducts);
+      await highlightExcel(allProducts.map(mapBatteryToExport));
     } catch (error) {
       console.error("Failed to export highlighted Excel:", error);
     } finally {
       setIsExporting(false);
     }
   };
-
-  // Serial connection function - opens port selection and auto-connects
-  const handleConnectArduino = useCallback(async () => {
-    setIsConnecting(true);
-    setConnectionStatus('connecting');
-    
-    try {
-      const ports = await serialController.listPorts();
-      
-      if (ports.length === 0) {
-        setConnectionStatus('error');
-        showAlert("No port selected", "error");
-        setIsConnecting(false);
-        return;
-      }
-
-      await serialController.connect();
-      setSerialConnected(true);
-      setConnectionStatus('connected');
-      showAlert("Connected to Arduino", "success");
-    } catch (error) {
-      console.error('Connection error:', error);
-      setConnectionStatus('error');
-      setSerialConnected(false);
-      showAlert("Failed to connect", "error");
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [serialController, showAlert]);
-
-  const sendToArduino = useCallback(async (product: ArduinoProduct) => {
-    if (!serialConnected) {
-      showAlert("Please connect to Arduino first", "error");
-      return;
-    }
-    setSelectedProduct(product.id);
-    try {
-      const message = `1*${product.id}*${product.quantity ?? 0}*\n`;
-      await serialController.write(message);
-      showAlert(`Sent #${product.id} to Arduino`, "success");
-    } catch (error) {
-      console.error("Send error:", error);
-      setSerialConnected(false);
-      setConnectionStatus("error");
-      showAlert("Failed to send to Arduino", "error");
-    }
-  }, [serialConnected, serialController, showAlert]);
-
-  // Update connection status based on state
-  useEffect(() => {
-    if (serialConnected) {
-      setConnectionStatus('connected');
-    } else if (isConnecting) {
-      setConnectionStatus('connecting');
-    } else {
-      setConnectionStatus('disconnected');
-    }
-  }, [serialConnected, isConnecting]);
 
   return (
     <>
@@ -176,10 +126,9 @@ export function ArduinoInventoryClient({
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-              Arduino Inventory
+              Battery Inventory
             </h1>
             <div className="flex items-center gap-2">
-              {/* Excel Export Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -213,35 +162,6 @@ export function ArduinoInventoryClient({
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Connect to Arduino Button */}
-              <div className="relative">
-                <Button
-                  onClick={handleConnectArduino}
-                  disabled={isConnecting || serialConnected}
-                  variant="outline"
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Download className="h-4 w-4 rotate-90" />
-                  {isConnecting ? 'Connecting...' : serialConnected ? 'Connected' : 'Connect'}
-                </Button>
-                <span
-                  className={cn(
-                    "absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background",
-                    connectionStatus === 'connected' && "bg-green-500",
-                    connectionStatus === 'connecting' && "bg-yellow-500",
-                    connectionStatus === 'error' && "bg-red-500",
-                    connectionStatus === 'disconnected' && "bg-gray-400"
-                  )}
-                  aria-label={
-                    connectionStatus === 'connected' ? 'Connected' :
-                    connectionStatus === 'connecting' ? 'Connecting' :
-                    connectionStatus === 'error' ? 'Error' :
-                    'Disconnected'
-                  }
-                />
-              </div>
-
-              {/* Highlight Quantity Toggle */}
               <div className="flex items-center gap-2">
                 <div
                   onClick={() => setHighlightQuantity(!highlightQuantity)}
@@ -256,7 +176,6 @@ export function ArduinoInventoryClient({
                 </div>
               </div>
 
-              {/* Add Product Button */}
               <Button
                 type="button"
                 onClick={(e) => {
@@ -265,7 +184,6 @@ export function ArduinoInventoryClient({
                   setIsAddingProduct(true);
                 }}
                 className="cursor-pointer"
-                style={{ pointerEvents: 'auto' }}
               >
                 Add Product
               </Button>
@@ -273,7 +191,6 @@ export function ArduinoInventoryClient({
           </div>
         </div>
         
-        {/* Color Legend - Only show when highlighting is enabled */}
         {highlightQuantity && (
           <div className="flex items-center gap-4 rounded-lg border border-border/60 bg-muted/30 px-4 py-2 text-xs">
             <span className="font-semibold text-muted-foreground">Color Guide:</span>
@@ -296,10 +213,10 @@ export function ArduinoInventoryClient({
           </div>
         )}
 
-                <Suspense fallback={<div className="h-10 w-full" />}>
-                  <ArduinoSearch onLoadingChange={setIsSearching} />
-                </Suspense>
-              </header>
+        <Suspense fallback={<div className="h-10 w-full" />}>
+          <BatterySearch onLoadingChange={setIsSearching} />
+        </Suspense>
+      </header>
 
       <section className="relative">
         <div
@@ -308,20 +225,19 @@ export function ArduinoInventoryClient({
             isSearching ? "opacity-40 transition-opacity" : "opacity-100"
           )}
         >
-          {items.length ? (
+              {items.length ? (
             items.map((product) => {
-              // Calculate background color based on quantity
-              let backgroundColor = 'bg-card/80';
+              let backgroundColor = "bg-card/80";
               if (highlightQuantity) {
-                const qty = Number(product.quantity) || 0;
+                const qty = Number(product.quantity ?? 0) || 0;
                 if (qty === 0) {
-                  backgroundColor = 'bg-red-500';
+                  backgroundColor = "bg-red-500";
                 } else if (qty === 1) {
-                  backgroundColor = 'bg-yellow-500';
+                  backgroundColor = "bg-yellow-500";
                 } else if (qty === 2) {
-                  backgroundColor = 'bg-[#d97706]';
+                  backgroundColor = "bg-[#d97706]";
                 } else if (qty === 3) {
-                  backgroundColor = 'bg-green-500';
+                  backgroundColor = "bg-green-500";
                 }
               }
 
@@ -329,12 +245,19 @@ export function ArduinoInventoryClient({
                 <ProductCard
                   key={product.id}
                   product={product}
-                  onEdit={setEditingProduct}
+                  onEdit={(p) =>
+                    setEditingProduct({
+                      id: p.id,
+                      model: p.model ?? null,
+                      volt: p.volt ?? null,
+                      image_filename: p.image_filename ?? null,
+                      quantity: p.quantity ?? null,
+                      price: p.price ?? null,
+                    })
+                  }
                   onDelete={handleDelete}
                   onAddToCart={handleAddToCart}
-                  onSend={sendToArduino}
                   isDeleting={isDeleting && deletingProductId === product.id}
-                  isSelected={selectedProduct === product.id}
                   backgroundColor={backgroundColor}
                 />
               );
@@ -369,12 +292,14 @@ export function ArduinoInventoryClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur">
           <div className="w-full max-w-2xl rounded-3xl border border-border/60 bg-card p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <div>
+                <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
                   {isAddingProduct ? "Add New Product" : "Editing Product"}
                 </p>
                 <h2 className="text-2xl font-semibold text-foreground">
-                  {isAddingProduct ? "New Product" : editingProduct?.english_names ?? `#${editingProduct?.id}`}
+                  {isAddingProduct
+                    ? "New Product"
+                    : editingProduct?.model ?? `#${editingProduct?.id}`}
                 </h2>
               </div>
               <button
@@ -391,46 +316,20 @@ export function ArduinoInventoryClient({
             <form className="flex flex-col gap-4" onSubmit={isAddingProduct ? handleAddSubmit : handleEditSubmit}>
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  English Name
+                  Volt
                   <input
-                    type="text"
-                    value={formState.english_names}
-                    onChange={(event) =>
-                      handleFormChange("english_names", event.target.value)
-                    }
+                    type="number"
+                    value={formState.volt ?? ""}
+                    onChange={(event) => handleFormChange("volt", event.target.value)}
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Turkish Name
+                  Model
                   <input
                     type="text"
-                    value={formState.turkish_names}
-                    onChange={(event) =>
-                      handleFormChange("turkish_names", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Category
-                  <input
-                    type="text"
-                    value={formState.category}
-                    onChange={(event) =>
-                      handleFormChange("category", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Barcode
-                  <input
-                    type="text"
-                    value={formState.barcode}
-                    onChange={(event) =>
-                      handleFormChange("barcode", event.target.value)
-                    }
+                    value={formState.model ?? ""}
+                    onChange={(event) => handleFormChange("model", event.target.value)}
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
@@ -438,22 +337,18 @@ export function ArduinoInventoryClient({
                   Quantity
                   <input
                     type="number"
-                    value={formState.quantity}
-                    onChange={(event) =>
-                      handleFormChange("quantity", Number(event.target.value))
-                    }
+                    value={formState.quantity ?? ""}
+                    onChange={(event) => handleFormChange("quantity", event.target.value)}
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Price (USD)
+                  Price
                   <input
                     type="number"
                     step="0.01"
-                    value={formState.price}
-                    onChange={(event) =>
-                      handleFormChange("price", event.target.value)
-                    }
+                    value={formState.price ?? ""}
+                    onChange={(event) => handleFormChange("price", event.target.value)}
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
@@ -466,8 +361,8 @@ export function ArduinoInventoryClient({
                     onDragOver={handleDragOver}
                   >
                     {imagePreviewUrl ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="relative h-32 w-full rounded-2xl overflow-hidden">
+                      <div className="flex w-full flex-col items-center gap-2">
+                        <div className="relative h-32 w-full overflow-hidden rounded-2xl">
                           <Image
                             src={imagePreviewUrl}
                             alt="Preview"
@@ -477,12 +372,12 @@ export function ArduinoInventoryClient({
                           />
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {selectedImageFile?.name ?? (editingProduct ? "Current image" : "No image selected")}
+                          {selectedImageFile?.name || "Selected image"}
                         </span>
                       </div>
                     ) : editingProduct?.image_filename ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="relative h-32 w-full rounded-2xl overflow-hidden">
+                      <div className="flex w-full flex-col items-center gap-2">
+                        <div className="relative h-32 w-full overflow-hidden rounded-2xl">
                           <Image
                             src={editingProduct.image_filename}
                             alt="Current"
@@ -494,13 +389,8 @@ export function ArduinoInventoryClient({
                       </div>
                     ) : (
                       <>
-                        <span className="text-2xl">📁</span>
-                        <p className="text-sm text-muted-foreground">
-                          Drag & drop an image, or click to browse
-                        </p>
-                        <p className="text-xs text-muted-foreground/80">
-                          JPG, PNG or WEBP files supported
-                        </p>
+                        <span className="text-sm text-muted-foreground">Drop or click to upload</span>
+                        <span className="text-xs text-muted-foreground/80">JPG, PNG, or WEBP</span>
                       </>
                     )}
                     <input
@@ -508,23 +398,10 @@ export function ArduinoInventoryClient({
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(event) =>
-                        handleImageSelect(event.target.files?.[0] ?? null)
-                      }
+                      onChange={(event) => handleImageSelect(event.target.files?.[0] ?? null)}
                     />
                   </div>
                 </div>
-                <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground">
-                  Description
-                  <textarea
-                    value={formState.description}
-                    onChange={(event) =>
-                      handleFormChange("description", event.target.value)
-                    }
-                    rows={4}
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
               </div>
               {errorMessage ? (
                 <p className="text-sm text-destructive">{errorMessage}</p>

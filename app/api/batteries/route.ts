@@ -40,10 +40,7 @@ export async function GET(req: Request) {
 
     if (ids.length > 0) {
       const result = await client.query(
-        `SELECT id, name, rating, factory_price, wholesale_price, min_sillig_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
-         FROM public.solardb
-         WHERE id = ANY($1)
-         ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC`,
+        'SELECT id, model, volt, quantity, price, image_filename FROM public.batteries WHERE id = ANY($1) ORDER BY id ASC',
         [ids]
       );
       client.release();
@@ -51,9 +48,8 @@ export async function GET(req: Request) {
     }
 
     if (id) {
-      // Fetch a single product by ID
       const result = await client.query(
-        'SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new FROM public.solardb WHERE id = $1',
+        'SELECT id, model, volt, quantity, price, image_filename FROM public.batteries WHERE id = $1',
         [id]
       );
       client.release();
@@ -66,13 +62,10 @@ export async function GET(req: Request) {
     }
 
     if (all) {
-      // Return all products without pagination
       const result = await client.query(
-        `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
-         FROM public.solardb
-         ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC`
+        'SELECT id, model, volt, quantity, price, image_filename FROM public.batteries ORDER BY id ASC'
       );
-      const totalResult = await client.query('SELECT COUNT(*) FROM public.solardb');
+      const totalResult = await client.query('SELECT COUNT(*) FROM public.batteries');
       client.release();
 
       return NextResponse.json({
@@ -81,57 +74,49 @@ export async function GET(req: Request) {
       });
     }
 
-    // Remove barcode search since it doesn't exist in the schema
-    const values: unknown[] = [];
-    let whereClause = '';
+    {
+      const values: unknown[] = [];
+      let whereClause = '';
 
-    if (query) {
-      const escapedLike = `%${query.replace(/[%_]/g, "\\$&")}%`;
-      
-      // If field is specified, search only that field
-      if (field && ['id', 'name', 'category', 'rating'].includes(field)) {
-        if (field === 'id') {
-          // For ID, do exact match
-          values.push(query);
-          whereClause = `WHERE CAST(id AS TEXT) = $1`;
+      if (query) {
+        const escapedLike = `%${query.replace(/[%_]/g, "\\$&")}%`;
+
+        if (field && ['id', 'model', 'volt'].includes(field)) {
+          if (field === 'id') {
+            values.push(query);
+            whereClause = `WHERE CAST(id AS TEXT) = $1`;
+          } else {
+            values.push(escapedLike);
+            whereClause = `WHERE ${field} ILIKE $1 ESCAPE '\\'`;
+          }
         } else {
-          // For other fields, do ILIKE search
-          values.push(escapedLike);
-          whereClause = `WHERE ${field} ILIKE $1 ESCAPE '\\'`;
+          values.push(escapedLike, escapedLike, query);
+          whereClause = `WHERE (
+            model ILIKE $1 ESCAPE '\\' OR
+            volt ILIKE $2 ESCAPE '\\' OR
+            CAST(id AS TEXT) = $3
+          )`;
         }
-      } else {
-        // Search all fields if no specific field is selected
-        values.push(escapedLike, escapedLike, escapedLike, query);
-        whereClause = `WHERE (
-          name ILIKE $1 ESCAPE '\\' OR
-          category ILIKE $2 ESCAPE '\\' OR
-          rating ILIKE $3 ESCAPE '\\' OR
-          CAST(id AS TEXT) = $4
-        )`;
       }
+
+      const totalResult = await client.query(
+        `SELECT COUNT(*) FROM public.batteries ${whereClause}`,
+        values
+      );
+      total = Number(totalResult.rows[0]?.count ?? 0);
+
+      const totalPages = Math.max(1, Math.ceil(total / currentPageSize));
+      if (currentPage > totalPages) {
+        currentPage = totalPages;
+      }
+
+      const offset = (currentPage - 1) * currentPageSize;
+      const result = await client.query(
+        `SELECT id, model, volt, quantity, price, image_filename FROM public.batteries ${whereClause} ORDER BY id ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+        [...values, currentPageSize, offset]
+      );
+      items = result.rows ?? [];
     }
-
-    const totalResult = await client.query(
-      `SELECT COUNT(*) FROM public.solardb ${whereClause}`,
-      values
-    );
-    total = Number(totalResult.rows[0]?.count ?? 0);
-
-    const totalPages = Math.max(1, Math.ceil(total / currentPageSize));
-    if (currentPage > totalPages) {
-      currentPage = totalPages;
-    }
-
-    const offset = (currentPage - 1) * currentPageSize;
-    const result = await client.query(
-      `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
-       FROM public.solardb
-       ${whereClause}
-       ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC
-       LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-      [...values, currentPageSize, offset]
-    );
-    items = result.rows ?? [];
 
     client.release();
 
@@ -165,32 +150,24 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const client = await pool.connect();
   try {
-    const { name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price,
-      image_filename, 
-      category, description, is_new } = await req.json();
-    const isNewFlag = typeof is_new === 'boolean' ? is_new : Boolean(is_new);
+    const { model, volt, quantity, price } = await req.json();
     
-    // Start a transaction
     await client.query('BEGIN');
     await client.query("SET client_encoding = 'UTF8';");
     
-    // Check if sequence exists, if not create it or use MAX+1
     let newId: number;
     try {
-      // Try to use the sequence
-      const seqResult = await client.query('SELECT nextval(\'public.solardb_id_seq\') as id');
+      const seqResult = await client.query('SELECT nextval(\'public.batteries_id_seq\') as id');
       newId = seqResult.rows[0].id;
     } catch {
-      // Sequence doesn't exist, use MAX(id) + 1 as fallback
       console.warn('Sequence not found, using MAX(id) + 1 method');
-      const maxResult = await client.query('SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM public.solardb');
+      const maxResult = await client.query('SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM public.batteries');
       newId = maxResult.rows[0].next_id;
     }
     
-    // Insert with the generated ID
     const result = await client.query(
-      'INSERT INTO public.solardb (id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, description, is_new) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id',
-      [newId, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, description, isNewFlag]
+      'INSERT INTO public.batteries (id, model, volt, quantity, price) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [newId, model, volt, quantity ?? null, price ?? null]
     );
 
     if (!result.rows[0]?.id) {
@@ -213,10 +190,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const client = await pool.connect();
   try {
-    const { id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price,
-      image_filename, 
-      category, quantity, description, is_new } = await req.json();
-    const isNewFlag = typeof is_new === 'boolean' ? is_new : (is_new === null ? null : Boolean(is_new));
+    const { id, model, volt, quantity, price } = await req.json();
     
     if (!id) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
@@ -225,31 +199,21 @@ export async function PUT(req: Request) {
     await client.query('BEGIN');
     await client.query("SET client_encoding = 'UTF8';");
     
-    // Check if product exists
-    const checkResult = await client.query('SELECT id FROM public.solardb WHERE id = $1', [id]);
+    const checkResult = await client.query('SELECT id FROM public.batteries WHERE id = $1', [id]);
     if (checkResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
     
     const result = await client.query(
-      `UPDATE public.solardb 
+      `UPDATE public.batteries 
        SET 
-         name=$1, 
-         rating=$2, 
-         factory_price=$3,
-         wholesale_price=$4,
-         min_selling_price=$5,
-         selling_price=$6,
-         factor=$7,
-         cost_price=$8,
-         image_filename=$9,
-         category=$10, 
-         quantity=$11, 
-         description=$12,
-         is_new=COALESCE($13, is_new)
-       WHERE id=$14`,
-      [name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, quantity, description, isNewFlag, id]
+         model=$1,
+         volt=$2,
+         quantity=$3,
+         price=$4
+       WHERE id=$5`,
+      [model, volt, quantity ?? null, price ?? null, id]
     );
 
     if (result.rowCount === 0) {
@@ -278,7 +242,6 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
     
-    // Ensure ID is a number
     const productId = Number(id);
     if (isNaN(productId) || productId <= 0) {
       console.error('DELETE: Invalid product ID:', id);
@@ -287,8 +250,7 @@ export async function DELETE(req: Request) {
     
     await client.query('BEGIN');
     
-    // Check if product exists first
-    const checkResult = await client.query('SELECT id FROM public.solardb WHERE id = $1', [productId]);
+    const checkResult = await client.query('SELECT id FROM public.batteries WHERE id = $1', [productId]);
     if (checkResult.rows.length === 0) {
       await client.query('ROLLBACK');
       console.error('DELETE: Product not found with ID:', productId);
@@ -297,25 +259,20 @@ export async function DELETE(req: Request) {
     
     console.log('DELETE: Attempting to delete product with ID:', productId);
     
-    // Delete the record
-    const deleteResult = await client.query('DELETE FROM public.solardb WHERE id=$1', [productId]);
+    const deleteResult = await client.query('DELETE FROM public.batteries WHERE id=$1', [productId]);
     
     console.log('DELETE: Deletion result - rowCount:', deleteResult.rowCount);
     
-    // Verify deletion was successful
     if (deleteResult.rowCount === 0) {
       await client.query('ROLLBACK');
       console.error('DELETE: No rows deleted for ID:', productId);
       return NextResponse.json({ error: 'Failed to delete product - no rows affected' }, { status: 400 });
     }
     
-    // Update the sequence to the current maximum ID (if sequence exists)
-    // This ensures the sequence stays in sync after deletions
     try {
-      await client.query(`SELECT setval('public.solardb_id_seq', COALESCE((SELECT MAX(id) FROM public.solardb), 0));`);
+      await client.query(`SELECT setval('public.batteries_id_seq', COALESCE((SELECT MAX(id) FROM public.batteries), 0));`);
     } catch (seqError) {
-      // Sequence might not exist yet, that's okay - just log it
-      console.warn('Could not update solar_id_seq (sequence may not exist):', seqError);
+      console.warn('Could not update batteries_id_seq (sequence may not exist):', seqError);
     }
     
     await client.query('COMMIT');
@@ -328,4 +285,3 @@ export async function DELETE(req: Request) {
     client.release();
   }
 }
-

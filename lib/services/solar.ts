@@ -3,6 +3,7 @@ export type SolarProduct = {
   name: string | null;
   rating: string | null;
   category: string | null;
+  is_new?: boolean | null;
   quantity: number | null;
   factory_price: number | string | null;
   wholesale_price: number | string | null;

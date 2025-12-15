@@ -28,8 +28,13 @@ export const focusCardsData = [
     href: "/invoices",
   },
   {
-    title: "Coming Soon",
-    src: "/Coming%20Soon%20Display%20Background.jpg",
+    title: "TV Remotes Side",
+    src: "/remote.png",
+    href: "/tv-remotes",
+  },
+  {title: "Batteries Side",
+    src: "/battery.png",
+    href: "/batteries",
   },
 ] satisfies FocusCard[];
 

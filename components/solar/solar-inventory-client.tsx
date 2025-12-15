@@ -12,6 +12,7 @@ import { useSolarInventory } from "@/hooks/use-solar-inventory";
 import { downloadSolarExcel, highlightSolarExcel } from "@/lib/excel-export";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type SolarInventoryClientProps = {
   items: SolarProduct[];
@@ -322,6 +323,16 @@ export function SolarInventoryClient({
                     }
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
+                </label>
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Checkbox
+                    checked={Boolean(formState.is_new)}
+                    onCheckedChange={(checked) =>
+                      handleFormChange("is_new", Boolean(checked))
+                    }
+                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <span className="font-medium text-foreground">Mark as new</span>
                 </label>
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm text-muted-foreground">
                   Factory price

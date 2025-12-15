@@ -2,7 +2,7 @@
 
 import React, { Activity, useState, useCallback, useEffect, Suspense } from "react";
 import Image from "next/image";
-import { Settings, Download, FileSpreadsheet, ChevronDown } from "lucide-react";
+import { Download, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { ProductCard } from "@/components/cable/product-card";
 import { PaginationControls } from "@/components/cable/pagination-controls";
 import { CableSearch } from "@/components/cable/cable-search";
@@ -13,9 +13,8 @@ import { downloadCableExcel, highlightCableExcel } from "@/lib/excel-export";
 import { WebSerialController } from "@/lib/webSerial";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/components/ui/toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 
 type CableInventoryClientProps = {
   items: CableProduct[];
@@ -65,8 +64,6 @@ export function CableInventoryClient({
 
   const [isExporting, setIsExporting] = useState(false);
   const [highlightQuantity, setHighlightQuantity] = useState(false);
-
-  // Serial connection state
   const [serialConnected, setSerialConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
@@ -118,26 +115,24 @@ export function CableInventoryClient({
     setConnectionStatus('connecting');
     
     try {
-      // This will open the browser's port selection dialog
       const ports = await serialController.listPorts();
       
       if (ports.length === 0) {
         setConnectionStatus('error');
-        showAlert('No port selected', 'error');
+        showAlert("No port selected", "error");
         setIsConnecting(false);
         return;
       }
 
-      // Auto-connect after port selection
       await serialController.connect();
       setSerialConnected(true);
       setConnectionStatus('connected');
-      showAlert('Connected to Arduino!', 'success');
+      showAlert("Connected to Arduino", "success");
     } catch (error) {
       console.error('Connection error:', error);
       setConnectionStatus('error');
       setSerialConnected(false);
-      showAlert(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      showAlert("Failed to connect", "error");
     } finally {
       setIsConnecting(false);
     }
@@ -145,17 +140,19 @@ export function CableInventoryClient({
 
   const sendToArduino = useCallback(async (product: CableProduct) => {
     if (!serialConnected) {
-      showAlert('Please connect to Arduino first', 'error');
+      showAlert("Please connect to Arduino first", "error");
       return;
     }
-
+    setSelectedProduct(product.id);
     try {
-      const message = `5*${product.id}*${product.quantity}*\n`;
+      const message = `5*${product.id}*${product.quantity ?? 0}*\n`;
       await serialController.write(message);
+      showAlert(`Sent #${product.id} to Arduino`, "success");
     } catch (error) {
-      showAlert('Failed to send to Arduino', 'error');
+      console.error("Send error:", error);
       setSerialConnected(false);
-      setConnectionStatus('error');
+      setConnectionStatus("error");
+      showAlert("Failed to send to Arduino", "error");
     }
   }, [serialConnected, serialController, showAlert]);
 
@@ -222,7 +219,7 @@ export function CableInventoryClient({
                   variant="outline"
                   className="flex items-center gap-2 cursor-pointer"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Download className="h-4 w-4 rotate-90" />
                   {isConnecting ? 'Connecting...' : serialConnected ? 'Connected' : 'Connect'}
                 </Button>
                 <span
@@ -333,10 +330,7 @@ export function CableInventoryClient({
                   onEdit={setEditingProduct}
                   onDelete={handleDelete}
                   onAddToCart={handleAddToCart}
-                  onPrint={(product) => {
-                    setSelectedProduct(product.id);
-                    sendToArduino(product);
-                  }}
+                  onSend={sendToArduino}
                   isDeleting={isDeleting && deletingProductId === product.id}
                   isSelected={selectedProduct === product.id}
                   backgroundColor={backgroundColor}

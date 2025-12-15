@@ -5,8 +5,20 @@ import type { CableProduct } from '@/lib/services/cable';
 import type { SoundProduct } from '@/lib/services/sound';
 import type { SolarProduct } from '@/lib/services/solar';
 
+export type ExportProduct = {
+  id: number;
+  english_names: string | null;
+  turkish_names: string | null;
+  category: string | null;
+  barcode?: string | null;
+  quantity: number | null;
+  price: string | number | null;
+  image_filename: string | null;
+  description: string | null;
+};
+
 // 1. Full Excel Sheet Function (downloadExcel)
-export const downloadExcel = async (products: ArduinoProduct[]) => {
+export const downloadExcel = async (products: ExportProduct[]) => {
   // Create a new workbook
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Products');
@@ -83,7 +95,7 @@ export const downloadExcel = async (products: ArduinoProduct[]) => {
 };
 
 // 2. Highlighted Excel Sheet Function (highlightExcel)
-export const highlightExcel = async (products: ArduinoProduct[]) => {
+export const highlightExcel = async (products: ExportProduct[]) => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Products');
 
