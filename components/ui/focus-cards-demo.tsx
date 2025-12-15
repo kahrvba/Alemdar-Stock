@@ -27,11 +27,6 @@ export const focusCardsData = [
     src: "/invoice.webp",
     href: "/invoices",
   },
-  {
-    title: "TV Remotes Side",
-    src: "/remote.png",
-    href: "/tv-remotes",
-  },
   {title: "Batteries Side",
     src: "/battery.png",
     href: "/batteries",
