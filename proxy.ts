@@ -6,6 +6,7 @@ const ALLOWED_IPS: string[] = [
   "192.168.9.103",
   "94.78.99.241",
   "127.0.0.1",
+  "197.57.53.195",
   "::1",
 ];
 // use it like this: https://alemadmindashboard.vercel.app/?key=d59e89952d716faa6db181b1f735b794
