@@ -70,7 +70,6 @@ export default function proxy(req: Request) {
   <div class="card">
     <h1>Access Denied</h1>
     <p>You don't have access to this site.</p>
-    <p>If you believe this is an error, contact <code>ahmedsalah998.as@gmail.com</code>.</p>
   </div>
 </body>
 </html>`;
