@@ -6,7 +6,7 @@ import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import type { ArduinoProduct } from "@/lib/services/arduino";
 import { useToast } from "./toast";
 
-type InventoryType = "arduino" | "sound" | "solar" | "cable" | "battery" | "tv";
+type InventoryType = "arduino" | "sound" | "solar" | "cable" | "battery" | "tv" | "filaments";
 
 type CartProduct = ArduinoProduct & {
   inventoryType?: InventoryType;
@@ -62,6 +62,7 @@ const INVENTORY_ENDPOINTS: Record<InventoryType, string> = {
   cable: "/api/mainSideLeds",
   battery: "/api/batteries",
   tv: "/api/tv-remotes",
+  filaments: "/api/filaments",
 };
 
 const getInventoryType = (product?: CartProduct): InventoryType =>
@@ -312,6 +313,12 @@ function CartSidebar() {
           cartItem.product.english_names ??
           `Product #${cartItem.product.id}`
         );
+      case "filaments":
+        return (
+          freshProduct?.name ??
+          cartItem.product.english_names ??
+          `Product #${cartItem.product.id}`
+        );
       default:
         return (
           freshProduct?.english_names ??
@@ -377,6 +384,20 @@ function CartSidebar() {
           category: freshProduct.category ?? null,
           description: freshProduct.description ?? null,
           specs: freshProduct.specs ?? {},
+          image_filename: freshProduct.image_filename ?? null,
+          quantity,
+          price: freshProduct.price ?? null,
+        };
+      case "filaments":
+        return {
+          id: freshProduct.id,
+          name: freshProduct.name ?? null,
+          brand: freshProduct.brand ?? null,
+          material: freshProduct.material ?? null,
+          variant: freshProduct.variant ?? null,
+          color: freshProduct.color ?? null,
+          net_weight_kg: freshProduct.net_weight_kg ?? null,
+          diameter_mm: freshProduct.diameter_mm ?? null,
           image_filename: freshProduct.image_filename ?? null,
           quantity,
           price: freshProduct.price ?? null,

@@ -32,7 +32,13 @@ export const focusCardsData = [
     src: "/remote.png",
     href: "/tv-remotes",
   },
-  {title: "Batteries Side",
+  {
+    title: "Filaments Side",
+    src: "/filament.png",
+    href: "/filaments",
+  },
+  {
+    title: "Batteries Side",
     src: "/battery.png",
     href: "/batteries",
   },
