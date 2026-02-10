@@ -1,0 +1,124 @@
+{
+    "products": [
+      {
+        "name": "MAG Satellite Dish",
+        "brand": "MAG",
+        "category": "Satellite Dish",
+        "description": "Offset satellite dish suitable for KU-band satellite reception.",
+        "specs": {
+          "diameter_cm": 80,
+          "band": "KU",
+          "material": "Steel",
+          "lnb_holder_mm": 40
+        }
+      },
+      {
+        "name": "MAG Universal Rocket Quattro LNB",
+        "brand": "MAG",
+        "category": "LNB",
+        "description": "Universal quattro LNB designed for multiswitch systems.",
+        "specs": {
+          "outputs": 4,
+          "noise_figure_db": 0.1,
+          "input_frequency_ghz": "10.7–12.75",
+          "output_frequency_mhz": "950–2150",
+          "uhd_support": true
+        }
+      },
+      {
+        "name": "MAG Universal Twin LNB",
+        "brand": "MAG",
+        "category": "LNB",
+        "description": "Twin-output LNB for connecting two satellite receivers.",
+        "specs": {
+          "outputs": 2,
+          "noise_figure_db": 0.1,
+          "input_frequency_ghz": "10.7–12.75",
+          "output_frequency_mhz": "950–2150"
+        }
+      },
+      {
+        "name": "MAG Universal Octo LNB",
+        "brand": "MAG",
+        "category": "LNB",
+        "description": "Octo LNB with eight outputs for multi-room installations.",
+        "specs": {
+          "outputs": 8,
+          "noise_figure_db": 0.1,
+          "input_frequency_ghz": "10.7–12.75",
+          "output_frequency_mhz": "950–2150",
+          "uhd_support": true
+        }
+      },
+      {
+        "name": "T&Smart Universal Single LNB",
+        "brand": "T&Smart",
+        "category": "LNB",
+        "description": "Single-output universal LNB for basic satellite setups.",
+        "specs": {
+          "outputs": 1,
+          "noise_figure_db": 0.2,
+          "input_frequency_ghz": "10.7–12.75",
+          "output_frequency_mhz": "950–2150"
+        }
+      },
+      {
+        "name": "Digital Satellite Signal Finder",
+        "brand": "Generic",
+        "category": "Satellite Meter",
+        "description": "Portable digital satellite signal finder with LCD display.",
+        "specs": {
+          "signal_type": "DVB-S / DVB-S2",
+          "display": "LCD",
+          "usb_support": true
+        }
+      },
+      {
+        "name": "Satellite Finder Meter",
+        "brand": "Generic",
+        "category": "Satellite Meter",
+        "description": "Compact satellite signal meter for dish alignment.",
+        "specs": {
+          "signal_type": "DVB-S2",
+          "audio_alert": true
+        }
+      },
+      {
+        "name": "Botech BS-5000 Full HD Receiver",
+        "brand": "Botech",
+        "category": "Satellite Receiver",
+        "description": "Full HD satellite receiver with USB media playback.",
+        "specs": {
+          "tuner": "DVB-S2",
+          "resolution": "1080p",
+          "usb": true,
+          "hdmi": true
+        }
+      },
+      {
+        "name": "Plato Tino Plus HD Receiver",
+        "brand": "Plato",
+        "category": "Satellite Receiver",
+        "description": "Compact HD satellite receiver with HDMI and USB.",
+        "specs": {
+          "tuner": "DVB-S2",
+          "resolution": "1080p",
+          "usb": true,
+          "wifi_support": "via USB dongle"
+        }
+      },
+      {
+        "name": "Plato Oscar Dual USB HD Receiver",
+        "brand": "Plato",
+        "category": "Satellite Receiver",
+        "description": "Full HD receiver with dual USB and TKGS support.",
+        "specs": {
+          "tuner": "DVB-S2",
+          "resolution": "1080p",
+          "usb_ports": 2,
+          "tkgs": true
+        }
+      }
+    ]
+  }
+  

@@ -1,8 +1,20 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+type InvoiceItemRow = {
+  product_name: string;
+  barcode: string | null;
+  quantity: number;
+  unit_price: number | string;
+  total_price: number | string;
+};
+
 // GET /api/invoices/[id]
-export async function GET(req: Request, context: any) {
+export async function GET(req: Request, context: RouteContext) {
   const params = await context.params;
   const invoiceId = params.id;
   
@@ -48,7 +60,7 @@ export async function GET(req: Request, context: any) {
       const seconds = String(d.getSeconds()).padStart(2, '0');
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
-    const products = itemsRes.rows.map((item: any) => ({
+    const products = (itemsRes.rows as InvoiceItemRow[]).map((item) => ({
       name: item.product_name,
       barcode: item.barcode || '',
       quantity: item.quantity,
@@ -59,7 +71,7 @@ export async function GET(req: Request, context: any) {
       invoiceNumber: invoice.invoice_number,
       date: formatDate(invoice.date_created),
       products,
-      subtotal: products.reduce((sum: number, p: any) => sum + p.total, 0),
+      subtotal: products.reduce((sum: number, p) => sum + p.total, 0),
       total: Number(invoice.total_amount),
     });
   } catch (error) {

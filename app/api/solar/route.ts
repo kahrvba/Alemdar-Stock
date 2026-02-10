@@ -40,7 +40,7 @@ export async function GET(req: Request) {
 
     if (ids.length > 0) {
       const result = await client.query(
-        `SELECT id, name, rating, factory_price, wholesale_price, min_sillig_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
+        `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
          FROM public.solardb
          WHERE id = ANY($1)
          ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC`,
@@ -328,4 +328,3 @@ export async function DELETE(req: Request) {
     client.release();
   }
 }
-

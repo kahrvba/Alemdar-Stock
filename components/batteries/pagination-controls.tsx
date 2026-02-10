@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { useNavigationOverlay } from "@/components/navigation-overlay-provider";
 
 type PaginationControlsProps = {
@@ -161,4 +160,3 @@ export function PaginationControls({
     </nav>
   );
 }
-

@@ -22,7 +22,10 @@ export function PaginationControls({
 }: PaginationControlsProps) {
   const { showOverlay } = useNavigationOverlay();
 
-  const handleClick = (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>, isDisabled: boolean) => {
+  const handleClick = (
+    event: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
+    isDisabled: boolean
+  ) => {
     if (isDisabled || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       event.preventDefault();
       return;
@@ -40,37 +43,30 @@ export function PaginationControls({
       params.set("field", field);
     }
     const queryString = params.toString();
-    return `/cable${queryString ? `?${queryString}` : ""}`;
+    return `/tv-remotes${queryString ? `?${queryString}` : ""}`;
   };
 
-  // Generate page numbers to display (Google-style)
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
-    const delta = 2; // Number of pages to show on each side of current page
+    const delta = 2;
 
-    // Always show first page
     pages.push(1);
 
-    // Calculate range around current page
     const rangeStart = Math.max(2, page - delta);
     const rangeEnd = Math.min(totalPages - 1, page + delta);
 
-    // Add ellipsis after first page if needed
     if (rangeStart > 2) {
       pages.push("...");
     }
 
-    // Add pages around current page
     for (let i = rangeStart; i <= rangeEnd; i++) {
       pages.push(i);
     }
 
-    // Add ellipsis before last page if needed
     if (rangeEnd < totalPages - 1) {
       pages.push("...");
     }
 
-    // Always show last page (if there's more than 1 page)
     if (totalPages > 1) {
       pages.push(totalPages);
     }
@@ -82,10 +78,9 @@ export function PaginationControls({
 
   return (
     <nav
-      aria-label="Cable pagination"
+      aria-label="TV remotes pagination"
       className="flex items-center justify-center gap-2 text-sm"
     >
-      {/* Previous Button */}
       {page === 1 ? (
         <span
           aria-disabled={true}
@@ -103,7 +98,6 @@ export function PaginationControls({
         </Link>
       )}
 
-      {/* Page Numbers */}
       <div className="flex items-center gap-1">
         {pageNumbers.map((pageNum, index) => {
           if (pageNum === "...") {
@@ -140,7 +134,6 @@ export function PaginationControls({
         })}
       </div>
 
-      {/* Next Button */}
       {page === totalPages ? (
         <span
           aria-disabled={true}

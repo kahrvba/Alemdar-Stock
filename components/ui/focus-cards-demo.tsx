@@ -28,7 +28,7 @@ export const focusCardsData = [
     href: "/invoices",
   },
   {
-    title: "TV Remotes Side",
+    title: "TV-side",
     src: "/remote.png",
     href: "/tv-remotes",
   },

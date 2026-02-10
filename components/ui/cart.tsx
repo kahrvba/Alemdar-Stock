@@ -6,7 +6,7 @@ import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import type { ArduinoProduct } from "@/lib/services/arduino";
 import { useToast } from "./toast";
 
-type InventoryType = "arduino" | "sound" | "solar" | "cable" | "battery";
+type InventoryType = "arduino" | "sound" | "solar" | "cable" | "battery" | "tv";
 
 type CartProduct = ArduinoProduct & {
   inventoryType?: InventoryType;
@@ -61,6 +61,7 @@ const INVENTORY_ENDPOINTS: Record<InventoryType, string> = {
   solar: "/api/solar",
   cable: "/api/mainSideLeds",
   battery: "/api/batteries",
+  tv: "/api/tv-remotes",
 };
 
 const getInventoryType = (product?: CartProduct): InventoryType =>
@@ -305,6 +306,12 @@ function CartSidebar() {
           cartItem.product.english_names ??
           `Product #${cartItem.product.id}`
         );
+      case "tv":
+        return (
+          freshProduct?.name ??
+          cartItem.product.english_names ??
+          `Product #${cartItem.product.id}`
+        );
       default:
         return (
           freshProduct?.english_names ??
@@ -361,6 +368,18 @@ function CartSidebar() {
           image_filename: freshProduct.image_filename ?? null,
           quantity,
           description: freshProduct.description ?? null,
+        };
+      case "tv":
+        return {
+          id: freshProduct.id,
+          name: freshProduct.name ?? null,
+          brand: freshProduct.brand ?? null,
+          category: freshProduct.category ?? null,
+          description: freshProduct.description ?? null,
+          specs: freshProduct.specs ?? {},
+          image_filename: freshProduct.image_filename ?? null,
+          quantity,
+          price: freshProduct.price ?? null,
         };
       case "arduino":
       default:
@@ -746,4 +765,3 @@ export function CartButton() {
     </button>
   );
 }
-

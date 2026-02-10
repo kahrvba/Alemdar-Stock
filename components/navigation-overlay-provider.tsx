@@ -87,8 +87,6 @@ function NavigationOverlayProviderInner({ children }: { children: React.ReactNod
     return () => {
       clearHideTimer();
     };
-    // scheduleHide is an Effect Event, so it's not a dependency
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, searchKey, isVisible]);
 
   const showOverlay = useCallback(() => {
@@ -134,4 +132,3 @@ function NavigationOverlay({ isHiding }: { isHiding: boolean }) {
     </div>
   );
 }
-

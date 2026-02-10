@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import Image from 'next/image';
 
 interface InvoiceProduct {
   name: string;
@@ -29,6 +30,7 @@ export default function InvoiceTemplate({
   subtotal = 35,
   total = 35,
 }: InvoiceTemplateProps) {
+  void total;
   const kdvRate = 0.16;
   const kdvAmount = subtotal * kdvRate;
   const totalWithKdv = subtotal + kdvAmount;
@@ -38,8 +40,8 @@ export default function InvoiceTemplate({
         {/* Header */}
         <div className="grid grid-cols-[200px_1fr_260px] items-start gap-2">
           <div className="flex items-center gap-2">
-            <div className="h-14 w-14 flex items-center justify-center">
-              <img src="/logo.png" alt="Logo" className="h-full w-full object-contain" />
+            <div className="relative h-14 w-14 flex items-center justify-center">
+              <Image src="/logo.png" alt="Logo" fill className="object-contain" />
             </div>
             <div className="text-[11px] font-semibold whitespace-nowrap">ALEMDAR TEKNİK LTD</div>
           </div>

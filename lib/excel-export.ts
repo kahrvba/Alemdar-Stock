@@ -1,6 +1,5 @@
 import { saveAs } from 'file-saver'; 
 import * as ExcelJS from 'exceljs';
-import type { ArduinoProduct } from '@/lib/services/arduino';
 import type { CableProduct } from '@/lib/services/cable';
 import type { SoundProduct } from '@/lib/services/sound';
 import type { SolarProduct } from '@/lib/services/solar';
@@ -641,4 +640,3 @@ export const highlightSolarExcel = async (products: SolarProduct[]) => {
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   saveAs(blob, 'highlight-Solar-Excel.xlsx');
 };
-

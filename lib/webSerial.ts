@@ -1,5 +1,5 @@
 export class WebSerialController {
-  private port: any = null;
+  private port: SerialPort | null = null;
   private isConnected: boolean = false;
   private writer: WritableStreamDefaultWriter | null = null;
 
@@ -17,7 +17,7 @@ export class WebSerialController {
           // This will trigger the browser's port selection dialog
           const port = await navigator.serial.requestPort();
           ports = [port];
-        } catch (err) {
+        } catch {
           console.warn('No port selected or permission denied');
           return [];
         }

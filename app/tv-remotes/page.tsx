@@ -1,14 +1,14 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { fetchSoundProducts, type SoundPagination } from "@/lib/services/sound";
-import { SoundInventoryClient } from "@/components/sound/sound-inventory-client";
+import { fetchTvRemoteProducts, type TvRemotePagination } from "@/lib/services/tv-remotes";
+import { TvRemoteInventoryClient } from "@/components/tv-remotes/tv-remote-inventory-client";
 
-export default async function SoundPage({
+export default async function TvRemotesPage({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string; query?: string; field?: string }>;
 }) {
-  let responseData: SoundPagination | null = null;
+  let responseData: TvRemotePagination | null = null;
   const headerList = await headers();
   const forwardedProto = headerList.get("x-forwarded-proto");
   const forwardedHost = headerList.get("x-forwarded-host");
@@ -30,9 +30,9 @@ export default async function SoundPage({
     requestOrigin || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   try {
-    responseData = await fetchSoundProducts(apiBaseUrl, currentPage, query, field);
+    responseData = await fetchTvRemoteProducts(apiBaseUrl, currentPage, query, field);
   } catch (error) {
-    console.error("[sound/page] fetch error:", error);
+    console.error("[tv-remotes/page] fetch error:", error);
     return notFound();
   }
 
@@ -46,7 +46,7 @@ export default async function SoundPage({
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-background px-6 py-16 text-foreground">
       <div className="mx-auto w-full max-w-6xl">
-        <SoundInventoryClient
+        <TvRemoteInventoryClient
           items={items}
           page={page}
           totalPages={totalPages}
@@ -59,4 +59,3 @@ export default async function SoundPage({
     </main>
   );
 }
-
