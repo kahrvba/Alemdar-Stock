@@ -13,6 +13,7 @@ export function SiteHeader() {
     { label: "Cable", ariaLabel: "Cable Side", link: "/cable" },
     { label: "Sound", ariaLabel: "Sound Side", link: "/sound" },
     { label: "Solar", ariaLabel: "Solar Side", link: "/solar" },
+    { label: "Fans", ariaLabel: "Fans Side", link: "/fans" },
     { label: "Invoices", ariaLabel: "Invoices Side", link: "/invoices" },
   ];
 
@@ -52,4 +53,3 @@ export function SiteHeader() {
     </>
   );
 }
-

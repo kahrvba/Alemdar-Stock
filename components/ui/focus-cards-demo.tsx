@@ -42,6 +42,11 @@ export const focusCardsData = [
     src: "/battery.png",
     href: "/batteries",
   },
+  {
+    title: "Fan Side",
+    src: "/fans.png",
+    href: "/fans",
+  },
 ] satisfies FocusCard[];
 
 export default function FocusCardsDemo() {
