@@ -52,7 +52,7 @@ const CardComponent = ({ card, index, hovered, setHovered }: CardProps) => {
         });
       }}
       className={cn(
-        "relative h-60 w-full overflow-hidden rounded-lg bg-card transition-all duration-300 ease-out md:h-96",
+        "relative h-44 w-full overflow-hidden rounded-lg bg-card transition-all duration-300 ease-out sm:h-52 lg:h-60",
         hovered !== null && hovered !== index && "blur-sm scale-[0.98]",
         hasLink
           ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
@@ -67,7 +67,7 @@ const CardComponent = ({ card, index, hovered, setHovered }: CardProps) => {
           alt={card.title}
           fill
           priority={index === 0}
-          sizes="(min-width: 768px) 33vw, 100vw"
+          sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="object-cover"
         />
       </HoverZoom>
@@ -101,7 +101,7 @@ export function FocusCards({ cards }: { cards: FocusCard[] }) {
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-10 md:grid-cols-3 md:px-8">
+    <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:px-2">
       {cards.map((card, index) => (
         <Card
           key={`${card.title}-${index}`}

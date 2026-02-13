@@ -14,6 +14,7 @@ export function SiteHeader() {
     { label: "Sound", ariaLabel: "Sound Side", link: "/sound" },
     { label: "Solar", ariaLabel: "Solar Side", link: "/solar" },
     { label: "Fans", ariaLabel: "Fans Side", link: "/fans" },
+    { label: "Others", ariaLabel: "Others Side", link: "/others" },
     { label: "Invoices", ariaLabel: "Invoices Side", link: "/invoices" },
   ];
 

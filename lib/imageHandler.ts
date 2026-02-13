@@ -1,6 +1,6 @@
 import { put } from '@vercel/blob';
 
-export type UploadSection = 'arduino' | 'mainproducts' | 'mainSideLeds' | 'solar' | 'sound' | 'battery' | 'tv' | 'filaments' | 'fans';
+export type UploadSection = 'arduino' | 'mainproducts' | 'mainSideLeds' | 'solar' | 'sound' | 'battery' | 'tv' | 'filaments' | 'fans' | 'others';
 
 interface UploadConfig {
   folder: string;
@@ -43,6 +43,10 @@ const sectionConfig: Record<UploadSection, UploadConfig> = {
   'fans': {
     folder: 'fans',
     tableName: 'fans'
+  },
+  'others': {
+    folder: 'others',
+    tableName: 'others'
   }
 };
 
