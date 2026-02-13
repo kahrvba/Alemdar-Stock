@@ -44,7 +44,7 @@ export const focusCardsData = [
   },
   {
     title: "Fan Section",
-    src: "/fans.png",
+    src: "/fans.jpg",
     href: "/fans",
   },
   {
