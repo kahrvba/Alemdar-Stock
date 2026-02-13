@@ -48,6 +48,11 @@ export const focusCardsData = [
     href: "/fans",
   },
   {
+    title: "Electric Section",
+    src: "/electric.png",
+    href: "/electric",
+  },
+  {
     title: "Others Section",
     src: "/others.png",
     href: "/others",

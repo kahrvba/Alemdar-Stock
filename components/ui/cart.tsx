@@ -6,7 +6,7 @@ import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import type { ArduinoProduct } from "@/lib/services/arduino";
 import { useToast } from "./toast";
 
-type InventoryType = "arduino" | "sound" | "solar" | "cable" | "battery" | "tv" | "filaments" | "fans" | "others";
+type InventoryType = "arduino" | "sound" | "solar" | "cable" | "battery" | "tv" | "filaments" | "fans" | "others" | "electric";
 
 type CartProduct = ArduinoProduct & {
   inventoryType?: InventoryType;
@@ -65,6 +65,7 @@ const INVENTORY_ENDPOINTS: Record<InventoryType, string> = {
   filaments: "/api/filaments",
   fans: "/api/fans",
   others: "/api/others",
+  electric: "/api/electric",
 };
 
 const getInventoryType = (product?: CartProduct): InventoryType =>
@@ -403,6 +404,17 @@ function CartSidebar() {
           image_filename: freshProduct.image_filename ?? null,
           quantity,
           price: freshProduct.price ?? null,
+        };
+      case "electric":
+        return {
+          id: freshProduct.id,
+          english_names: freshProduct.english_names ?? null,
+          turkish_names: freshProduct.turkish_names ?? null,
+          category: freshProduct.category ?? null,
+          price: freshProduct.price ?? null,
+          image_filename: freshProduct.image_filename ?? null,
+          description: freshProduct.description ?? null,
+          quantity,
         };
       case "arduino":
       case "fans":
