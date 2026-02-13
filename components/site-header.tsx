@@ -8,14 +8,14 @@ import { useNavigationOverlay } from "@/components/navigation-overlay-provider";
 
 export function SiteHeader() {
   const menuItems = [
-    { label: "Arduino", ariaLabel: "Arduino Side", link: "/arduino" },
-    { label: "Batteries", ariaLabel: "Batteries Side", link: "/batteries" },
-    { label: "Cable", ariaLabel: "Cable Side", link: "/cable" },
-    { label: "Sound", ariaLabel: "Sound Side", link: "/sound" },
-    { label: "Solar", ariaLabel: "Solar Side", link: "/solar" },
-    { label: "Fans", ariaLabel: "Fans Side", link: "/fans" },
-    { label: "Others", ariaLabel: "Others Side", link: "/others" },
-    { label: "Invoices", ariaLabel: "Invoices Side", link: "/invoices" },
+    { label: "Arduino", ariaLabel: "Arduino Section", link: "/arduino" },
+    { label: "Batteries", ariaLabel: "Batteries Section", link: "/batteries" },
+    { label: "Cable", ariaLabel: "Cable Section", link: "/cable" },
+    { label: "Sound", ariaLabel: "Sound Section", link: "/sound" },
+    { label: "Solar", ariaLabel: "Solar Section", link: "/solar" },
+    { label: "Fans", ariaLabel: "Fans Section", link: "/fans" },
+    { label: "Others", ariaLabel: "Others Section", link: "/others" },
+    { label: "Invoices", ariaLabel: "Invoices Section", link: "/invoices" },
   ];
 
   const { showOverlay } = useNavigationOverlay();
