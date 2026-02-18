@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+const TV_SEARCH_FIELDS = ["id", "name", "brand", "category"] as const;
+type TvSearchField = (typeof TV_SEARCH_FIELDS)[number];
+
+const COMPACT_REGEX = "[[:space:]/_.-]+";
+const TV_SEARCHABLE_EXPR =
+  "LOWER(COALESCE(name, '') || ' ' || COALESCE(brand, '') || ' ' || COALESCE(category, ''))";
+const TV_SEARCHABLE_COMPACT_EXPR =
+  `REGEXP_REPLACE(${TV_SEARCHABLE_EXPR}, '${COMPACT_REGEX}', '', 'g')`;
+
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
+const toCompact = (value: string) => value.replace(/[ /_.-]+/g, "");
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const query = searchParams.get("query")?.trim();
@@ -29,23 +41,31 @@ export async function GET(req: Request) {
     let whereClause = "";
 
     if (query) {
-      const escapedLike = `%${query.replace(/[%_]/g, "\\$&")}%`;
+      const normalizedQuery = query.toLowerCase();
+      const escapedLike = `%${escapeLike(normalizedQuery)}%`;
+      const compactQuery = toCompact(normalizedQuery);
+      const escapedCompactLike = compactQuery ? `%${escapeLike(compactQuery)}%` : null;
+      const numericQuery = /^\d+$/.test(query) ? Number(query) : null;
 
-      if (field && ["id", "name", "brand", "category"].includes(field)) {
+      if (field && TV_SEARCH_FIELDS.includes(field as TvSearchField)) {
         if (field === "id") {
-          values.push(query);
-          whereClause = "WHERE CAST(id AS TEXT) = $1";
+          values.push(numericQuery);
+          whereClause = "WHERE ($1::int IS NOT NULL AND id = $1::int)";
         } else {
-          values.push(escapedLike);
-          whereClause = `WHERE ${field} ILIKE $1 ESCAPE '\\'`;
+          const fieldExpr = `LOWER(COALESCE(${field}, ''))`;
+          const compactFieldExpr = `REGEXP_REPLACE(${fieldExpr}, '${COMPACT_REGEX}', '', 'g')`;
+          values.push(escapedLike, escapedCompactLike);
+          whereClause = `WHERE (
+            ${fieldExpr} LIKE $1::text
+            OR ($2::text IS NOT NULL AND ${compactFieldExpr} LIKE $2::text)
+          )`;
         }
       } else {
-        values.push(escapedLike, escapedLike, escapedLike, query);
+        values.push(escapedLike, escapedCompactLike, numericQuery);
         whereClause = `WHERE (
-          name ILIKE $1 ESCAPE '\\' OR
-          brand ILIKE $2 ESCAPE '\\' OR
-          category ILIKE $3 ESCAPE '\\' OR
-          CAST(id AS TEXT) = $4
+          ${TV_SEARCHABLE_EXPR} LIKE $1::text OR
+          ($2::text IS NOT NULL AND ${TV_SEARCHABLE_COMPACT_EXPR} LIKE $2::text) OR
+          ($3::int IS NOT NULL AND id = $3::int)
         )`;
       }
     }

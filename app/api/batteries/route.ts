@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+const BATTERY_SEARCH_FIELDS = ['id', 'model', 'volt'] as const;
+type BatterySearchField = (typeof BATTERY_SEARCH_FIELDS)[number];
+
+const COMPACT_REGEX = '[[:space:]/_.-]+';
+const BATTERY_SEARCHABLE_EXPR =
+  "LOWER(COALESCE(model, '') || ' ' || COALESCE(volt::text, ''))";
+const BATTERY_SEARCHABLE_COMPACT_EXPR =
+  `REGEXP_REPLACE(${BATTERY_SEARCHABLE_EXPR}, '${COMPACT_REGEX}', '', 'g')`;
+
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, '\\$&');
+const toCompact = (value: string) => value.replace(/[ /_.-]+/g, '');
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('query')?.trim();
@@ -79,22 +91,34 @@ export async function GET(req: Request) {
       let whereClause = '';
 
       if (query) {
-        const escapedLike = `%${query.replace(/[%_]/g, "\\$&")}%`;
+        const normalizedQuery = query.toLowerCase();
+        const escapedLike = `%${escapeLike(normalizedQuery)}%`;
+        const compactQuery = toCompact(normalizedQuery);
+        const escapedCompactLike = compactQuery ? `%${escapeLike(compactQuery)}%` : null;
+        const numericQuery = /^\d+$/.test(query) ? Number(query) : null;
 
-        if (field && ['id', 'model', 'volt'].includes(field)) {
+        if (field && BATTERY_SEARCH_FIELDS.includes(field as BatterySearchField)) {
           if (field === 'id') {
-            values.push(query);
-            whereClause = `WHERE CAST(id AS TEXT) = $1`;
+            values.push(numericQuery);
+            whereClause = `WHERE ($1::int IS NOT NULL AND id = $1::int)`;
           } else {
-            values.push(escapedLike);
-            whereClause = `WHERE ${field} ILIKE $1 ESCAPE '\\'`;
+            const fieldExpr =
+              field === 'volt'
+                ? "LOWER(COALESCE(volt::text, ''))"
+                : "LOWER(COALESCE(model, ''))";
+            const compactFieldExpr = `REGEXP_REPLACE(${fieldExpr}, '${COMPACT_REGEX}', '', 'g')`;
+            values.push(escapedLike, escapedCompactLike);
+            whereClause = `WHERE (
+              ${fieldExpr} LIKE $1::text
+              OR ($2::text IS NOT NULL AND ${compactFieldExpr} LIKE $2::text)
+            )`;
           }
         } else {
-          values.push(escapedLike, escapedLike, query);
+          values.push(escapedLike, escapedCompactLike, numericQuery);
           whereClause = `WHERE (
-            model ILIKE $1 ESCAPE '\\' OR
-            volt ILIKE $2 ESCAPE '\\' OR
-            CAST(id AS TEXT) = $3
+            ${BATTERY_SEARCHABLE_EXPR} LIKE $1::text OR
+            ($2::text IS NOT NULL AND ${BATTERY_SEARCHABLE_COMPACT_EXPR} LIKE $2::text) OR
+            ($3::int IS NOT NULL AND id = $3::int)
           )`;
         }
       }

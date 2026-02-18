@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+const CABLE_SEARCH_FIELDS = ['id', 'english_name', 'turkish_name', 'category', 'barcode'] as const;
+type CableSearchField = (typeof CABLE_SEARCH_FIELDS)[number];
+
+const COMPACT_REGEX = '[[:space:]/_.-]+';
+const CABLE_SEARCHABLE_EXPR =
+  "LOWER(COALESCE(english_name, '') || ' ' || COALESCE(turkish_name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))";
+const CABLE_SEARCHABLE_COMPACT_EXPR =
+  `REGEXP_REPLACE(${CABLE_SEARCHABLE_EXPR}, '${COMPACT_REGEX}', '', 'g')`;
+
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, '\\$&');
+const toCompact = (value: string) => value.replace(/[ /_.-]+/g, '');
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const barcode = searchParams.get('barcode');
@@ -60,28 +72,35 @@ export async function GET(req: Request) {
       let whereClause = '';
 
       if (query) {
-        const escapedLike = `%${query.replace(/[%_]/g, "\\$&")}%`;
+        const normalizedQuery = query.toLowerCase();
+        const escapedLike = `%${escapeLike(normalizedQuery)}%`;
+        const compactQuery = toCompact(normalizedQuery);
+        const escapedCompactLike = compactQuery ? `%${escapeLike(compactQuery)}%` : null;
+        const numericQuery = /^\d+$/.test(query) ? Number(query) : null;
         
         // If field is specified, search only that field
-        if (field && ['id', 'english_name', 'turkish_name', 'category', 'barcode'].includes(field)) {
+        if (field && CABLE_SEARCH_FIELDS.includes(field as CableSearchField)) {
           if (field === 'id') {
             // For ID, do exact match
-            values.push(query);
-            whereClause = `WHERE CAST(id AS TEXT) = $1`;
+            values.push(numericQuery);
+            whereClause = `WHERE ($1::int IS NOT NULL AND id = $1::int)`;
           } else {
-            // For other fields, do ILIKE search
-            values.push(escapedLike);
-            whereClause = `WHERE ${field} ILIKE $1 ESCAPE '\\'`;
+            // For text fields, use both standard and compact matching
+            const fieldExpr = `LOWER(COALESCE(${field}, ''))`;
+            const compactFieldExpr = `REGEXP_REPLACE(${fieldExpr}, '${COMPACT_REGEX}', '', 'g')`;
+            values.push(escapedLike, escapedCompactLike);
+            whereClause = `WHERE (
+              ${fieldExpr} LIKE $1::text
+              OR ($2::text IS NOT NULL AND ${compactFieldExpr} LIKE $2::text)
+            )`;
           }
         } else {
-          // Search all fields if no specific field is selected
-          values.push(escapedLike, escapedLike, escapedLike, escapedLike, query);
+          // Search all fields with both standard and compact normalization
+          values.push(escapedLike, escapedCompactLike, numericQuery);
           whereClause = `WHERE (
-            english_name ILIKE $1 ESCAPE '\\' OR
-            turkish_name ILIKE $2 ESCAPE '\\' OR
-            category ILIKE $3 ESCAPE '\\' OR
-            barcode ILIKE $4 ESCAPE '\\' OR
-            CAST(id AS TEXT) = $5
+            ${CABLE_SEARCHABLE_EXPR} LIKE $1::text OR
+            ($2::text IS NOT NULL AND ${CABLE_SEARCHABLE_COMPACT_EXPR} LIKE $2::text) OR
+            ($3::int IS NOT NULL AND id = $3::int)
           )`;
         }
       }
