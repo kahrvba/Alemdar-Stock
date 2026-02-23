@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // POST: Create a new invoice and its items
 export async function POST(req: Request) {
   try {
@@ -89,9 +92,18 @@ export async function GET() {
     await client.query("SET client_encoding = 'UTF8';");
     // Only fetch invoice data, not items (items are only needed for detail view)
     const invoicesRes = await client.query(
-      'SELECT id, invoice_number, date_created, total_amount, status FROM public.invoices ORDER BY date_created DESC'
+      'SELECT id, invoice_number, date_created, total_amount, status FROM public.invoices ORDER BY id DESC, date_created DESC'
     );
-    return NextResponse.json({ invoices: invoicesRes.rows });
+    return NextResponse.json(
+      { invoices: invoicesRes.rows },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
   } catch (error) {
     console.error('[invoices] GET error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });

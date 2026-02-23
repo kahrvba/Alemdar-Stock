@@ -241,7 +241,7 @@ function CartSidebar() {
 
   const fetchLatestInvoiceNumber = async () => {
     try {
-      const res = await fetch('/api/invoices');
+      const res = await fetch('/api/invoices', { cache: 'no-store' });
       const data = await res.json();
       if (Array.isArray(data.invoices) && data.invoices.length > 0) {
         const lastInvoice = data.invoices[0];

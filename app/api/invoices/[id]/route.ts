@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
@@ -67,13 +70,22 @@ export async function GET(req: Request, context: RouteContext) {
       unitPrice: Number(item.unit_price),
       total: Number(item.total_price),
     }));
-    return NextResponse.json({
-      invoiceNumber: invoice.invoice_number,
-      date: formatDate(invoice.date_created),
-      products,
-      subtotal: products.reduce((sum: number, p) => sum + p.total, 0),
-      total: Number(invoice.total_amount),
-    });
+    return NextResponse.json(
+      {
+        invoiceNumber: invoice.invoice_number,
+        date: formatDate(invoice.date_created),
+        products,
+        subtotal: products.reduce((sum: number, p) => sum + p.total, 0),
+        total: Number(invoice.total_amount),
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
   } catch (error) {
     console.error('[invoices/[id]] Error fetching invoice:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to fetch invoice' }, { status: 500 });
