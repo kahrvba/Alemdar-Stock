@@ -8,9 +8,19 @@ export const focusCardsData = [
     href: "/arduino",
   },
   {
+    title: "Adapters Section",
+    src: "/adaptors.jpg",
+    href: "/adapters",
+  },
+  {
     title: "Cable Section",
     src: "/Shutterstock%201167002386.jpg",
     href: "/cable",
+  },
+  {
+    title: "Chargers Section",
+    src: "/chargers.jpg",
+    href: "/chargers",
   },
   {
     title: "Solar Section",

@@ -157,6 +157,32 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     searchableExpr:
       "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, ''))",
   },
+  {
+    tableKey: "adapters",
+    sectionLabel: "Adapters",
+    routePath: "/adapters",
+    tableName: "public.adapters",
+    titleExpr: "english_names",
+    subtitleExpr: "COALESCE(turkish_names, category)",
+    imageExpr: "image_filename",
+    priceExpr: "price::text",
+    quantityExpr: "COALESCE(quantity, 0)",
+    searchableExpr:
+      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, ''))",
+  },
+  {
+    tableKey: "chargers",
+    sectionLabel: "Chargers",
+    routePath: "/chargers",
+    tableName: "public.chargers",
+    titleExpr: "english_names",
+    subtitleExpr: "COALESCE(turkish_names, category)",
+    imageExpr: "image_filename",
+    priceExpr: "price::text",
+    quantityExpr: "COALESCE(quantity, 0)",
+    searchableExpr:
+      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, ''))",
+  },
 ];
 
 const COMPACT_REGEX = "[[:space:]/_.-]+";

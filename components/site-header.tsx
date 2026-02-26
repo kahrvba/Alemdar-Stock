@@ -9,8 +9,10 @@ import { useNavigationOverlay } from "@/components/navigation-overlay-provider";
 export function SiteHeader() {
   const menuItems = [
     { label: "Arduino", ariaLabel: "Arduino Section", link: "/arduino" },
+    { label: "Adapters", ariaLabel: "Adapters Section", link: "/adapters" },
     { label: "Batteries", ariaLabel: "Batteries Section", link: "/batteries" },
     { label: "Cable", ariaLabel: "Cable Section", link: "/cable" },
+    { label: "Chargers", ariaLabel: "Chargers Section", link: "/chargers" },
     { label: "Sound", ariaLabel: "Sound Section", link: "/sound" },
     { label: "Solar", ariaLabel: "Solar Section", link: "/solar" },
     { label: "Fans", ariaLabel: "Fans Section", link: "/fans" },
