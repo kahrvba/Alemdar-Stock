@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Image from "next/image";
 import { SolarProduct } from "@/lib/services/solar";
 import { HoverZoom } from "@/components/ui/hover-zoom";
@@ -17,14 +18,27 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting }: ProductCardProps) {
+export function ProductCard({
+  product,
+  onEdit,
+  onDelete,
+  onAddToCart,
+  isDeleting,
+}: ProductCardProps) {
+  const [isToptanModalOpen, setIsToptanModalOpen] = useState(false);
   const priceLabel =
     product.selling_price && Number(product.selling_price) > 0
       ? usdFormatter.format(Number(product.selling_price))
       : "null";
+  const wholesalePrice = Number(product.wholesale_price);
+  const toptanLabel =
+    Number.isFinite(wholesalePrice) && wholesalePrice > 0
+      ? usdFormatter.format(wholesalePrice)
+      : "YOK";
 
   return (
-    <article 
+    <>
+    <article
       className={cn(
         "group relative flex h-full flex-col overflow-hidden rounded-3xl border-4 border-transparent bg-card/80 shadow-[0_25px_80px_-40px_rgba(0,0,0,0.4)] transition hover:bg-card"
       )}
@@ -76,7 +90,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
             </span>
           </div>
           <div className="grid w-full grid-cols-2 gap-2">
-            {["Edit", "Delete", "Add to cart"].map((label) => (
+            {["Edit", "Delete", "Add to cart", "toptan fiyat"].map((label) => (
               <button
                 key={label}
                 type="button"
@@ -88,10 +102,15 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
                     onDelete?.(product);
                   } else if (label === "Add to cart") {
                     onAddToCart?.(product);
+                  } else if (label === "toptan fiyat") {
+                    setIsToptanModalOpen(true);
                   }
                 }}
                 disabled={label === "Delete" && isDeleting}
-                className="rounded-2xl border border-border/60 bg-muted/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                className={cn(
+                  "rounded-2xl border border-border/60 bg-muted/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-foreground/40 hover:bg-muted disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer",
+                  label === "toptan fiyat" && "bg-amber-100 text-amber-900 border-amber-300"
+                )}
               >
                 {label === "Delete" && isDeleting ? "Deleting..." : label}
               </button>
@@ -100,6 +119,34 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
         </div>
       </div>
     </article>
+    {isToptanModalOpen ? (
+      <div
+        className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4"
+        onClick={() => setIsToptanModalOpen(false)}
+      >
+        <div
+          className="w-full max-w-md rounded-3xl bg-card p-6 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-center text-2xl font-extrabold uppercase tracking-[0.2em] text-amber-600">
+            TOPTAN FIYAT
+          </h3>
+          <p className="mt-4 text-center text-xl font-bold text-foreground">
+            {product.name ?? `Product #${product.id}`}
+          </p>
+          <p className="mt-3 text-center text-4xl font-extrabold text-foreground">
+            {toptanLabel}
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsToptanModalOpen(false)}
+            className="mt-6 w-full rounded-2xl bg-amber-500 px-5 py-3 text-lg font-extrabold text-black transition hover:bg-amber-400"
+          >
+            KAPAT
+          </button>
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 }
-
