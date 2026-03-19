@@ -19,13 +19,15 @@ interface InvoiceTemplateProps {
 }
 
 const placeholderProducts: InvoiceProduct[] = [
-  { name: 'Product 1', barcode: '123456789', quantity: 2, unitPrice: 10, total: 20 },
-  { name: 'Product 2', barcode: '987654321', quantity: 1, unitPrice: 15, total: 15 },
+  { name: 'supplied and and installed 11 kw of double sided solar panels ', barcode: '123456789', quantity: 0, unitPrice: 10, total: 4540.00 },
+  { name: 'Supplied and installed deye 8kw hybrid inverter and twenty five (25) kw of deye solar back up batteries', barcode: '987654321', quantity: 1, unitPrice: 15, total: 11489.00 },
+  { name: 'Supplied and installed custom made rooftop waterproof solar battery storage cabinet', barcode: '987654321', quantity: 1, unitPrice: 15, total: 700.00 },
+
 ];
 
 export default function InvoiceTemplate({
   invoiceNumber = '38159',
-  date = '2026-02-03',
+  date = '2026-03-19',
   products = placeholderProducts,
   subtotal = 35,
   total = 35,
@@ -96,7 +98,7 @@ export default function InvoiceTemplate({
             <div className="absolute right-0 top-0 h-3 w-3 border-r border-t border-gray-700" />
             <div className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-gray-700" />
             <div className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-gray-700" />
-            <div className="pl-2 font-semibold">ALEMDAR TEKNİK</div>
+            <div className="pl-2 font-semibold">The pied piper pest control company limited 301 hall lane London E48nu</div>
           </div>
           <div />
           <div className="text-right text-xs">
@@ -121,11 +123,11 @@ export default function InvoiceTemplate({
             <tbody>
               {products.map((p, idx) => (
                 <tr key={idx}>
-                  <td className="border border-gray-700 px-2 py-2 text-center">{p.quantity},00 ADET</td>
+                  <td className="border border-gray-700 px-2 py-2 text-center">-</td>
                   <td className="border border-gray-700 px-2 py-2">{p.name}</td>
-                  <td className="border border-gray-700 px-2 py-2 text-right">{p.unitPrice.toFixed(2)}</td>
-                  <td className="border border-gray-700 px-2 py-2 text-center">16</td>
-                  <td className="border border-gray-700 px-2 py-2 text-right">{p.total.toFixed(2)}</td>
+                  <td className="border border-gray-700 px-2 py-2 text-right">-</td>
+                  <td className="border border-gray-700 px-2 py-2 text-center">Included</td>
+                  <td className="border border-gray-700 px-2 py-2 text-right">{p.total.toFixed(2)}£</td>
                 </tr>
               ))}
               <tr>
@@ -146,7 +148,7 @@ export default function InvoiceTemplate({
               <span>Yazı ile Yalnız:</span>
               <span className="flex-1 border-b border-dotted border-gray-700 h-4" />
             </div>
-            <div className="mt-1">Son USD Bakiyeniz {totalWithKdv.toFixed(2)} $ Dir</div>
+            <div className="mt-1">Son sterling Bakiyeniz 16,726 £ Dir</div>
             <div className="mt-1">
               Fatura tarihinden itibaren 15 gün içerisinde ödenmeyen faturalar için fatura
               tutarı üzerinden yasal en yüksek banka faizi alınır.
@@ -155,15 +157,15 @@ export default function InvoiceTemplate({
           <div className="border border-gray-700">
             <div className="flex items-center justify-between border-b border-gray-700 px-2 py-1">
               <span>TUTAR</span>
-              <span>{subtotal.toFixed(2)} $</span>
+              <span>16,726 £</span>
             </div>
             <div className="flex items-center justify-between border-b border-gray-700 px-2 py-1">
               <span>KDV</span>
-              <span>{kdvAmount.toFixed(2)} $</span>
+              <span>Included £</span>
             </div>
             <div className="flex items-center justify-between px-2 py-1 font-semibold">
               <span>G. TOPLAM</span>
-              <span>{totalWithKdv.toFixed(2)} $</span>
+              <span>16,726 £</span>
             </div>
           </div>
         </div>
