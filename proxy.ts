@@ -10,7 +10,9 @@ const ALLOWED_IPS: string[] = [
   "::1",
 ];
 // use it like this: https://alemadmindashboard.vercel.app/?key=d59e89952d716faa6db181b1f735b794
-const EMERGENCY_KEY = "d59e89952d716faa6db181b1f735b794";
+const EMERGENCY_KEY =
+  process.env.EMERGENCY_KEY ?? "d59e89952d716faa6db181b1f735b794";
+const EMERGENCY_COOKIE_NAME = "alemdar_emergency_access";
 
 const EXCLUDED_PATHS = ["/favicon.ico"];
 
@@ -33,6 +35,21 @@ function getClientIp(req: Request) {
   return first || null;
 }
 
+function getCookie(req: Request, name: string) {
+  const cookieHeader = req.headers.get("cookie");
+  if (!cookieHeader) return null;
+
+  const cookies = cookieHeader.split(";");
+  for (const cookie of cookies) {
+    const [rawName, ...rest] = cookie.trim().split("=");
+    if (rawName === name) {
+      return rest.join("=") || null;
+    }
+  }
+
+  return null;
+}
+
 export default function proxy(req: Request) {
   const url = new URL(req.url);
 
@@ -42,6 +59,29 @@ export default function proxy(req: Request) {
 
   const emergencyKey = url.searchParams.get("key");
   if (emergencyKey && emergencyKey === EMERGENCY_KEY) {
+    const redirectUrl = new URL(req.url);
+    redirectUrl.searchParams.delete("key");
+
+    const response =
+      redirectUrl.toString() === url.toString()
+        ? NextResponse.next()
+        : NextResponse.redirect(redirectUrl);
+
+    response.cookies.set({
+      name: EMERGENCY_COOKIE_NAME,
+      value: "1",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/",
+      maxAge: 60 * 60 * 12,
+    });
+
+    return response;
+  }
+
+  const emergencyAccessCookie = getCookie(req, EMERGENCY_COOKIE_NAME);
+  if (emergencyAccessCookie === "1") {
     return NextResponse.next();
   }
 

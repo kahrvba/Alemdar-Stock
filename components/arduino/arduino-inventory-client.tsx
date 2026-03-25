@@ -2,7 +2,7 @@
 
 import React, { Activity, useState, useCallback, useEffect, Suspense } from "react";
 import Image from "next/image";
-import { Download, FileSpreadsheet, ChevronDown } from "lucide-react";
+import { Download, FileSpreadsheet, ChevronDown, FolderTree, Settings2 } from "lucide-react";
 import { ProductCard } from "@/components/arduino/product-card";
 import { PaginationControls } from "@/components/arduino/pagination-controls";
 import { ArduinoSearch } from "@/components/arduino/arduino-search";
@@ -15,6 +15,19 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/toast";
+import {
+  CategoryOptionsManager,
+  type ArduinoCategoryField,
+  type ArduinoCategoryOption,
+  type CategoryOptionsManagerHandle,
+} from "@/components/arduino/category-options-manager";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ArduinoInventoryClientProps = {
   items: ArduinoProduct[];
@@ -24,6 +37,17 @@ type ArduinoInventoryClientProps = {
   nextPage: number;
   query: string | null;
   field: string | null;
+};
+
+type ArduinoCategoryOptionsMap = Record<
+  ArduinoCategoryField,
+  ArduinoCategoryOption[]
+>;
+
+const EMPTY_CATEGORY_OPTIONS: ArduinoCategoryOptionsMap = {
+  category: [],
+  category_layer_1: [],
+  category_layer_2: [],
 };
 
 export function ArduinoInventoryClient({
@@ -64,6 +88,12 @@ export function ArduinoInventoryClient({
 
   const [isExporting, setIsExporting] = useState(false);
   const [highlightQuantity, setHighlightQuantity] = useState(false);
+  const [categoryOptions, setCategoryOptions] =
+    useState<ArduinoCategoryOptionsMap>(EMPTY_CATEGORY_OPTIONS);
+  const [isUpdatingCategoryOptions, setIsUpdatingCategoryOptions] =
+    useState(false);
+  const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
+  const categoryManagerRef = React.useRef<CategoryOptionsManagerHandle | null>(null);
 
   // Serial connection state
   const [serialConnected, setSerialConnected] = useState(false);
@@ -72,6 +102,84 @@ export function ArduinoInventoryClient({
   const [serialController] = useState(() => new WebSerialController());
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const { showToast: showAlert } = useToast();
+
+  const loadCategoryOptions = useCallback(async () => {
+    try {
+      const response = await fetch("/api/arduino/category-options", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to load category options");
+      }
+
+      const data = (await response.json()) as ArduinoCategoryOptionsMap;
+      setCategoryOptions({
+        category: data.category ?? [],
+        category_layer_1: data.category_layer_1 ?? [],
+        category_layer_2: data.category_layer_2 ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to load category options:", error);
+      showAlert("Failed to load category lists", "error");
+    }
+  }, [showAlert]);
+
+  const handleAddCategoryOption = useCallback(
+    async (fieldName: ArduinoCategoryField, label: string) => {
+      setIsUpdatingCategoryOptions(true);
+      try {
+        const response = await fetch("/api/arduino/category-options", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ fieldName, label }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to save category option");
+        }
+
+        await loadCategoryOptions();
+        showAlert("Category option saved", "success");
+      } catch (error) {
+        console.error("Failed to save category option:", error);
+        showAlert("Failed to save category option", "error");
+      } finally {
+        setIsUpdatingCategoryOptions(false);
+      }
+    },
+    [loadCategoryOptions, showAlert]
+  );
+
+  const handleDeleteCategoryOption = useCallback(
+    async (_fieldName: ArduinoCategoryField, optionId: number) => {
+      setIsUpdatingCategoryOptions(true);
+      try {
+        const response = await fetch("/api/arduino/category-options", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: optionId }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete category option");
+        }
+
+        await loadCategoryOptions();
+        showAlert("Category option removed", "success");
+      } catch (error) {
+        console.error("Failed to delete category option:", error);
+        showAlert("Failed to delete category option", "error");
+      } finally {
+        setIsUpdatingCategoryOptions(false);
+      }
+    },
+    [loadCategoryOptions, showAlert]
+  );
 
   const fetchAllProducts = async (): Promise<ArduinoProduct[]> => {
     try {
@@ -168,6 +276,35 @@ export function ArduinoInventoryClient({
       setConnectionStatus('disconnected');
     }
   }, [serialConnected, isConnecting]);
+
+  useEffect(() => {
+    void loadCategoryOptions();
+  }, [loadCategoryOptions]);
+
+  const getOptionsForField = useCallback(
+    (fieldName: ArduinoCategoryField, selectedValue: string) => {
+      const optionMap = new Map(
+        categoryOptions[fieldName].map((option) => [option.label, option])
+      );
+
+      if (selectedValue.trim() && !optionMap.has(selectedValue)) {
+        optionMap.set(selectedValue, {
+          id: -1,
+          label: selectedValue,
+        });
+      }
+
+      return Array.from(optionMap.values()).sort((left, right) =>
+        left.label.localeCompare(right.label)
+      );
+    },
+    [categoryOptions]
+  );
+
+  const totalCategoryOptions =
+    categoryOptions.category.length +
+    categoryOptions.category_layer_1.length +
+    categoryOptions.category_layer_2.length;
 
   return (
     <>
@@ -296,9 +433,44 @@ export function ArduinoInventoryClient({
           </div>
         )}
 
-                <Suspense fallback={<div className="h-10 w-full" />}>
-                  <ArduinoSearch onLoadingChange={setIsSearching} />
-                </Suspense>
+                <div className="grid w-full items-stretch gap-4 lg:grid-cols-2">
+                  <div className="h-full [&>*]:h-full">
+                    <Suspense fallback={<div className="h-10 w-full" />}>
+                      <ArduinoSearch onLoadingChange={setIsSearching} />
+                    </Suspense>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCategorySheetOpen(true)}
+                    className="flex h-full min-h-[152px] w-full flex-col justify-between rounded-2xl border border-border/60 bg-card/80 p-4 text-left transition hover:border-border hover:bg-card"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                          Category Lists
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Open the saved category, layer 1, and layer 2 lists.
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-border/60 bg-background/70 p-2 text-muted-foreground">
+                        <Settings2 className="h-4 w-4" />
+                      </span>
+                    </div>
+
+                    <div className="flex items-end justify-between gap-4">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-sm text-foreground">
+                          <FolderTree className="h-4 w-4 text-primary" />
+                          <span>Saved values</span>
+                        </div>
+                      </div>
+                      <span className="rounded-full border border-border/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-foreground">
+                        {totalCategoryOptions}
+                      </span>
+                    </div>
+                  </button>
+                </div>
               </header>
 
       <section className="relative">
@@ -365,9 +537,63 @@ export function ArduinoInventoryClient({
         field={field}
       />
     </div>
+      <Activity mode={isCategorySheetOpen ? "visible" : "hidden"}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !isUpdatingCategoryOptions) {
+              void (async () => {
+                await categoryManagerRef.current?.submitActiveDraft();
+                setIsCategorySheetOpen(false);
+              })();
+            }
+          }}
+        >
+          <div className="w-full max-w-3xl rounded-3xl border border-border/60 bg-card p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+                  Arduino Categories
+                </p>
+                <h2 className="text-2xl font-semibold text-foreground">
+                  Manage Saved Category Lists
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCategorySheetOpen(false)}
+                className="rounded-full border border-border/60 px-3 py-1 text-sm text-muted-foreground transition hover:border-foreground/50 hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+
+            <CategoryOptionsManager
+              ref={categoryManagerRef}
+              options={categoryOptions}
+              onAddOption={handleAddCategoryOption}
+              onDeleteOption={handleDeleteCategoryOption}
+              isBusy={isUpdatingCategoryOptions}
+            />
+          </div>
+        </div>
+      </Activity>
       <Activity mode={(editingProduct || isAddingProduct) ? "visible" : "hidden"}>
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur">
-          <div className="w-full max-w-2xl rounded-3xl border border-border/60 bg-card p-6 shadow-2xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur overflow-y-auto"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !isSaving && !isUploading) {
+              const form = event.currentTarget.querySelector("form");
+              if (form) {
+                form.requestSubmit();
+              }
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-2xl rounded-3xl border border-border/60 bg-card p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
@@ -415,36 +641,90 @@ export function ArduinoInventoryClient({
                 <div className="md:col-span-2 grid gap-3 md:grid-cols-3">
                   <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                     Category
-                    <input
-                      type="text"
-                      value={formState.category}
-                      onChange={(event) =>
-                        handleFormChange("category", event.target.value)
+                    <Select
+                      value={formState.category || "__none__"}
+                      onValueChange={(value) =>
+                        handleFormChange(
+                          "category",
+                          value === "__none__" ? "" : value
+                        )
                       }
-                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                    />
+                    >
+                      <SelectTrigger className="w-full rounded-2xl border-border/60 bg-transparent">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">None</SelectItem>
+                        {getOptionsForField("category", formState.category).map((option) => (
+                          <SelectItem
+                            key={`category-${option.id}-${option.label}`}
+                            value={option.label}
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </label>
                   <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                     Category Layer 1
-                    <input
-                      type="text"
-                      value={formState.category_layer_1}
-                      onChange={(event) =>
-                        handleFormChange("category_layer_1", event.target.value)
+                    <Select
+                      value={formState.category_layer_1 || "__none__"}
+                      onValueChange={(value) =>
+                        handleFormChange(
+                          "category_layer_1",
+                          value === "__none__" ? "" : value
+                        )
                       }
-                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                    />
+                    >
+                      <SelectTrigger className="w-full rounded-2xl border-border/60 bg-transparent">
+                        <SelectValue placeholder="Select layer 1" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">None</SelectItem>
+                        {getOptionsForField(
+                          "category_layer_1",
+                          formState.category_layer_1
+                        ).map((option) => (
+                          <SelectItem
+                            key={`category-layer-1-${option.id}-${option.label}`}
+                            value={option.label}
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </label>
                   <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                     Category Layer 2
-                    <input
-                      type="text"
-                      value={formState.category_layer_2}
-                      onChange={(event) =>
-                        handleFormChange("category_layer_2", event.target.value)
+                    <Select
+                      value={formState.category_layer_2 || "__none__"}
+                      onValueChange={(value) =>
+                        handleFormChange(
+                          "category_layer_2",
+                          value === "__none__" ? "" : value
+                        )
                       }
-                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                    />
+                    >
+                      <SelectTrigger className="w-full rounded-2xl border-border/60 bg-transparent">
+                        <SelectValue placeholder="Select layer 2" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">None</SelectItem>
+                        {getOptionsForField(
+                          "category_layer_2",
+                          formState.category_layer_2
+                        ).map((option) => (
+                          <SelectItem
+                            key={`category-layer-2-${option.id}-${option.label}`}
+                            value={option.label}
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </label>
                 </div>
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -580,4 +860,3 @@ export function ArduinoInventoryClient({
     </>
   );
 }
-
