@@ -3,6 +3,8 @@ export type ArduinoProduct = {
   english_names: string | null;
   turkish_names: string | null;
   category: string | null;
+  category_layer_1?: string | null;
+  category_layer_2?: string | null;
   barcode: string | null;
   quantity: number | null;
   price: string | null;
@@ -96,4 +98,3 @@ export async function fetchArduinoProducts(
 
   return buildPaginatedResult(data, page);
 }
-

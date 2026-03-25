@@ -11,7 +11,14 @@ import {
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-type FilterOption = "id" | "english_names" | "turkish_names" | "category" | "barcode";
+type FilterOption =
+  | "id"
+  | "english_names"
+  | "turkish_names"
+  | "category"
+  | "category_layer_1"
+  | "category_layer_2"
+  | "barcode";
 
 type ArduinoSearchProps = {
   onFilterChange?: (filters: { query: string; field: FilterOption | null }) => void;
@@ -236,6 +243,8 @@ export function ArduinoSearch({
       { value: "english_names", label: "English Name" },
       { value: "turkish_names", label: "Turkish Name" },
       { value: "category", label: "Category" },
+      { value: "category_layer_1", label: "Category Layer 1" },
+      { value: "category_layer_2", label: "Category Layer 2" },
       { value: "barcode", label: "Barcode" },
     ],
     []
@@ -328,4 +337,3 @@ export function ArduinoSearch({
     </div>
   );
 }
-

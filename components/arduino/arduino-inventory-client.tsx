@@ -412,17 +412,41 @@ export function ArduinoInventoryClient({
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Category
-                  <input
-                    type="text"
-                    value={formState.category}
-                    onChange={(event) =>
-                      handleFormChange("category", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
+                <div className="md:col-span-2 grid gap-3 md:grid-cols-3">
+                  <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+                    Category
+                    <input
+                      type="text"
+                      value={formState.category}
+                      onChange={(event) =>
+                        handleFormChange("category", event.target.value)
+                      }
+                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+                    Category Layer 1
+                    <input
+                      type="text"
+                      value={formState.category_layer_1}
+                      onChange={(event) =>
+                        handleFormChange("category_layer_1", event.target.value)
+                      }
+                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+                    Category Layer 2
+                    <input
+                      type="text"
+                      value={formState.category_layer_2}
+                      onChange={(event) =>
+                        handleFormChange("category_layer_2", event.target.value)
+                      }
+                      className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                  </label>
+                </div>
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                   Barcode
                   <input
@@ -556,5 +580,4 @@ export function ArduinoInventoryClient({
     </>
   );
 }
-
 

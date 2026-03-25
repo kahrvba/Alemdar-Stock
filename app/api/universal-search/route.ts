@@ -34,12 +34,12 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     routePath: "/arduino",
     tableName: "public.arduino",
     titleExpr: "english_names",
-    subtitleExpr: "COALESCE(turkish_names, category)",
+    subtitleExpr: "COALESCE(turkish_names, CONCAT_WS(' / ', category, category_layer_1, category_layer_2), category)",
     imageExpr: "image_filename",
     priceExpr: "price::text",
     quantityExpr: "COALESCE(quantity, 0)",
     searchableExpr:
-      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))",
+      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(category_layer_1, '') || ' ' || COALESCE(category_layer_2, '') || ' ' || COALESCE(barcode, ''))",
   },
   {
     tableKey: "mainled",

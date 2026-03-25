@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
-const ARDUINO_SEARCH_FIELDS = ['id', 'english_names', 'turkish_names', 'category', 'barcode'] as const;
+const ARDUINO_SEARCH_FIELDS = ['id', 'english_names', 'turkish_names', 'category', 'category_layer_1', 'category_layer_2', 'barcode'] as const;
 type ArduinoSearchField = (typeof ARDUINO_SEARCH_FIELDS)[number];
 
 const COMPACT_REGEX = '[[:space:]/_.-]+';
 const ARDUINO_SEARCHABLE_EXPR =
-  "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))";
+  "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(category_layer_1, '') || ' ' || COALESCE(category_layer_2, '') || ' ' || COALESCE(barcode, ''))";
 const ARDUINO_SEARCHABLE_COMPACT_EXPR =
   `REGEXP_REPLACE(${ARDUINO_SEARCHABLE_EXPR}, '${COMPACT_REGEX}', '', 'g')`;
 
@@ -160,7 +160,18 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const client = await pool.connect();
   try {
-    const { english_names, turkish_names, category, barcode, quantity, price, image_filename, description } = await req.json();
+    const {
+      english_names,
+      turkish_names,
+      category,
+      category_layer_1,
+      category_layer_2,
+      barcode,
+      quantity,
+      price,
+      image_filename,
+      description,
+    } = await req.json();
     
     // Start a transaction
     await client.query('BEGIN');
@@ -171,8 +182,8 @@ export async function POST(req: Request) {
     
     const newId = maxId + 1;
     await client.query(
-      'INSERT INTO public.arduino (id, english_names, turkish_names, category, barcode, quantity, price, image_filename, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-      [newId, english_names, turkish_names, category, barcode, quantity, price, image_filename, description]
+      'INSERT INTO public.arduino (id, english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, image_filename, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+      [newId, english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, image_filename, description]
     );
 
     await client.query('COMMIT');
@@ -189,7 +200,19 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const client = await pool.connect();
   try {
-    const { id, english_names, turkish_names, category, barcode, quantity, price, image_filename, description } = await req.json();
+    const {
+      id,
+      english_names,
+      turkish_names,
+      category,
+      category_layer_1,
+      category_layer_2,
+      barcode,
+      quantity,
+      price,
+      image_filename,
+      description,
+    } = await req.json();
 
     await client.query('BEGIN');
     
@@ -199,13 +222,15 @@ export async function PUT(req: Request) {
          english_names=COALESCE($1, english_names), 
          turkish_names=COALESCE($2, turkish_names), 
          category=COALESCE($3, category), 
-         barcode=COALESCE($4, barcode), 
-         quantity=COALESCE($5, quantity), 
-         price=COALESCE($6, price), 
-         image_filename=COALESCE($7, image_filename),
-         description=COALESCE($8, description)
-       WHERE id=$9`,
-      [english_names, turkish_names, category, barcode, quantity, price, image_filename, description, id]
+         category_layer_1=COALESCE($4, category_layer_1),
+         category_layer_2=COALESCE($5, category_layer_2),
+         barcode=COALESCE($6, barcode), 
+         quantity=COALESCE($7, quantity), 
+         price=COALESCE($8, price), 
+         image_filename=COALESCE($9, image_filename),
+         description=COALESCE($10, description)
+       WHERE id=$11`,
+      [english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, image_filename, description, id]
     );
 
     await client.query('COMMIT');

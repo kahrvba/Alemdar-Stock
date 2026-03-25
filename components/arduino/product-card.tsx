@@ -26,6 +26,13 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, onSend, is
       ? usdFormatter.format(Number(product.price))
       : "Contact for price";
   const barcodeLabel = product.barcode?.trim() || "No barcode";
+  const categoryTrail = [
+    product.category,
+    product.category_layer_1,
+    product.category_layer_2,
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(" / ");
 
   return (
     <article
@@ -59,7 +66,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, onSend, is
       <div className="flex flex-1 flex-col gap-4 p-6">
         <div className="flex flex-col gap-1">
           <span className="text-xs uppercase tracking-[0.35em] text-emerald-500 dark:text-emerald-300">
-            {product.category ?? "Uncategorized"}
+            {categoryTrail || "Uncategorized"}
           </span>
           <h2 className="text-xl font-semibold text-foreground">
             {product.english_names ?? "Unnamed product"}
@@ -107,4 +114,3 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, onSend, is
     </article>
   );
 }
-
