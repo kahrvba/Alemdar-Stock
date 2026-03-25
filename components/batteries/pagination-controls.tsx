@@ -40,7 +40,7 @@ export function PaginationControls({
       params.set("field", field);
     }
     const queryString = params.toString();
-    return `/battery${queryString ? `?${queryString}` : ""}`;
+    return `/batteries${queryString ? `?${queryString}` : ""}`;
   };
 
   // Generate page numbers to display (Google-style)
