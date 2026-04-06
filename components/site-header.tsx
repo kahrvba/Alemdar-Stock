@@ -15,6 +15,7 @@ export function SiteHeader() {
     { label: "Chargers", ariaLabel: "Chargers Section", link: "/chargers" },
     { label: "Sound", ariaLabel: "Sound Section", link: "/sound" },
     { label: "Solar", ariaLabel: "Solar Section", link: "/solar" },
+    { label: "Mexxsun", ariaLabel: "Mexxsun Section", link: "/mexxsun" },
     { label: "Fans", ariaLabel: "Fans Section", link: "/fans" },
     { label: "Electric", ariaLabel: "Electric Section", link: "/electric" },
     { label: "Others", ariaLabel: "Others Section", link: "/others" },

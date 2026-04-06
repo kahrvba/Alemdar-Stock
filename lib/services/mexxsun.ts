@@ -1,0 +1,105 @@
+export type MexxsunProduct = {
+  id: number;
+  name: string | null;
+  rating: string | null;
+  category: string | null;
+  is_new?: boolean | null;
+  quantity: number | null;
+  factory_price: number | string | null;
+  wholesale_price: number | string | null;
+  min_selling_price: number | string | null;
+  selling_price: number | string | null;
+  factor: number | string | null;
+  cost_price: number | string | null;
+  image_filename: string | null;
+  description: string | null;
+};
+
+type PaginatedMexxsunResponse = {
+  products?: MexxsunProduct[];
+  items?: MexxsunProduct[];
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  totalPages?: number;
+};
+
+export type MexxsunPagination = {
+  items: MexxsunProduct[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+const buildPaginatedResult = (
+  data: PaginatedMexxsunResponse | MexxsunProduct[],
+  fallbackPage: number
+): MexxsunPagination => {
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      page: fallbackPage,
+      pageSize: data.length || 1,
+      total: data.length,
+      totalPages: 1,
+    };
+  }
+
+  const items = Array.isArray(data.items) ? data.items : (Array.isArray(data.products) ? data.products : []);
+  const page =
+    typeof data.page === "number" && data.page > 0 ? data.page : fallbackPage;
+  const pageSize =
+    typeof data.pageSize === "number" && data.pageSize > 0
+      ? data.pageSize
+      : items.length || 1;
+  const total =
+    typeof data.total === "number" && data.total >= 0
+      ? data.total
+      : items.length;
+  const computedTotalPages =
+    typeof data.totalPages === "number" && data.totalPages > 0
+      ? data.totalPages
+      : Math.max(1, Math.ceil((total || 1) / (pageSize || 1)));
+
+  return {
+    items,
+    page,
+    pageSize,
+    total,
+    totalPages: computedTotalPages,
+  };
+};
+
+export async function fetchMexxsunProducts(
+  baseUrl: string,
+  page: number,
+  query?: string | null,
+  field?: string | null
+): Promise<MexxsunPagination> {
+  const url = new URL("/api/mexxsun", baseUrl);
+  url.searchParams.set("page", Math.max(1, page).toString());
+
+  if (query?.trim()) {
+    url.searchParams.set("query", query.trim());
+  }
+
+  if (field) {
+    url.searchParams.set("field", field);
+  }
+
+  const response = await fetch(url, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Mexxsun products: ${response.status}`);
+  }
+
+  const data = (await response.json()) as
+    | PaginatedMexxsunResponse
+    | MexxsunProduct[];
+
+  return buildPaginatedResult(data, page);
+}
+

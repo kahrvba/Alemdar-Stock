@@ -236,7 +236,7 @@ export async function PUT(req: Request) {
     const { id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price,
       image_filename, 
       category, quantity, description, is_new } = await req.json();
-    const isNewFlag = typeof is_new === 'boolean' ? is_new : (is_new === null ? null : Boolean(is_new));
+    const isNewFlag = typeof is_new === 'boolean' ? is_new : (is_new == null ? null : Boolean(is_new));
     
     if (!id) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
@@ -255,18 +255,18 @@ export async function PUT(req: Request) {
     const result = await client.query(
       `UPDATE public.solardb 
        SET 
-         name=$1, 
-         rating=$2, 
-         factory_price=$3,
-         wholesale_price=$4,
-         min_selling_price=$5,
-         selling_price=$6,
-         factor=$7,
-         cost_price=$8,
-         image_filename=$9,
-         category=$10, 
-         quantity=$11, 
-         description=$12,
+         name=COALESCE($1, name), 
+         rating=COALESCE($2, rating), 
+         factory_price=COALESCE($3, factory_price),
+         wholesale_price=COALESCE($4, wholesale_price),
+         min_selling_price=COALESCE($5, min_selling_price),
+         selling_price=COALESCE($6, selling_price),
+         factor=COALESCE($7, factor),
+         cost_price=COALESCE($8, cost_price),
+         image_filename=COALESCE($9, image_filename),
+         category=COALESCE($10, category), 
+         quantity=COALESCE($11, quantity), 
+         description=COALESCE($12, description),
          is_new=COALESCE($13, is_new)
        WHERE id=$14`,
       [name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, quantity, description, isNewFlag, id]
@@ -332,7 +332,18 @@ export async function DELETE(req: Request) {
     // Update the sequence to the current maximum ID (if sequence exists)
     // This ensures the sequence stays in sync after deletions
     try {
-      await client.query(`SELECT setval('public.solardb_id_seq', COALESCE((SELECT MAX(id) FROM public.solardb), 0));`);
+      await client.query(`
+        WITH seq_target AS (
+          SELECT MAX(id)::bigint AS max_id
+          FROM public.solardb
+        )
+        SELECT setval(
+          'public.solardb_id_seq',
+          CASE WHEN max_id IS NULL THEN 1 ELSE max_id END,
+          max_id IS NOT NULL
+        )
+        FROM seq_target;
+      `);
     } catch (seqError) {
       // Sequence might not exist yet, that's okay - just log it
       console.warn('Could not update solar_id_seq (sequence may not exist):', seqError);

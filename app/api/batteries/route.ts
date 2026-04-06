@@ -294,7 +294,18 @@ export async function DELETE(req: Request) {
     }
     
     try {
-      await client.query(`SELECT setval('public.batteries_id_seq', COALESCE((SELECT MAX(id) FROM public.batteries), 0));`);
+      await client.query(`
+        WITH seq_target AS (
+          SELECT MAX(id)::bigint AS max_id
+          FROM public.batteries
+        )
+        SELECT setval(
+          'public.batteries_id_seq',
+          CASE WHEN max_id IS NULL THEN 1 ELSE max_id END,
+          max_id IS NOT NULL
+        )
+        FROM seq_target;
+      `);
     } catch (seqError) {
       console.warn('Could not update batteries_id_seq (sequence may not exist):', seqError);
     }

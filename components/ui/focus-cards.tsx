@@ -68,7 +68,7 @@ const CardComponent = ({ card, index, hovered, setHovered }: CardProps) => {
           fill
           priority={index === 0}
           sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover"
+          className="object-contain"
         />
       </HoverZoom>
       {hovered === index && hasLink && (

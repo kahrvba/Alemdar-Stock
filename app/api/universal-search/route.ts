@@ -68,6 +68,19 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
       "LOWER(COALESCE(name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(rating, ''))",
   },
   {
+    tableKey: "mexxsun",
+    sectionLabel: "Mexxsun",
+    routePath: "/mexxsun",
+    tableName: "public.mexxsun",
+    titleExpr: "name",
+    subtitleExpr: "category",
+    imageExpr: "image_filename",
+    priceExpr: "selling_price::text",
+    quantityExpr: "COALESCE(quantity, 0)",
+    searchableExpr:
+      "LOWER(COALESCE(name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(rating, ''))",
+  },
+  {
     tableKey: "sound",
     sectionLabel: "Sound",
     routePath: "/sound",

@@ -6,7 +6,7 @@ import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import type { ArduinoProduct } from "@/lib/services/arduino";
 import { useToast } from "./toast";
 
-type InventoryType = "arduino" | "sound" | "solar" | "cable" | "battery" | "tv" | "filaments" | "fans" | "others" | "electric" | "adapters" | "chargers";
+type InventoryType = "arduino" | "sound" | "solar" | "mexxsun" | "cable" | "battery" | "tv" | "filaments" | "fans" | "others" | "electric" | "adapters" | "chargers";
 
 type CartProduct = ArduinoProduct & {
   inventoryType?: InventoryType;
@@ -59,6 +59,7 @@ const INVENTORY_ENDPOINTS: Record<InventoryType, string> = {
   arduino: "/api/arduino",
   sound: "/api/sound",
   solar: "/api/solar",
+  mexxsun: "/api/mexxsun",
   cable: "/api/mainSideLeds",
   battery: "/api/batteries",
   tv: "/api/tv-remotes",
@@ -284,7 +285,7 @@ function CartSidebar() {
     freshProduct: GenericInventoryProduct,
     cartItem: CartItem
   ) => {
-    if (inventoryType === "solar") {
+    if (inventoryType === "solar" || inventoryType === "mexxsun") {
       return parsePriceValue(
         (freshProduct as GenericInventoryProduct & { selling_price?: number | string | null })
           .selling_price ?? cartItem.product.price ?? 0
@@ -307,6 +308,7 @@ function CartSidebar() {
           `Product #${cartItem.product.id}`
         );
       case "solar":
+      case "mexxsun":
         return (
           freshProduct?.name ??
           cartItem.product.english_names ??
@@ -354,6 +356,7 @@ function CartSidebar() {
           description: freshProduct.description ?? null,
         };
       case "solar":
+      case "mexxsun":
         return {
           id: freshProduct.id,
           name: freshProduct.name ?? null,

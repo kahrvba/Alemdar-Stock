@@ -28,6 +28,11 @@ export const focusCardsData = [
     href: "/solar",
   },
   {
+    title: "Mexxsun Section",
+    src: "/mexxsun.png",
+    href: "/mexxsun",
+  },
+  {
     title: "Sound Section",
     src: "/Producción Pin.jpg",
     href: "/sound",
