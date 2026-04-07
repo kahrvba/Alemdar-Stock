@@ -360,7 +360,7 @@ export function SolarInventoryClient({
                       placeholder="Custom factor"
                     />
                     <div className="flex flex-wrap gap-2">
-                      {["1.12", "1.13", "1.17", "1.30", "1.35"].map((preset) => (
+                      {["1", "1.12", "1.13", "1.17", "1.30", "1.35"].map((preset) => (
                         <button
                           key={preset}
                           type="button"
@@ -647,4 +647,3 @@ export function SolarInventoryClient({
     </>
   );
 }
-
