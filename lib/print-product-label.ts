@@ -108,11 +108,11 @@ export function printProductLabel(product: UnknownRecord) {
           box-sizing: border-box;
           width: 60mm;
           height: 30mm;
-          padding: 1.4mm 0.8mm 1.2mm 4.6mm;
+          padding: 1.4mm 0.8mm 1.2mm 2.4mm;
           display: grid;
-          grid-template-columns: 37mm 14.5mm;
+          grid-template-columns: 34.5mm 17.5mm;
           grid-template-rows: 9mm 8.4mm 4.5mm;
-          column-gap: 2.6mm;
+          column-gap: 1.4mm;
           row-gap: 0.3mm;
           overflow: hidden;
         }
@@ -129,8 +129,8 @@ export function printProductLabel(product: UnknownRecord) {
         .barcode {
           grid-column: 1 / 2;
           grid-row: 2 / 3;
-          width: 37mm;
-          max-width: 37mm;
+          width: 34.5mm;
+          max-width: 34.5mm;
           height: 8.4mm;
           object-fit: fill;
         }
@@ -138,7 +138,7 @@ export function printProductLabel(product: UnknownRecord) {
           margin-top: 0;
           grid-column: 1 / 2;
           grid-row: 3 / 4;
-          width: 37mm;
+          width: 34.5mm;
           text-align: center;
           font-size: 3.1mm;
           font-weight: 700;
