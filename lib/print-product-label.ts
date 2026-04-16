@@ -82,7 +82,7 @@ export function printProductLabel(product: UnknownRecord) {
   const printable = buildPrintableProduct(product);
   const barcodeSrc = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(
     printable.barcode
-  )}&scale=2&height=8&includetext=false`;
+  )}&scale=2&height=9&includetext=false`;
   const popup = window.open("", "_blank", "width=520,height=420");
 
   if (!popup) {
@@ -113,7 +113,7 @@ export function printProductLabel(product: UnknownRecord) {
           padding: 1.4mm 0.8mm 1.2mm 1.2mm;
           display: grid;
           grid-template-columns: 31.5mm 20.5mm;
-          grid-template-rows: 9mm 8.4mm 4.5mm;
+          grid-template-rows: 9.5mm 9.2mm 4.9mm;
           column-gap: 0.8mm;
           row-gap: 0.3mm;
           overflow: hidden;
@@ -124,10 +124,10 @@ export function printProductLabel(product: UnknownRecord) {
           margin: 0;
           grid-column: 1 / 2;
           grid-row: 1 / 2;
-          font-size: 2.95mm;
-          line-height: 1.1;
+          font-size: 3.2mm;
+          line-height: 1.05;
           font-weight: 700;
-          max-height: 8.6mm;
+          max-height: 9.2mm;
           overflow: hidden;
         }
         .barcode {
@@ -135,7 +135,7 @@ export function printProductLabel(product: UnknownRecord) {
           grid-row: 2 / 3;
           width: 31.5mm;
           max-width: 31.5mm;
-          height: 8.4mm;
+          height: 9.2mm;
           object-fit: fill;
         }
         .barcode-value {
@@ -144,7 +144,7 @@ export function printProductLabel(product: UnknownRecord) {
           grid-row: 3 / 4;
           width: 31.5mm;
           text-align: center;
-          font-size: 3.1mm;
+          font-size: 3.45mm;
           font-weight: 700;
           letter-spacing: 0.1mm;
           white-space: nowrap;
@@ -156,7 +156,7 @@ export function printProductLabel(product: UnknownRecord) {
           align-self: start;
           justify-self: end;
           text-align: right;
-          font-size: 4.4mm;
+          font-size: 4.7mm;
           font-weight: 800;
           line-height: 1;
           white-space: nowrap;
@@ -167,7 +167,7 @@ export function printProductLabel(product: UnknownRecord) {
           align-self: start;
           justify-self: end;
           text-align: right;
-          font-size: 4.4mm;
+          font-size: 4.7mm;
           font-weight: 800;
           line-height: 1;
           white-space: nowrap;
