@@ -30,49 +30,17 @@ const formatPrice = (value: string) => {
   return `$${numeric.toFixed(2)}`;
 };
 
-const splitName = (value: string, maxLineLength = 24) => {
-  const text = value.replace(/\s+/g, " ").trim();
-  if (!text) return ["Item", ""];
-  const words = text.split(" ");
-  const lines = ["", ""];
-
-  for (const word of words) {
-    if (!lines[0]) {
-      lines[0] = word;
-      continue;
-    }
-    if (`${lines[0]} ${word}`.length <= maxLineLength) {
-      lines[0] = `${lines[0]} ${word}`;
-      continue;
-    }
-    if (!lines[1]) {
-      lines[1] = word;
-      continue;
-    }
-    if (`${lines[1]} ${word}`.length <= maxLineLength) {
-      lines[1] = `${lines[1]} ${word}`;
-      continue;
-    }
-    lines[1] = `${lines[1].slice(0, Math.max(0, maxLineLength - 1))}...`;
-    break;
-  }
-
-  return [lines[0] || "Item", lines[1] || ""];
-};
-
 const buildPrintableProduct = (product: UnknownRecord) => {
   const id = firstNonEmpty(product, ["id"]);
   const name = firstNonEmpty(product, ["english_names", "english_name", "name", "model"]) || `Product #${id || "0"}`;
   const barcode = firstNonEmpty(product, ["barcode", "kodu"]) || id || "0";
   const price = formatPrice(firstNonEmpty(product, ["selling_price", "price"]));
-  const [nameLine1, nameLine2] = splitName(name);
 
   return {
     id,
     barcode,
     price,
-    nameLine1,
-    nameLine2,
+    name,
   };
 };
 
@@ -108,68 +76,66 @@ export function printProductLabel(product: UnknownRecord) {
         }
         .sheet {
           box-sizing: border-box;
+          position: relative;
           width: 60mm;
           height: 30mm;
-          padding: 1.2mm 0.6mm 1mm 0.8mm;
-          display: grid;
-          grid-template-columns: 29mm 23.6mm;
-          grid-template-rows: 10.2mm 10mm 5.2mm;
-          column-gap: 0.4mm;
-          row-gap: 0.1mm;
           overflow: hidden;
           transform: rotate(${PRINT_ROTATION_DEGREES}deg);
           transform-origin: center center;
         }
         .name {
           margin: 0;
-          grid-column: 1 / 2;
-          grid-row: 1 / 2;
-          font-size: 3.55mm;
-          line-height: 1;
+          position: absolute;
+          left: 0.8mm;
+          top: 1mm;
+          right: 0.8mm;
+          height: 9mm;
+          font-size: 3.7mm;
+          line-height: 1.02;
           font-weight: 700;
-          max-height: 9.8mm;
           overflow: hidden;
+          word-break: break-word;
         }
         .barcode {
-          grid-column: 1 / 2;
-          grid-row: 2 / 3;
-          width: 29mm;
-          max-width: 29mm;
-          height: 10mm;
+          position: absolute;
+          left: 0.8mm;
+          top: 10.8mm;
+          width: 28mm;
+          max-width: 28mm;
+          height: 10.8mm;
           object-fit: fill;
         }
         .barcode-value {
           margin-top: 0;
-          grid-column: 1 / 2;
-          grid-row: 3 / 4;
-          width: 29mm;
+          position: absolute;
+          left: 0.8mm;
+          top: 22.1mm;
+          width: 28mm;
           text-align: center;
-          font-size: 3.8mm;
+          font-size: 3.95mm;
           font-weight: 700;
           letter-spacing: 0.06mm;
           white-space: nowrap;
           overflow: hidden;
         }
         .price {
-          grid-column: 2 / 3;
-          grid-row: 2 / 3;
-          align-self: start;
-          justify-self: stretch;
+          position: absolute;
+          right: 0.8mm;
+          top: 12.2mm;
+          width: 24mm;
           text-align: right;
-          padding-right: 0.2mm;
-          font-size: 5.2mm;
+          font-size: 5.5mm;
           font-weight: 800;
           line-height: 1;
           white-space: nowrap;
         }
         .number {
-          grid-column: 2 / 3;
-          grid-row: 3 / 4;
-          align-self: start;
-          justify-self: stretch;
+          position: absolute;
+          right: 0.8mm;
+          top: 19.6mm;
+          width: 24mm;
           text-align: right;
-          padding-right: 0.2mm;
-          font-size: 5.2mm;
+          font-size: 5.5mm;
           font-weight: 800;
           line-height: 1;
           white-space: nowrap;
@@ -178,9 +144,7 @@ export function printProductLabel(product: UnknownRecord) {
     </head>
     <body>
       <section class="sheet">
-        <div class="name">${escapeHtml(printable.nameLine1)}${
-          printable.nameLine2 ? `<br />${escapeHtml(printable.nameLine2)}` : ""
-        }</div>
+        <div class="name">${escapeHtml(printable.name)}</div>
         <img id="barcode" class="barcode" src="${barcodeSrc}" alt="Barcode" />
         <div class="barcode-value">${escapeHtml(printable.barcode)}</div>
         <div class="price">${escapeHtml(printable.price)}</div>
