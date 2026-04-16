@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { TvRemote } from "@/lib/services/tv-remotes";
+import { printProductLabel } from "@/lib/print-product-label";
 import { cn } from "@/lib/utils";
 
 type ProductCardProps = {
@@ -71,8 +72,8 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
           </span>
         </div>
 
-        <div className="grid w-full grid-cols-3 gap-2">
-          {["Edit", "Delete", "Add to cart"].map((label) => (
+        <div className="grid w-full grid-cols-2 gap-2">
+          {["Edit", "Delete", "Add to cart", "Print"].map((label) => (
             <button
               key={label}
               type="button"
@@ -84,6 +85,8 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
                   onDelete?.();
                 } else if (label === "Add to cart") {
                   onAddToCart?.();
+                } else if (label === "Print") {
+                  printProductLabel(product);
                 }
               }}
               disabled={label === "Delete" && isDeleting}

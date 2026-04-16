@@ -2,6 +2,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { SolarProduct } from "@/lib/services/solar";
 import { HoverZoom } from "@/components/ui/hover-zoom";
+import { printProductLabel } from "@/lib/print-product-label";
 import { cn } from "@/lib/utils";
 
 type ProductCardProps = {
@@ -90,7 +91,7 @@ export function ProductCard({
             </span>
           </div>
           <div className="grid w-full grid-cols-2 gap-2">
-            {["Edit", "Delete", "Add to cart", "toptan fiyat"].map((label) => (
+            {["Edit", "Delete", "Add to cart", "Print", "toptan fiyat"].map((label) => (
               <button
                 key={label}
                 type="button"
@@ -102,6 +103,8 @@ export function ProductCard({
                     onDelete?.(product);
                   } else if (label === "Add to cart") {
                     onAddToCart?.(product);
+                  } else if (label === "Print") {
+                    printProductLabel(product);
                   } else if (label === "toptan fiyat") {
                     setIsToptanModalOpen(true);
                   }

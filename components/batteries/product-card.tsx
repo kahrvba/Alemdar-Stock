@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { BatteryProduct } from "@/lib/services/batteries";
 import { HoverZoom } from "@/components/ui/hover-zoom";
+import { printProductLabel } from "@/lib/print-product-label";
 import { cn } from "@/lib/utils";
 
 type BatteryProductExtended = BatteryProduct & {
@@ -98,7 +99,7 @@ export function ProductCard({
             </span>
           </div>
           <div className="grid w-full grid-cols-2 gap-2">
-            {["Edit", "Delete", "Add to cart"].map((label) => (
+            {["Edit", "Delete", "Add to cart", "Print"].map((label) => (
               <button
                 key={label}
                 type="button"
@@ -110,6 +111,8 @@ export function ProductCard({
                     onDelete?.(product);
                   } else if (label === "Add to cart") {
                     onAddToCart?.(product);
+                  } else if (label === "Print") {
+                    printProductLabel(product);
                   }
                 }}
                 disabled={label === "Delete" && isDeleting}
@@ -124,4 +127,3 @@ export function ProductCard({
     </article>
   );
 }
-
