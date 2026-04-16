@@ -82,7 +82,7 @@ export function printProductLabel(product: UnknownRecord) {
   const printable = buildPrintableProduct(product);
   const barcodeSrc = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(
     printable.barcode
-  )}&scale=2&height=9&includetext=false`;
+  )}&scale=2&height=11&includetext=false`;
   const popup = window.open("", "_blank", "width=520,height=420");
 
   if (!popup) {
@@ -110,12 +110,12 @@ export function printProductLabel(product: UnknownRecord) {
           box-sizing: border-box;
           width: 60mm;
           height: 30mm;
-          padding: 1.4mm 0.8mm 1.2mm 1.2mm;
+          padding: 1.2mm 0.6mm 1mm 0.8mm;
           display: grid;
-          grid-template-columns: 31.5mm 20.5mm;
-          grid-template-rows: 9.5mm 9.2mm 4.9mm;
-          column-gap: 0.8mm;
-          row-gap: 0.3mm;
+          grid-template-columns: 29mm 23.6mm;
+          grid-template-rows: 10.2mm 10mm 5.2mm;
+          column-gap: 0.4mm;
+          row-gap: 0.1mm;
           overflow: hidden;
           transform: rotate(${PRINT_ROTATION_DEGREES}deg);
           transform-origin: center center;
@@ -124,29 +124,29 @@ export function printProductLabel(product: UnknownRecord) {
           margin: 0;
           grid-column: 1 / 2;
           grid-row: 1 / 2;
-          font-size: 3.2mm;
-          line-height: 1.05;
+          font-size: 3.55mm;
+          line-height: 1;
           font-weight: 700;
-          max-height: 9.2mm;
+          max-height: 9.8mm;
           overflow: hidden;
         }
         .barcode {
           grid-column: 1 / 2;
           grid-row: 2 / 3;
-          width: 31.5mm;
-          max-width: 31.5mm;
-          height: 9.2mm;
+          width: 29mm;
+          max-width: 29mm;
+          height: 10mm;
           object-fit: fill;
         }
         .barcode-value {
           margin-top: 0;
           grid-column: 1 / 2;
           grid-row: 3 / 4;
-          width: 31.5mm;
+          width: 29mm;
           text-align: center;
-          font-size: 3.45mm;
+          font-size: 3.8mm;
           font-weight: 700;
-          letter-spacing: 0.1mm;
+          letter-spacing: 0.06mm;
           white-space: nowrap;
           overflow: hidden;
         }
@@ -154,9 +154,10 @@ export function printProductLabel(product: UnknownRecord) {
           grid-column: 2 / 3;
           grid-row: 2 / 3;
           align-self: start;
-          justify-self: end;
+          justify-self: stretch;
           text-align: right;
-          font-size: 4.7mm;
+          padding-right: 0.2mm;
+          font-size: 5.2mm;
           font-weight: 800;
           line-height: 1;
           white-space: nowrap;
@@ -165,9 +166,10 @@ export function printProductLabel(product: UnknownRecord) {
           grid-column: 2 / 3;
           grid-row: 3 / 4;
           align-self: start;
-          justify-self: end;
+          justify-self: stretch;
           text-align: right;
-          font-size: 4.7mm;
+          padding-right: 0.2mm;
+          font-size: 5.2mm;
           font-weight: 800;
           line-height: 1;
           white-space: nowrap;
