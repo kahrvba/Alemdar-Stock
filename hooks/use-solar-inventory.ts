@@ -213,8 +213,15 @@ export function useSolarInventory() {
   const handleEditSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const productId = formState.id || editingProduct?.id;
+    const normalizedName = formState.name.trim();
     if (!productId) {
       const errorMsg = "Product ID is missing. Please try again.";
+      setErrorMessage(errorMsg);
+      showToast(errorMsg, "error");
+      return;
+    }
+    if (!normalizedName) {
+      const errorMsg = "Name is required";
       setErrorMessage(errorMsg);
       showToast(errorMsg, "error");
       return;
@@ -237,7 +244,7 @@ export function useSolarInventory() {
         },
         body: JSON.stringify({
           id: productId,
-          name: formState.name || "",
+          name: normalizedName,
           rating: formState.rating || "",
           category: formState.category || "",
           quantity: Number(formState.quantity) || 0,
@@ -280,6 +287,13 @@ export function useSolarInventory() {
 
   const handleAddSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const normalizedName = formState.name.trim();
+    if (!normalizedName) {
+      const errorMsg = "Name is required";
+      setErrorMessage(errorMsg);
+      showToast(errorMsg, "error");
+      return;
+    }
     setIsSaving(true);
     setErrorMessage(null);
     try {
@@ -289,9 +303,10 @@ export function useSolarInventory() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: formState.name || null,
+          name: normalizedName,
           rating: formState.rating || null,
           category: formState.category || null,
+          quantity: Number(formState.quantity) || 0,
           factory_price: formState.factory_price ? String(formState.factory_price) : null,
           wholesale_price: formState.wholesale_price ? String(formState.wholesale_price) : null,
           min_selling_price: formState.min_selling_price ? String(formState.min_selling_price) : null,
@@ -437,4 +452,3 @@ export function useSolarInventory() {
     handleDelete,
   };
 }
-

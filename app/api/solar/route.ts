@@ -187,7 +187,11 @@ export async function POST(req: Request) {
   try {
     const { name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price,
       image_filename, 
-      category, description, is_new } = await req.json();
+      category, quantity, description, is_new } = await req.json();
+    const normalizedName = typeof name === 'string' ? name.trim() : '';
+    if (!normalizedName) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    }
     const isNewFlag = typeof is_new === 'boolean' ? is_new : Boolean(is_new);
     
     // Start a transaction
@@ -209,8 +213,8 @@ export async function POST(req: Request) {
     
     // Insert with the generated ID
     const result = await client.query(
-      'INSERT INTO public.solardb (id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, description, is_new) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id',
-      [newId, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, description, isNewFlag]
+      'INSERT INTO public.solardb (id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, quantity, description, is_new) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id',
+      [newId, normalizedName, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, quantity, description, isNewFlag]
     );
 
     if (!result.rows[0]?.id) {

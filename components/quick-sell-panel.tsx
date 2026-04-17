@@ -265,6 +265,7 @@ export function QuickSellPanel() {
         <input
           ref={inputRef}
           autoFocus
+          autoComplete="off"
           value={code}
           onChange={(event) => setCode(event.target.value)}
           onBlur={() => {
@@ -288,7 +289,13 @@ export function QuickSellPanel() {
         />
       </div>
 
-      <div className="mt-4 rounded-xl border border-border/60 bg-background/60 p-3">
+      <div
+        className={
+          activeItem || error || isSearching
+            ? "mt-4 rounded-xl border border-border/60 bg-background/60 p-3"
+            : "mt-3"
+        }
+      >
         {isSearching ? (
           <div className="flex items-center justify-center py-2">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground" />
@@ -380,9 +387,29 @@ export function QuickSellPanel() {
             ) : null}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">ready when you are</p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="inline-flex h-4 w-4 items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <rect x="3" y="6" width="18" height="12" rx="2" />
+                <path d="M7 10h10" />
+                <path d="M7 14h6" />
+              </svg>
+            </span>
+            <p>ready when you are</p>
+          </div>
         )}
       </div>
+
     </aside>
   );
 }

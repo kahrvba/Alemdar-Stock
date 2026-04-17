@@ -231,6 +231,7 @@ export function useSoundInventory() {
           sub_category: formState.sub_category || null,
           barcode: formState.barcode || null,
           kodu: formState.kodu || null,
+          quantity: Number(formState.quantity) || 0,
           price: formState.price ? String(formState.price) : null,
           image_filename: null,
           description: formState.description || null,
@@ -364,4 +365,3 @@ export function useSoundInventory() {
     handleDelete,
   };
 }
-

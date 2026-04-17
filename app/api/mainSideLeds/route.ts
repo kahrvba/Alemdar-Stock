@@ -162,11 +162,18 @@ export async function POST(req: Request) {
     // Start a transaction
     await client.query('BEGIN');
     await client.query("SET client_encoding = 'UTF8';");
-    
-    const maxIdResult = await client.query('SELECT MAX(id) FROM public.mainled');
-    const maxId = maxIdResult.rows[0].max || 0;
-    
-    const newId = maxId + 1;
+
+    let newId: number;
+    try {
+      const seqResult = await client.query("SELECT nextval('public.mainled_id_seq') AS id");
+      newId = Number(seqResult.rows[0]?.id);
+    } catch {
+      console.warn('Sequence not found, using MAX(id) + 1 method');
+      await client.query('LOCK TABLE public.mainled IN EXCLUSIVE MODE');
+      const maxIdResult = await client.query('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM public.mainled');
+      newId = Number(maxIdResult.rows[0]?.next_id ?? 1);
+    }
+
     await client.query(
       'INSERT INTO public.mainled (id, english_name, turkish_name, category, barcode, quantity, price, image_filename, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
       [newId, english_name, turkish_name, category, barcode, quantity, price, image_filename, description]

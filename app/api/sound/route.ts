@@ -189,7 +189,7 @@ export async function POST(req: Request) {
   try {
     const { english_name, turkish_name, barcode, kodu, price, 
       image_filename, 
-      category, sub_category, description } = await req.json();
+      category, sub_category, quantity, description } = await req.json();
     
     // Start a transaction
     await client.query('BEGIN');
@@ -210,8 +210,8 @@ export async function POST(req: Request) {
     
     // Insert with the generated ID
     const result = await client.query(
-      'INSERT INTO public.sound (id, english_name, turkish_name, barcode, kodu, price, image_filename, category, sub_category, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
-      [newId, english_name, turkish_name, barcode, kodu, price, image_filename, category, sub_category, description]
+      'INSERT INTO public.sound (id, english_name, turkish_name, barcode, kodu, price, image_filename, category, sub_category, quantity, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id',
+      [newId, english_name, turkish_name, barcode, kodu, price, image_filename, category, sub_category, quantity, description]
     );
 
     if (!result.rows[0]?.id) {
@@ -255,16 +255,16 @@ export async function PUT(req: Request) {
     const result = await client.query(
       `UPDATE public.sound 
        SET 
-         english_name=$1, 
-         turkish_name=$2, 
-         barcode=$3, 
-         kodu=$4, 
-         price=$5, 
-         image_filename=$6,
-         category=$7, 
-         sub_category=$8, 
-         quantity=$9, 
-         description=$10
+         english_name=COALESCE($1, english_name), 
+         turkish_name=COALESCE($2, turkish_name), 
+         barcode=COALESCE($3, barcode), 
+         kodu=COALESCE($4, kodu), 
+         price=COALESCE($5, price), 
+         image_filename=COALESCE($6, image_filename),
+         category=COALESCE($7, category), 
+         sub_category=COALESCE($8, sub_category), 
+         quantity=COALESCE($9, quantity), 
+         description=COALESCE($10, description)
        WHERE id=$11`,
       [english_name, turkish_name, barcode, kodu, price, image_filename, category, sub_category, quantity, description, id]
     );

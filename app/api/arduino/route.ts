@@ -176,11 +176,18 @@ export async function POST(req: Request) {
     // Start a transaction
     await client.query('BEGIN');
     await client.query("SET client_encoding = 'UTF8';");
-    
-    const maxIdResult = await client.query('SELECT MAX(id) FROM public.arduino');
-    const maxId = maxIdResult.rows[0].max || 0;
-    
-    const newId = maxId + 1;
+
+    let newId: number;
+    try {
+      const seqResult = await client.query("SELECT nextval('public.arduino_id_seq') AS id");
+      newId = Number(seqResult.rows[0]?.id);
+    } catch {
+      console.warn('Sequence not found, using MAX(id) + 1 method');
+      await client.query('LOCK TABLE public.arduino IN EXCLUSIVE MODE');
+      const maxIdResult = await client.query('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM public.arduino');
+      newId = Number(maxIdResult.rows[0]?.next_id ?? 1);
+    }
+
     await client.query(
       'INSERT INTO public.arduino (id, english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, image_filename, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
       [newId, english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, image_filename, description]
