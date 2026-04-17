@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
-const BATTERY_SEARCH_FIELDS = ['id', 'model', 'volt'] as const;
+const BATTERY_SEARCH_FIELDS = ['id', 'model', 'volt', 'barcode'] as const;
 type BatterySearchField = (typeof BATTERY_SEARCH_FIELDS)[number];
 
 const COMPACT_REGEX = '[[:space:]/_.-]+';
 const BATTERY_SEARCHABLE_EXPR =
-  "LOWER(COALESCE(model, '') || ' ' || COALESCE(volt::text, ''))";
+  "LOWER(COALESCE(model, '') || ' ' || COALESCE(volt::text, '') || ' ' || COALESCE(barcode, ''))";
 const BATTERY_SEARCHABLE_COMPACT_EXPR =
   `REGEXP_REPLACE(${BATTERY_SEARCHABLE_EXPR}, '${COMPACT_REGEX}', '', 'g')`;
 
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
 
     if (ids.length > 0) {
       const result = await client.query(
-        'SELECT id, model, volt, quantity, price, image_filename FROM public.batteries WHERE id = ANY($1) ORDER BY id ASC',
+        'SELECT id, model, volt, barcode, quantity, price, image_filename FROM public.batteries WHERE id = ANY($1) ORDER BY id ASC',
         [ids]
       );
       client.release();
@@ -61,7 +61,7 @@ export async function GET(req: Request) {
 
     if (id) {
       const result = await client.query(
-        'SELECT id, model, volt, quantity, price, image_filename FROM public.batteries WHERE id = $1',
+        'SELECT id, model, volt, barcode, quantity, price, image_filename FROM public.batteries WHERE id = $1',
         [id]
       );
       client.release();
@@ -75,7 +75,7 @@ export async function GET(req: Request) {
 
     if (all) {
       const result = await client.query(
-        'SELECT id, model, volt, quantity, price, image_filename FROM public.batteries ORDER BY id ASC'
+        'SELECT id, model, volt, barcode, quantity, price, image_filename FROM public.batteries ORDER BY id ASC'
       );
       const totalResult = await client.query('SELECT COUNT(*) FROM public.batteries');
       client.release();
@@ -105,6 +105,8 @@ export async function GET(req: Request) {
             const fieldExpr =
               field === 'volt'
                 ? "LOWER(COALESCE(volt::text, ''))"
+                : field === 'barcode'
+                ? "LOWER(COALESCE(barcode, ''))"
                 : "LOWER(COALESCE(model, ''))";
             const compactFieldExpr = `REGEXP_REPLACE(${fieldExpr}, '${COMPACT_REGEX}', '', 'g')`;
             values.push(escapedLike, escapedCompactLike);
@@ -136,7 +138,7 @@ export async function GET(req: Request) {
 
       const offset = (currentPage - 1) * currentPageSize;
       const result = await client.query(
-        `SELECT id, model, volt, quantity, price, image_filename FROM public.batteries ${whereClause} ORDER BY id ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+        `SELECT id, model, volt, barcode, quantity, price, image_filename FROM public.batteries ${whereClause} ORDER BY id ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
         [...values, currentPageSize, offset]
       );
       items = result.rows ?? [];
@@ -174,7 +176,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const client = await pool.connect();
   try {
-    const { model, volt, quantity, price } = await req.json();
+    const { model, volt, barcode, quantity, price } = await req.json();
     
     await client.query('BEGIN');
     await client.query("SET client_encoding = 'UTF8';");
@@ -190,8 +192,8 @@ export async function POST(req: Request) {
     }
     
     const result = await client.query(
-      'INSERT INTO public.batteries (id, model, volt, quantity, price) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [newId, model, volt, quantity ?? null, price ?? null]
+      'INSERT INTO public.batteries (id, model, volt, barcode, quantity, price) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+      [newId, model, volt, barcode ?? null, quantity ?? null, price ?? null]
     );
 
     if (!result.rows[0]?.id) {
@@ -214,7 +216,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const client = await pool.connect();
   try {
-    const { id, model, volt, quantity, price } = await req.json();
+    const { id, model, volt, barcode, quantity, price } = await req.json();
     
     if (!id) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
@@ -234,10 +236,11 @@ export async function PUT(req: Request) {
        SET 
          model=$1,
          volt=$2,
-         quantity=$3,
-         price=$4
-       WHERE id=$5`,
-      [model, volt, quantity ?? null, price ?? null, id]
+         barcode=$3,
+         quantity=$4,
+         price=$5
+       WHERE id=$6`,
+      [model, volt, barcode ?? null, quantity ?? null, price ?? null, id]
     );
 
     if (result.rowCount === 0) {

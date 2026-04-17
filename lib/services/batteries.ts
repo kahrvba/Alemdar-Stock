@@ -2,6 +2,7 @@ export type BatteryProduct = {
   id: number;
   model: string | null;
   volt: number | null;
+  barcode: string | null;
   quantity: number | null;
   price: number | null;
   image_filename: string | null;
@@ -94,4 +95,3 @@ export async function fetchBatteryProducts(
 
   return buildPaginatedResult(data, page);
 }
-

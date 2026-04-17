@@ -39,8 +39,8 @@ export function ProductCard({
 }: ProductCardProps) {
   const priceValue = Number(product.price ?? 0);
   const priceLabel = Number.isFinite(priceValue) ? usdFormatter.format(priceValue) : usdFormatter.format(0);
-  const voltageLabel = product.volt !== null && product.volt !== undefined ? String(product.volt) : "Voltage N/A";
   const modelLabel = product.model ?? "Unnamed battery";
+  const barcodeLabel = product.barcode?.trim() || "-";
   const quantityValue =
     typeof product.quantity === "number" && Number.isFinite(product.quantity)
       ? Math.max(0, product.quantity)
@@ -92,7 +92,7 @@ export function ProductCard({
               Qty: {quantityValue}
             </span>
             <span className="flex min-h-10 items-center justify-center rounded-full bg-foreground/90 px-5 text-xs font-semibold uppercase tracking-[0.35em] text-background text-center leading-tight">
-              Volt: {voltageLabel}
+              {barcodeLabel}
             </span>
             <span className="shrink-0 rounded-full bg-primary px-4 py-1 text-base font-semibold text-primary-foreground text-center">
               {priceLabel}

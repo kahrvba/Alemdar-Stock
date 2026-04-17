@@ -11,7 +11,7 @@ import {
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-type FilterOption = "id" | "volt" | "model";
+type FilterOption = "id" | "volt" | "model" | "barcode";
 
 type BatterySearchProps = {
   onFilterChange?: (filters: { query: string; field: FilterOption | null }) => void;
@@ -218,7 +218,9 @@ export function BatterySearch({
     () => [
       { value: "id", label: "ID" },
       {value:"model", label: "Model"},
-      { value: "volt", label: "Volt" },],
+      { value: "volt", label: "Volt" },
+      { value: "barcode", label: "Barcode" },
+    ],
     []
   );
   const activeField = useFieldFilter ? field : null;
@@ -305,4 +307,3 @@ export function BatterySearch({
     </div>
   );
 }
-

@@ -14,12 +14,14 @@ export function useBatteriesInventory() {
     id: number;
     model: string;
     volt: string;
+    barcode: string;
     quantity: number | null;
     price: number | null;
   }>({
     id: 0,
     model: "",
     volt: "",
+    barcode: "",
     quantity: null,
     price: null,
   });
@@ -42,6 +44,7 @@ export function useBatteriesInventory() {
         id: editingProduct.id,
         model: editingProduct.model ?? "",
         volt: editingProduct.volt?.toString() ?? "",
+        barcode: editingProduct.barcode ?? "",
         quantity: editingProduct.quantity,
         price: editingProduct.price,
       });
@@ -53,6 +56,7 @@ export function useBatteriesInventory() {
         id: 0,
         model: "",
         volt: "",
+        barcode: "",
         quantity: null,
         price: null,
       });
@@ -71,7 +75,7 @@ export function useBatteriesInventory() {
   }, [imagePreviewUrl]);
 
   const handleFormChange = useCallback(
-    (field: "model" | "volt" | "quantity" | "price", value: string | number | null) => {
+    (field: "model" | "volt" | "barcode" | "quantity" | "price", value: string | number | null) => {
       setFormState((previous) => ({
         ...previous,
         [field]:
@@ -155,6 +159,7 @@ export function useBatteriesInventory() {
           id: formState.id,
           model: formState.model || null,
           volt: formState.volt || null,
+          barcode: formState.barcode.trim() || null,
           quantity: formState.quantity,
           price: formState.price,
         }),
@@ -198,6 +203,7 @@ export function useBatteriesInventory() {
         body: JSON.stringify({
           model: formState.model || null,
           volt: formState.volt || null,
+          barcode: formState.barcode.trim() || null,
           quantity: formState.quantity,
           price: formState.price,
         }),
@@ -239,7 +245,7 @@ export function useBatteriesInventory() {
           english_names: product.model,
           turkish_names: null,
           category: product.volt?.toString() ?? null,
-          barcode: null,
+          barcode: product.barcode ?? null,
           quantity: product.quantity,
           price: product.price?.toString() ?? null,
           image_filename: product.image_filename,
@@ -319,4 +325,3 @@ export function useBatteriesInventory() {
     handleDelete,
   };
 }
-

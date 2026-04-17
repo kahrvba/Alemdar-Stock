@@ -75,6 +75,7 @@ export function BatteriesInventoryClient({
     english_names: product.model ?? null,
     turkish_names: null,
     category: product.volt?.toString() ?? null,
+    barcode: product.barcode ?? null,
     quantity: product.quantity,
     price: product.price,
     image_filename: product.image_filename,
@@ -250,6 +251,7 @@ export function BatteriesInventoryClient({
                       id: p.id,
                       model: p.model ?? null,
                       volt: p.volt ?? null,
+                      barcode: p.barcode ?? null,
                       image_filename: p.image_filename ?? null,
                       quantity: p.quantity ?? null,
                       price: p.price ?? null,
@@ -330,6 +332,15 @@ export function BatteriesInventoryClient({
                     type="text"
                     value={formState.model ?? ""}
                     onChange={(event) => handleFormChange("model", event.target.value)}
+                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+                  Barcode
+                  <input
+                    type="text"
+                    value={formState.barcode ?? ""}
+                    onChange={(event) => handleFormChange("barcode", event.target.value)}
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
@@ -433,5 +444,4 @@ export function BatteriesInventoryClient({
     </>
   );
 }
-
 

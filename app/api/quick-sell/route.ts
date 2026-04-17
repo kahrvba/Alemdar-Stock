@@ -65,9 +65,10 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
     sectionLabel: "Batteries",
     tableName: "public.batteries",
     nameExpr: "COALESCE(model, CONCAT('Product #', id::text))",
-    barcodeExpr: "NULL",
+    barcodeExpr: "barcode",
     priceExpr: "price",
-    codeMatchExpr: "FALSE",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   tv_remotes: {
     tableKey: "tv_remotes",

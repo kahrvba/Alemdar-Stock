@@ -103,7 +103,8 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     imageExpr: "image_filename",
     priceExpr: "price::text",
     quantityExpr: "COALESCE(quantity, 0)",
-    searchableExpr: "LOWER(COALESCE(model, '') || ' ' || COALESCE(volt::text, ''))",
+    searchableExpr:
+      "LOWER(COALESCE(model, '') || ' ' || COALESCE(volt::text, '') || ' ' || COALESCE(barcode, ''))",
   },
   {
     tableKey: "tv_remotes",
