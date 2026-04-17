@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { NavigationOverlayProvider } from "@/components/navigation-overlay-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { CartProvider } from "@/components/ui/cart";
+import { getDeploymentVersion } from "@/lib/app-version";
 
 export const metadata: Metadata = {
   title: "Alemdar Teknik LTD",
@@ -16,6 +17,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const deploymentVersion = getDeploymentVersion();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -26,7 +29,7 @@ export default function RootLayout({
           <ToastProvider>
             <CartProvider>
               <NavigationOverlayProvider>
-                <SiteHeader />
+                <SiteHeader initialVersion={deploymentVersion} />
                 <main>{children}</main>
               </NavigationOverlayProvider>
             </CartProvider>
