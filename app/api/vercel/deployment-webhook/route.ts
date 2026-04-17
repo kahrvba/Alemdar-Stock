@@ -43,11 +43,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const appVersion = packageJson.version;
-
   const record = await publishDeploymentUpdate({
     deploymentKey,
-    appVersion,
+    baseVersion: packageJson.version,
   });
 
   return NextResponse.json({ ok: true, record });

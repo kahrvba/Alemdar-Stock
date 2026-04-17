@@ -1,4 +1,5 @@
 import pool from "@/lib/db";
+import { incrementPatch, normalizeBaseVersion } from "@/lib/versioning";
 
 export const DEPLOYMENT_CHANNEL = "deployment_updates";
 
@@ -21,40 +22,79 @@ async function ensureDeploymentTable() {
 
 export async function publishDeploymentUpdate(input: {
   deploymentKey: string;
-  appVersion: string;
+  baseVersion: string;
 }) {
   await ensureDeploymentTable();
+  const normalizedBaseVersion = normalizeBaseVersion(input.baseVersion);
+  const client = await pool.connect();
 
-  const result = await pool.query<{
-    deployment_key: string;
-    app_version: string;
-    updated_at: string;
-  }>(
-    `
-      INSERT INTO deployment_updates (id, deployment_key, app_version, updated_at)
-      VALUES (1, $1, $2, NOW())
-      ON CONFLICT (id) DO UPDATE
-      SET deployment_key = EXCLUDED.deployment_key,
-          app_version = EXCLUDED.app_version,
-          updated_at = NOW()
-      RETURNING deployment_key, app_version, updated_at
-    `,
-    [input.deploymentKey, input.appVersion]
-  );
+  try {
+    await client.query("BEGIN");
 
-  const row = result.rows[0];
-  const record: DeploymentRecord = {
-    deploymentKey: row.deployment_key,
-    appVersion: row.app_version,
-    updatedAt: row.updated_at,
-  };
+    const currentResult = await client.query<{
+      deployment_key: string;
+      app_version: string;
+      updated_at: string;
+    }>(
+      `
+        SELECT deployment_key, app_version, updated_at
+        FROM deployment_updates
+        WHERE id = 1
+        FOR UPDATE
+      `
+    );
 
-  await pool.query("SELECT pg_notify($1, $2)", [
-    DEPLOYMENT_CHANNEL,
-    JSON.stringify(record),
-  ]);
+    const current = currentResult.rows[0];
 
-  return record;
+    if (current && current.deployment_key === input.deploymentKey) {
+      await client.query("COMMIT");
+      return {
+        deploymentKey: current.deployment_key,
+        appVersion: current.app_version,
+        updatedAt: current.updated_at,
+      };
+    }
+
+    const nextVersion = incrementPatch(current?.app_version ?? normalizedBaseVersion);
+
+    const upsertResult = await client.query<{
+      deployment_key: string;
+      app_version: string;
+      updated_at: string;
+    }>(
+      `
+        INSERT INTO deployment_updates (id, deployment_key, app_version, updated_at)
+        VALUES (1, $1, $2, NOW())
+        ON CONFLICT (id) DO UPDATE
+        SET deployment_key = EXCLUDED.deployment_key,
+            app_version = EXCLUDED.app_version,
+            updated_at = NOW()
+        RETURNING deployment_key, app_version, updated_at
+      `,
+      [input.deploymentKey, nextVersion]
+    );
+
+    await client.query("COMMIT");
+
+    const row = upsertResult.rows[0];
+    const record: DeploymentRecord = {
+      deploymentKey: row.deployment_key,
+      appVersion: row.app_version,
+      updatedAt: row.updated_at,
+    };
+
+    await pool.query("SELECT pg_notify($1, $2)", [
+      DEPLOYMENT_CHANNEL,
+      JSON.stringify(record),
+    ]);
+
+    return record;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function getLatestDeploymentUpdate(): Promise<DeploymentRecord | null> {

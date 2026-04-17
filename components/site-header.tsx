@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CartButton } from "@/components/ui/cart";
 import StaggeredMenu from "@/components/StaggeredMenu";
 import { useNavigationOverlay } from "@/components/navigation-overlay-provider";
 import type { DeploymentVersion } from "@/lib/app-version";
-
-const REFRESH_COUNTDOWN_SECONDS = 5;
 
 type SiteHeaderProps = {
   initialVersion: DeploymentVersion;
@@ -31,42 +28,6 @@ export function SiteHeader({ initialVersion }: SiteHeaderProps) {
   ];
 
   const { showOverlay } = useNavigationOverlay();
-  const [headerLabel, setHeaderLabel] = useState(`VERSION ${initialVersion.appVersion}`);
-  const [refreshCountdown, setRefreshCountdown] = useState<number | null>(null);
-
-  useEffect(() => {
-    const stream = new EventSource("/api/deployment-events");
-
-    stream.addEventListener("deployment", (event) => {
-      const payload = JSON.parse((event as MessageEvent).data) as DeploymentVersion;
-      if (payload.deploymentKey === initialVersion.deploymentKey) {
-        setHeaderLabel(`VERSION ${payload.appVersion}`);
-        return;
-      }
-
-      setRefreshCountdown(REFRESH_COUNTDOWN_SECONDS);
-    });
-
-    return () => {
-      stream.close();
-    };
-  }, [initialVersion.deploymentKey]);
-
-  useEffect(() => {
-    if (refreshCountdown === null) return;
-    if (refreshCountdown <= 0) {
-      window.location.reload();
-      return;
-    }
-
-    setHeaderLabel(`NEW UPDATE DETECTED. REFRESHING IN ${refreshCountdown}s`);
-
-    const timer = window.setTimeout(() => {
-      setRefreshCountdown((current) => (current === null ? current : current - 1));
-    }, 1000);
-
-    return () => window.clearTimeout(timer);
-  }, [refreshCountdown]);
 
   return (
     <>
@@ -84,7 +45,7 @@ export function SiteHeader({ initialVersion }: SiteHeaderProps) {
             }}
             className="text-sm font-semibold uppercase tracking-[0.35em] text-muted-foreground transition hover:text-foreground"
           >
-            {headerLabel}
+            {`VERSION ${initialVersion.appVersion}`}
           </Link>
         </div>
       </header>

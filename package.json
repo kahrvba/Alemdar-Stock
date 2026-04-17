@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsc --noEmit"
+    "test": "tsc --noEmit",
+    "push": "git add . && git commit -m \"updates\" && git push origin main"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
