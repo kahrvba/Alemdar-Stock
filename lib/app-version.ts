@@ -14,6 +14,15 @@ function resolveDeploymentKey() {
 export async function getDeploymentVersion(): Promise<DeploymentVersion> {
   const deploymentKey = resolveDeploymentKey();
   const baseVersion = normalizeBaseVersion(packageJson.version);
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (!isProduction || deploymentKey === "development-build") {
+    return {
+      appVersion: baseVersion,
+      deploymentKey,
+    };
+  }
+
   const latest = await getLatestDeploymentUpdate();
 
   const appVersion =

@@ -127,6 +127,7 @@ export function DeploymentRefreshGuard({ initialVersion }: DeploymentRefreshGuar
   const [refreshCountdown, setRefreshCountdown] = useState<number | null>(null);
   const countdownTimerRef = useRef<number | null>(null);
   const updateTriggeredRef = useRef(false);
+  const shouldWatchDeployments = initialVersion.deploymentKey !== "development-build";
 
   useEffect(() => {
     restoreDraftIfPresent();
@@ -152,6 +153,8 @@ export function DeploymentRefreshGuard({ initialVersion }: DeploymentRefreshGuar
   }, []);
 
   useEffect(() => {
+    if (!shouldWatchDeployments) return;
+
     const stream = new EventSource("/api/deployment-events");
 
     stream.addEventListener("deployment", (event) => {
@@ -168,7 +171,7 @@ export function DeploymentRefreshGuard({ initialVersion }: DeploymentRefreshGuar
     return () => {
       stream.close();
     };
-  }, [initialVersion.deploymentKey]);
+  }, [initialVersion.deploymentKey, shouldWatchDeployments]);
 
   useEffect(() => {
     if (refreshCountdown === null) return;
