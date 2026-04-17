@@ -60,6 +60,13 @@ export function QuickSellPanel() {
   );
 
   const isAvailable = useMemo(() => (activeItem?.quantity ?? 0) > 0, [activeItem?.quantity]);
+  const hasInvalidSellQuantity = useMemo(
+    () =>
+      scannedItems.some(
+        (item) => item.sellQuantity < 1 || item.sellQuantity > Math.max(0, item.quantity ?? 0)
+      ),
+    [scannedItems]
+  );
 
   const lookupProduct = async (rawCode: string) => {
     const trimmed = rawCode.trim();
@@ -211,12 +218,9 @@ export function QuickSellPanel() {
   };
 
   const handleSell = async () => {
+    if (scannedItems.length === 0) return;
     if (!activeItem) return;
-    if (!isAvailable) {
-      showToast("stock finished", "error");
-      return;
-    }
-    if (activeItem.sellQuantity > (activeItem.quantity ?? 0)) {
+    if (!isAvailable || hasInvalidSellQuantity) {
       showToast("stock finished", "error");
       return;
     }
@@ -227,9 +231,11 @@ export function QuickSellPanel() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tableKey: activeItem.tableKey,
-          productId: activeItem.id,
-          quantity: activeItem.sellQuantity,
+          items: scannedItems.map((item) => ({
+            tableKey: item.tableKey,
+            productId: item.id,
+            quantity: item.sellQuantity,
+          })),
         }),
       });
 
@@ -326,14 +332,14 @@ export function QuickSellPanel() {
               type="button"
               onClick={() => void handleSell()}
               disabled={
-                !isAvailable ||
+                scannedItems.length === 0 ||
                 isSelling ||
-                activeItem.sellQuantity < 1 ||
-                activeItem.sellQuantity > (activeItem.quantity ?? 0)
+                !isAvailable ||
+                hasInvalidSellQuantity
               }
               className="mt-2 h-10 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSelling ? "Selling..." : "Sell"}
+              {isSelling ? "Selling..." : "Sell All"}
             </button>
 
             {scannedItems.length > 1 ? (

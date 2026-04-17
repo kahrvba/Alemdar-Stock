@@ -237,20 +237,60 @@ export async function POST(req: Request) {
         tableKey?: string;
         productId?: number;
         quantity?: number;
+        items?: Array<{
+          tableKey?: string;
+          productId?: number;
+          quantity?: number;
+        }>;
       }
     | null;
 
-  const tableKey = body?.tableKey?.trim() ?? "";
-  const productId = Number(body?.productId);
-  const quantity = Math.max(1, Number(body?.quantity ?? 1));
+  const rawItems =
+    Array.isArray(body?.items) && body?.items.length > 0
+      ? body.items
+      : [
+          {
+            tableKey: body?.tableKey,
+            productId: body?.productId,
+            quantity: body?.quantity,
+          },
+        ];
 
-  if (!tableKey || !Number.isFinite(productId) || productId <= 0) {
-    return NextResponse.json({ error: "Invalid quick sell payload" }, { status: 400 });
+  const mergedByKey = new Map<
+    string,
+    {
+      tableKey: string;
+      productId: number;
+      quantity: number;
+    }
+  >();
+
+  for (const entry of rawItems) {
+    const tableKey = entry?.tableKey?.trim() ?? "";
+    const productId = Number(entry?.productId);
+    const quantity = Math.max(1, Number(entry?.quantity ?? 1));
+
+    if (!tableKey || !Number.isFinite(productId) || productId <= 0) {
+      return NextResponse.json({ error: "Invalid quick sell payload" }, { status: 400 });
+    }
+
+    const config = TABLE_CONFIG[tableKey];
+    if (!config) {
+      return NextResponse.json({ error: "Unsupported inventory table" }, { status: 400 });
+    }
+
+    const key = `${tableKey}:${productId}`;
+    const existing = mergedByKey.get(key);
+    if (existing) {
+      existing.quantity += quantity;
+    } else {
+      mergedByKey.set(key, { tableKey, productId, quantity });
+    }
   }
 
-  const config = TABLE_CONFIG[tableKey];
-  if (!config) {
-    return NextResponse.json({ error: "Unsupported inventory table" }, { status: 400 });
+  const items = Array.from(mergedByKey.values());
+  if (items.length === 0) {
+    return NextResponse.json({ error: "No items to sell" }, { status: 400 });
   }
 
   const client = await pool.connect();
@@ -258,49 +298,82 @@ export async function POST(req: Request) {
     await client.query("BEGIN");
     await client.query("SET client_encoding = 'UTF8';");
 
-    const selectSql = `
-      SELECT
-        id,
-        COALESCE(quantity, 0) AS quantity,
-        ${config.nameExpr} AS product_name,
-        ${config.barcodeExpr} AS barcode,
-        ${config.priceExpr} AS unit_price
-      FROM ${config.tableName}
-      WHERE id = $1
-      FOR UPDATE
-    `;
-
-    const productRes = await client.query<{
-      id: number;
+    const verifiedLines: Array<{
+      tableKey: string;
+      productId: number;
       quantity: number;
-      product_name: string | null;
+      newStock: number;
+      productName: string;
       barcode: string | null;
-      unit_price: string | number | null;
-    }>(selectSql, [productId]);
+      unitPrice: number;
+      lineTotal: number;
+    }> = [];
 
-    const product = productRes.rows[0];
-    if (!product) {
-      await client.query("ROLLBACK");
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    for (const item of items) {
+      const config = TABLE_CONFIG[item.tableKey];
+      const selectSql = `
+        SELECT
+          id,
+          COALESCE(quantity, 0) AS quantity,
+          ${config.nameExpr} AS product_name,
+          ${config.barcodeExpr} AS barcode,
+          ${config.priceExpr} AS unit_price
+        FROM ${config.tableName}
+        WHERE id = $1
+        FOR UPDATE
+      `;
+
+      const productRes = await client.query<{
+        id: number;
+        quantity: number;
+        product_name: string | null;
+        barcode: string | null;
+        unit_price: string | number | null;
+      }>(selectSql, [item.productId]);
+
+      const product = productRes.rows[0];
+      if (!product) {
+        await client.query("ROLLBACK");
+        return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      }
+
+      const currentStock = Number(product.quantity) || 0;
+      if (currentStock < item.quantity) {
+        await client.query("ROLLBACK");
+        return NextResponse.json(
+          {
+            error: "stock finished",
+            productId: item.productId,
+            tableKey: item.tableKey,
+            available: currentStock,
+          },
+          { status: 409 }
+        );
+      }
+
+      const newStock = currentStock - item.quantity;
+      const unitPrice = toFiniteNumber(product.unit_price);
+      const lineTotal = unitPrice * item.quantity;
+
+      verifiedLines.push({
+        tableKey: item.tableKey,
+        productId: item.productId,
+        quantity: item.quantity,
+        newStock,
+        productName: product.product_name ?? `Product #${item.productId}`,
+        barcode: product.barcode,
+        unitPrice,
+        lineTotal,
+      });
     }
 
-    const currentStock = Number(product.quantity) || 0;
-    if (currentStock < quantity) {
-      await client.query("ROLLBACK");
-      return NextResponse.json(
-        { error: "Not enough stock", available: currentStock },
-        { status: 409 }
-      );
+    for (const line of verifiedLines) {
+      const config = TABLE_CONFIG[line.tableKey];
+      await client.query(`UPDATE ${config.tableName} SET quantity = $2 WHERE id = $1`, [
+        line.productId,
+        line.newStock,
+      ]);
     }
-
-    const newStock = currentStock - quantity;
-    const unitPrice = toFiniteNumber(product.unit_price);
-    const lineTotal = unitPrice * quantity;
-
-    await client.query(`UPDATE ${config.tableName} SET quantity = $2 WHERE id = $1`, [
-      productId,
-      newStock,
-    ]);
 
     const latestInvoiceRes = await client.query<{ invoice_number: string }>(
       "SELECT invoice_number FROM public.invoices ORDER BY id DESC LIMIT 1"
@@ -308,12 +381,13 @@ export async function POST(req: Request) {
     const latestInvoiceValue = latestInvoiceRes.rows[0]?.invoice_number ?? "0";
     const latestInvoiceNumber = Number.parseInt(String(latestInvoiceValue), 10) || 0;
     const nextInvoiceNumber = latestInvoiceNumber + 1;
+    const totalAmount = verifiedLines.reduce((sum, line) => sum + line.lineTotal, 0);
 
     const invoiceRes = await client.query<{ id: number }>(
       `INSERT INTO public.invoices (invoice_number, date_created, total_amount, status)
        VALUES ($1, $2, $3, $4)
        RETURNING id`,
-      [String(nextInvoiceNumber), new Date().toISOString(), lineTotal, "completed"]
+      [String(nextInvoiceNumber), new Date().toISOString(), totalAmount, "completed"]
     );
 
     const invoiceId = invoiceRes.rows[0]?.id;
@@ -321,27 +395,28 @@ export async function POST(req: Request) {
       throw new Error("Failed to create invoice id");
     }
 
-    await client.query(
-      `INSERT INTO public.invoice_items (invoice_id, product_id, product_name, quantity, unit_price, total_price, barcode)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        invoiceId,
-        productId,
-        product.product_name ?? `Product #${productId}`,
-        quantity,
-        unitPrice,
-        lineTotal,
-        product.barcode,
-      ]
-    );
+    for (const line of verifiedLines) {
+      await client.query(
+        `INSERT INTO public.invoice_items (invoice_id, product_id, product_name, quantity, unit_price, total_price, barcode)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          invoiceId,
+          line.productId,
+          line.productName,
+          line.quantity,
+          line.unitPrice,
+          line.lineTotal,
+          line.barcode,
+        ]
+      );
+    }
 
     await client.query("COMMIT");
 
     return NextResponse.json({
       success: true,
       invoiceId,
-      remainingQuantity: newStock,
-      soldQuantity: quantity,
+      soldCount: verifiedLines.length,
     });
   } catch (error) {
     await client.query("ROLLBACK");
