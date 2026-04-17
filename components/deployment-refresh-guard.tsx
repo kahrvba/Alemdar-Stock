@@ -5,6 +5,7 @@ import type { DeploymentVersion } from "@/lib/app-version";
 
 const REFRESH_COUNTDOWN_SECONDS = 10;
 const DRAFT_TTL_MS = 30 * 60 * 1000;
+const DEPLOYMENT_REFRESH_STATE_KEY = "alemdar:deployment-refresh-state";
 
 type FieldSnapshot = {
   key: string;
@@ -20,6 +21,11 @@ type DraftSnapshot = {
 
 type DeploymentRefreshGuardProps = {
   initialVersion: DeploymentVersion;
+};
+
+type DeploymentRefreshState = {
+  targetDeploymentKey: string;
+  deadlineMs: number;
 };
 
 function getDraftStorageKey() {
@@ -123,14 +129,61 @@ function restoreDraftIfPresent() {
   });
 }
 
+function readRefreshState(): DeploymentRefreshState | null {
+  const raw = localStorage.getItem(DEPLOYMENT_REFRESH_STATE_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as DeploymentRefreshState;
+    if (!parsed?.targetDeploymentKey || !Number.isFinite(parsed.deadlineMs)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function clearRefreshState() {
+  localStorage.removeItem(DEPLOYMENT_REFRESH_STATE_KEY);
+}
+
+function writeRefreshState(state: DeploymentRefreshState) {
+  localStorage.setItem(DEPLOYMENT_REFRESH_STATE_KEY, JSON.stringify(state));
+}
+
+function secondsUntil(deadlineMs: number) {
+  return Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000));
+}
+
 export function DeploymentRefreshGuard({ initialVersion }: DeploymentRefreshGuardProps) {
   const [refreshCountdown, setRefreshCountdown] = useState<number | null>(null);
   const countdownTimerRef = useRef<number | null>(null);
   const updateTriggeredRef = useRef(false);
+  const refreshDeadlineRef = useRef<number | null>(null);
   const shouldWatchDeployments = initialVersion.deploymentKey !== "development-build";
+
+  const startRefreshFlow = (targetDeploymentKey: string, deadlineMs?: number) => {
+    const resolvedDeadline =
+      deadlineMs ?? Date.now() + REFRESH_COUNTDOWN_SECONDS * 1000;
+    refreshDeadlineRef.current = resolvedDeadline;
+    updateTriggeredRef.current = true;
+    writeRefreshState({ targetDeploymentKey, deadlineMs: resolvedDeadline });
+    setRefreshCountdown(secondsUntil(resolvedDeadline));
+  };
 
   useEffect(() => {
     restoreDraftIfPresent();
+
+    const persistedState = readRefreshState();
+    if (persistedState) {
+      if (persistedState.targetDeploymentKey === initialVersion.deploymentKey) {
+        clearRefreshState();
+      } else {
+        startRefreshFlow(
+          persistedState.targetDeploymentKey,
+          persistedState.deadlineMs
+        );
+      }
+    }
 
     let saveTimer: number | null = null;
     const handleInputEvent = () => {
@@ -161,11 +214,13 @@ export function DeploymentRefreshGuard({ initialVersion }: DeploymentRefreshGuar
       if (updateTriggeredRef.current) return;
 
       const payload = JSON.parse((event as MessageEvent).data) as DeploymentVersion;
-      if (payload.deploymentKey === initialVersion.deploymentKey) return;
+      if (payload.deploymentKey === initialVersion.deploymentKey) {
+        clearRefreshState();
+        return;
+      }
 
-      updateTriggeredRef.current = true;
       saveDraftNow();
-      setRefreshCountdown(REFRESH_COUNTDOWN_SECONDS);
+      startRefreshFlow(payload.deploymentKey);
     });
 
     return () => {
@@ -185,7 +240,9 @@ export function DeploymentRefreshGuard({ initialVersion }: DeploymentRefreshGuar
     saveDraftNow();
 
     countdownTimerRef.current = window.setTimeout(() => {
-      setRefreshCountdown((current) => (current === null ? current : current - 1));
+      const deadlineMs = refreshDeadlineRef.current;
+      if (!deadlineMs) return;
+      setRefreshCountdown(secondsUntil(deadlineMs));
     }, 1000);
 
     return () => {

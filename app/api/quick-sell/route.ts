@@ -2,90 +2,137 @@ import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 type TableConfig = {
+  tableKey: string;
+  sectionLabel: string;
   tableName: string;
   nameExpr: string;
   barcodeExpr: string;
   priceExpr: string;
+  codeMatchExpr: string;
 };
 
 const TABLE_CONFIG: Record<string, TableConfig> = {
   arduino: {
+    tableKey: "arduino",
+    sectionLabel: "Arduino",
     tableName: "public.arduino",
     nameExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
     barcodeExpr: "barcode",
     priceExpr: "price",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   mainled: {
+    tableKey: "mainled",
+    sectionLabel: "Cable",
     tableName: "public.mainled",
     nameExpr: "COALESCE(english_name, turkish_name, CONCAT('Product #', id::text))",
     barcodeExpr: "barcode",
     priceExpr: "price",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   solardb: {
+    tableKey: "solardb",
+    sectionLabel: "Solar",
     tableName: "public.solardb",
     nameExpr: "COALESCE(name, CONCAT('Product #', id::text))",
     barcodeExpr: "NULL",
     priceExpr: "selling_price",
+    codeMatchExpr: "FALSE",
   },
   mexxsun: {
+    tableKey: "mexxsun",
+    sectionLabel: "Mexxsun",
     tableName: "public.mexxsun",
     nameExpr: "COALESCE(name, CONCAT('Product #', id::text))",
     barcodeExpr: "NULL",
     priceExpr: "selling_price",
+    codeMatchExpr: "FALSE",
   },
   sound: {
+    tableKey: "sound",
+    sectionLabel: "Sound",
     tableName: "public.sound",
     nameExpr: "COALESCE(english_name, turkish_name, CONCAT('Product #', id::text))",
     barcodeExpr: "barcode",
     priceExpr: "price",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3 OR LOWER(COALESCE(kodu::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(kodu::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   batteries: {
+    tableKey: "batteries",
+    sectionLabel: "Batteries",
     tableName: "public.batteries",
     nameExpr: "COALESCE(model, CONCAT('Product #', id::text))",
     barcodeExpr: "NULL",
     priceExpr: "price",
+    codeMatchExpr: "FALSE",
   },
   tv_remotes: {
+    tableKey: "tv_remotes",
+    sectionLabel: "TV Remotes",
     tableName: "public.tv_remotes",
     nameExpr: "COALESCE(name, CONCAT('Product #', id::text))",
     barcodeExpr: "NULL",
     priceExpr: "price",
+    codeMatchExpr: "FALSE",
   },
   filaments: {
+    tableKey: "filaments",
+    sectionLabel: "Filaments",
     tableName: "public.filaments",
     nameExpr: "COALESCE(name, CONCAT('Product #', id::text))",
     barcodeExpr: "NULL",
     priceExpr: "price",
+    codeMatchExpr: "FALSE",
   },
   fans: {
+    tableKey: "fans",
+    sectionLabel: "Fans",
     tableName: "public.fans",
     nameExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
     barcodeExpr: "barcode",
     priceExpr: "price",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   others: {
+    tableKey: "others",
+    sectionLabel: "Others",
     tableName: "public.others",
     nameExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
     barcodeExpr: "barcode",
     priceExpr: "price",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   electric: {
+    tableKey: "electric",
+    sectionLabel: "Electric",
     tableName: "public.electric",
     nameExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
     barcodeExpr: "NULL",
     priceExpr: "price",
+    codeMatchExpr: "FALSE",
   },
   adapters: {
+    tableKey: "adapters",
+    sectionLabel: "Adapters",
     tableName: "public.adapters",
     nameExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
     barcodeExpr: "NULL",
     priceExpr: "price",
+    codeMatchExpr: "FALSE",
   },
   chargers: {
+    tableKey: "chargers",
+    sectionLabel: "Chargers",
     tableName: "public.chargers",
     nameExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
     barcodeExpr: "NULL",
     priceExpr: "price",
+    codeMatchExpr: "FALSE",
   },
 };
 
@@ -97,6 +144,91 @@ function toFiniteNumber(value: unknown) {
     return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
+}
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const code = searchParams.get("code")?.trim() ?? "";
+
+  if (!code) {
+    return NextResponse.json({ error: "Missing code" }, { status: 400 });
+  }
+
+  const numericCandidate = /^\d+$/.test(code) ? Number(code) : NaN;
+  const isIdCandidate =
+    Number.isSafeInteger(numericCandidate) &&
+    numericCandidate > 0 &&
+    numericCandidate <= 2147483647 &&
+    String(numericCandidate) === code;
+  const normalizedCode = code.toLowerCase().replace(/[ /_.-]+/g, "");
+
+  const unionSql = Object.values(TABLE_CONFIG)
+    .map((config) => {
+      return `
+        SELECT
+          '${config.tableKey}'::text AS table_key,
+          '${config.sectionLabel}'::text AS section,
+          id,
+          ${config.nameExpr} AS title,
+          ${config.priceExpr}::text AS price,
+          COALESCE(quantity, 0)::int AS quantity,
+          CASE
+            WHEN $2::boolean IS TRUE AND id = $1::int THEN 2
+            WHEN ${config.codeMatchExpr} THEN 1
+            ELSE 0
+          END AS match_rank
+        FROM ${config.tableName}
+        WHERE
+          (($2::boolean IS TRUE AND id = $1::int) OR ${config.codeMatchExpr})
+      `;
+    })
+    .join("\nUNION ALL\n");
+
+  const sql = `
+    WITH matched AS (
+      ${unionSql}
+    )
+    SELECT table_key, section, id, title, price, quantity
+    FROM matched
+    ORDER BY match_rank DESC, quantity DESC, id ASC
+    LIMIT 1
+  `;
+
+  const params = [isIdCandidate ? numericCandidate : null, isIdCandidate, normalizedCode, code.toLowerCase()];
+
+  try {
+    const result = await pool.query<{
+      table_key: string;
+      section: string;
+      id: number;
+      title: string;
+      price: string | null;
+      quantity: number;
+    }>(sql, params);
+
+    const row = result.rows[0];
+    if (!row) {
+      return NextResponse.json({ found: false, error: "Product not available" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      found: true,
+      item: {
+        tableKey: row.table_key,
+        section: row.section,
+        id: row.id,
+        title: row.title ?? `Product #${row.id}`,
+        price: row.price,
+        quantity: row.quantity ?? 0,
+      },
+    });
+  } catch (error) {
+    console.error("[quick-sell] resolve failed:", error);
+    return NextResponse.json({ found: false, error: "Product lookup failed" }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
