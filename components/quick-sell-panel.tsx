@@ -283,34 +283,30 @@ export function QuickSellPanel() {
       <aside className="w-full rounded-2xl border border-border/60 bg-card/70 p-4 lg:sticky lg:top-20">
         <p className="text-center text-lg font-bold text-foreground">checkout</p>
 
-      {isInputOpen && (
-        <div className="mt-4">
-          <input
-            ref={inputRef}
-            autoComplete="off"
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            onBlur={() => {
-              if (blurTimerRef.current !== null) {
-                window.clearTimeout(blurTimerRef.current);
-              }
-              blurTimerRef.current = window.setTimeout(() => {
-                const active = document.activeElement;
-                const userTypingElsewhere =
-                  active instanceof HTMLInputElement ||
-                  active instanceof HTMLTextAreaElement ||
-                  active instanceof HTMLSelectElement ||
-                  (active instanceof HTMLElement && active.isContentEditable);
-                if (!userTypingElsewhere) {
-                  inputRef.current?.focus();
-                }
-              }, 0);
-            }}
-            placeholder="Scan QR/Barcode"
-            className="w-full h-11 rounded-xl border border-border/60 bg-background px-3 text-sm outline-none ring-0 transition focus:border-foreground/40"
-          />
-        </div>
-      )}
+      <input
+        ref={inputRef}
+        autoComplete="off"
+        value={code}
+        onChange={(event) => setCode(event.target.value)}
+        onBlur={() => {
+          if (blurTimerRef.current !== null) {
+            window.clearTimeout(blurTimerRef.current);
+          }
+          blurTimerRef.current = window.setTimeout(() => {
+            const active = document.activeElement;
+            const userTypingElsewhere =
+              active instanceof HTMLInputElement ||
+              active instanceof HTMLTextAreaElement ||
+              active instanceof HTMLSelectElement ||
+              (active instanceof HTMLElement && active.isContentEditable);
+            if (!userTypingElsewhere) {
+              inputRef.current?.focus();
+            }
+          }, 0);
+        }}
+        placeholder="Scan QR/Barcode"
+        className={isInputOpen ? "mt-4 w-full h-11 rounded-xl border border-border/60 bg-background px-3 text-sm outline-none ring-0 transition focus:border-foreground/40" : "sr-only"}
+      />
 
       <div
         className={
