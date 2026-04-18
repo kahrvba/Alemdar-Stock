@@ -5,11 +5,18 @@ import { useToast } from "@/components/ui/toast";
 
 const scanAnimation = `
   @keyframes scan {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
+    0%, 100% {
+      opacity: 0.4;
+      filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.3));
+    }
+    50% {
+      opacity: 1;
+      filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8));
+    }
   }
   .animate-scan {
-    animation: scan 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: scan 1.2s ease-in-out infinite;
+    color: #3b82f6;
   }
 `;
 
