@@ -3,6 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/toast";
 
+const scanAnimation = `
+  @keyframes scan {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  .animate-scan {
+    animation: scan 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+`;
+
 type QuickSellItem = {
   tableKey: string;
   section: string;
@@ -261,8 +271,10 @@ export function QuickSellPanel() {
   };
 
   return (
-    <aside className="w-full rounded-2xl border border-border/60 bg-card/70 p-4 lg:sticky lg:top-20">
-      <p className="text-center text-lg font-bold text-foreground">checkout</p>
+    <>
+      <style>{scanAnimation}</style>
+      <aside className="w-full rounded-2xl border border-border/60 bg-card/70 p-4 lg:sticky lg:top-20">
+        <p className="text-center text-lg font-bold text-foreground">checkout</p>
 
       {isInputOpen && (
         <div className="mt-4">
@@ -377,7 +389,7 @@ export function QuickSellPanel() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="h-5 w-5 animate-pulse"
+                  className="h-5 w-5 animate-scan"
                   aria-hidden="true"
                 >
                   <rect x="3" y="6" width="18" height="12" rx="2" />
@@ -413,6 +425,7 @@ export function QuickSellPanel() {
         )}
       </div>
 
-    </aside>
+      </aside>
+    </>
   );
 }
