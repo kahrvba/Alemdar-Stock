@@ -341,7 +341,7 @@ export function QuickSellPanel() {
                   >
                     <div className="flex-1 min-w-0 truncate">
                       <p className="text-sm font-semibold truncate">
-                        {item.sellQuantity > 1 && <span className="text-muted-foreground">{item.sellQuantity}. </span>}
+                        {item.sellQuantity > 1 && <span className="text-muted-foreground">{item.sellQuantity}+ </span>}
                         {item.title}
                       </p>
                     </div>
