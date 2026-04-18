@@ -264,17 +264,8 @@ export function QuickSellPanel() {
     <aside className="w-full rounded-2xl border border-border/60 bg-card/70 p-4 lg:sticky lg:top-20">
       <p className="text-center text-lg font-bold text-foreground">checkout</p>
 
-      <div className="mt-4 flex gap-2">
-        {!isInputOpen && (
-          <button
-            type="button"
-            onClick={() => setIsInputOpen(true)}
-            className="flex-1 h-11 rounded-xl border border-border/60 bg-primary/10 text-sm font-semibold text-primary transition hover:bg-primary/20"
-          >
-            Open Input
-          </button>
-        )}
-        {isInputOpen && (
+      {isInputOpen && (
+        <div className="mt-4">
           <input
             ref={inputRef}
             autoComplete="off"
@@ -297,16 +288,16 @@ export function QuickSellPanel() {
               }, 0);
             }}
             placeholder="Scan QR/Barcode"
-            className="flex-1 h-11 rounded-xl border border-border/60 bg-background px-3 text-sm outline-none ring-0 transition focus:border-foreground/40"
+            className="w-full h-11 rounded-xl border border-border/60 bg-background px-3 text-sm outline-none ring-0 transition focus:border-foreground/40"
           />
-        )}
-      </div>
+        </div>
+      )}
 
       <div
         className={
           activeItem || error || isSearching
-            ? "mt-4 rounded-xl border border-border/60 bg-background/60 p-3"
-            : "mt-3"
+            ? "mt-4 rounded-xl border border-border/60 bg-background/60 p-3 min-h-96 flex flex-col"
+            : "mt-3 min-h-96 flex flex-col"
         }
       >
         {isSearching ? (
@@ -315,37 +306,47 @@ export function QuickSellPanel() {
           </div>
         ) : error ? (
           <p className="text-sm font-medium text-destructive">{error}</p>
-        ) : activeItem ? (
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-foreground">{activeItem.title}</p>
-            <div className="flex items-center justify-between text-sm font-bold text-emerald-600">
-              <span>Price: {formatPrice(activeItem.price)}</span>
-              <span>{`Available: ${Math.max(0, activeItem.quantity ?? 0)}`}</span>
-            </div>
+        ) : null}
 
-            <div className="mt-2 flex items-center justify-between rounded-xl border border-border/60 bg-card px-2 py-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Quantity
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => updateActiveSellQuantity("dec")}
-                  className="h-7 w-7 rounded-md border border-border/60 text-sm font-bold text-foreground transition hover:bg-muted"
-                >
-                  -
-                </button>
-                <span className="min-w-8 text-center text-sm font-bold text-foreground">
-                  {activeItem.sellQuantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => updateActiveSellQuantity("inc")}
-                  className="h-7 w-7 rounded-md border border-border/60 text-sm font-bold text-foreground transition hover:bg-muted"
-                >
-                  +
-                </button>
-              </div>
+        {scannedItems.length > 0 && (
+          <div className="pt-4 space-y-2 flex flex-col h-full">
+            <div className="space-y-1.5 flex-1 overflow-y-auto">
+              {scannedItems.map((item, index) => {
+                const itemKey = makeItemKey(item);
+                const itemTotal = (Number(item.price) || 0) * item.sellQuantity;
+
+                return (
+                  <div
+                    key={itemKey}
+                    className="flex items-center justify-between gap-2 px-2 py-2 text-xs text-foreground hover:bg-muted/40 rounded transition"
+                  >
+                    <div className="flex-1 min-w-0 truncate">
+                      <p className="text-sm font-semibold truncate">
+                        {scannedItems.length > 1 && <span className="text-muted-foreground">{index + 1}. </span>}
+                        {item.title} <span className="text-muted-foreground">x{item.sellQuantity}</span>
+                      </p>
+                    </div>
+
+                    <span className="text-sm font-bold text-emerald-600 shrink-0 min-w-16 text-right">
+                      {formatPrice(String(itemTotal))}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScannedItems((current) => current.filter((entry) => makeItemKey(entry) !== itemKey));
+                        setActiveItemKey((current) => (current === itemKey ? null : current));
+                      }}
+                      className="h-7 w-7 rounded transition hover:opacity-80 flex items-center justify-center shrink-0"
+                      aria-label="Delete"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#ef4444" className="h-5 w-5">
+                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z"/>
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
             <button
@@ -357,68 +358,57 @@ export function QuickSellPanel() {
                 !isAvailable ||
                 hasInvalidSellQuantity
               }
-              className="mt-2 h-10 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full h-10 rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 mt-auto"
             >
-              {isSelling ? "Selling..." : "Sell All"}
+              {isSelling ? "Processing..." : "Checkout"}
             </button>
-
-            {scannedItems.length > 0 && (
-              <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
-                {scannedItems.map((item) => {
-                  const itemKey = makeItemKey(item);
-                  const isActive = makeItemKey(activeItem) === itemKey;
-
-                  return (
-                    <div
-                      key={itemKey}
-                      className={`flex items-center justify-between rounded-lg border px-2 py-2 ${
-                        isActive ? "border-foreground/40 bg-card" : "border-border/60 bg-background/70"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setActiveItemKey(itemKey)}
-                        className="min-w-0 flex-1 text-left"
-                      >
-                        <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
-                        <p className="text-xs font-medium text-muted-foreground">Qty: {item.sellQuantity}</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setScannedItems((current) => current.filter((entry) => makeItemKey(entry) !== itemKey));
-                          setActiveItemKey((current) => (current === itemKey ? null : current));
-                        }}
-                        className="ml-2 rounded-md border border-red-500/60 px-2 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
-        ) : (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="inline-flex h-4 w-4 items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-                aria-hidden="true"
+        )}
+
+        {!activeItem && !error && !isSearching && scannedItems.length === 0 && (
+          <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground mt-auto pt-4 border-t border-border/60">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-5 w-5 items-center justify-center relative">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5 animate-pulse"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="6" width="18" height="12" rx="2" />
+                  <path d="M7 10h10" />
+                  <path d="M7 14h6" />
+                </svg>
+              </span>
+              <p>ready when you are</p>
+            </div>
+            {!isInputOpen && (
+              <button
+                type="button"
+                onClick={() => setIsInputOpen(true)}
+                className="h-9 w-9 rounded-lg border border-border/60 bg-primary/10 text-primary transition hover:bg-primary/20 flex items-center justify-center shrink-0"
+                aria-label="Open input"
               >
-                <rect x="3" y="6" width="18" height="12" rx="2" />
-                <path d="M7 10h10" />
-                <path d="M7 14h6" />
-              </svg>
-            </span>
-            <p>ready when you are</p>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </button>
+            )}
           </div>
         )}
       </div>
