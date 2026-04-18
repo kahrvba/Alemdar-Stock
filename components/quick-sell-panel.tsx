@@ -42,6 +42,7 @@ export function QuickSellPanel() {
   const [scannedItems, setScannedItems] = useState<ScannedQuickSellItem[]>([]);
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isInputOpen, setIsInputOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const blurTimerRef = useRef<number | null>(null);
@@ -178,10 +179,12 @@ export function QuickSellPanel() {
   }, [code]);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    if (isInputOpen) {
+      inputRef.current?.focus();
+    }
 
     const handleWindowFocus = () => {
-      if (!document.hidden) inputRef.current?.focus();
+      if (!document.hidden && isInputOpen) inputRef.current?.focus();
     };
 
     window.addEventListener("focus", handleWindowFocus);
@@ -192,7 +195,7 @@ export function QuickSellPanel() {
       if (debounceTimerRef.current !== null) window.clearTimeout(debounceTimerRef.current);
       if (requestControllerRef.current) requestControllerRef.current.abort();
     };
-  }, []);
+  }, [isInputOpen]);
 
   const updateActiveSellQuantity = (direction: "inc" | "dec") => {
     if (!activeItem) return;
@@ -261,32 +264,42 @@ export function QuickSellPanel() {
     <aside className="w-full rounded-2xl border border-border/60 bg-card/70 p-4 lg:sticky lg:top-20">
       <p className="text-center text-lg font-bold text-foreground">checkout</p>
 
-      <div className="mt-4">
-        <input
-          ref={inputRef}
-          autoFocus
-          autoComplete="off"
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
-          onBlur={() => {
-            if (blurTimerRef.current !== null) {
-              window.clearTimeout(blurTimerRef.current);
-            }
-            blurTimerRef.current = window.setTimeout(() => {
-              const active = document.activeElement;
-              const userTypingElsewhere =
-                active instanceof HTMLInputElement ||
-                active instanceof HTMLTextAreaElement ||
-                active instanceof HTMLSelectElement ||
-                (active instanceof HTMLElement && active.isContentEditable);
-              if (!userTypingElsewhere) {
-                inputRef.current?.focus();
+      <div className="mt-4 flex gap-2">
+        {!isInputOpen && (
+          <button
+            type="button"
+            onClick={() => setIsInputOpen(true)}
+            className="flex-1 h-11 rounded-xl border border-border/60 bg-primary/10 text-sm font-semibold text-primary transition hover:bg-primary/20"
+          >
+            Open Input
+          </button>
+        )}
+        {isInputOpen && (
+          <input
+            ref={inputRef}
+            autoComplete="off"
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            onBlur={() => {
+              if (blurTimerRef.current !== null) {
+                window.clearTimeout(blurTimerRef.current);
               }
-            }, 0);
-          }}
-          placeholder="Scan QR/Barcode"
-          className="h-11 w-full rounded-xl border border-border/60 bg-background px-3 text-sm outline-none ring-0 transition focus:border-foreground/40"
-        />
+              blurTimerRef.current = window.setTimeout(() => {
+                const active = document.activeElement;
+                const userTypingElsewhere =
+                  active instanceof HTMLInputElement ||
+                  active instanceof HTMLTextAreaElement ||
+                  active instanceof HTMLSelectElement ||
+                  (active instanceof HTMLElement && active.isContentEditable);
+                if (!userTypingElsewhere) {
+                  inputRef.current?.focus();
+                }
+              }, 0);
+            }}
+            placeholder="Scan QR/Barcode"
+            className="flex-1 h-11 rounded-xl border border-border/60 bg-background px-3 text-sm outline-none ring-0 transition focus:border-foreground/40"
+          />
+        )}
       </div>
 
       <div
@@ -349,7 +362,7 @@ export function QuickSellPanel() {
               {isSelling ? "Selling..." : "Sell All"}
             </button>
 
-            {scannedItems.length > 1 ? (
+            {scannedItems.length > 0 && (
               <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
                 {scannedItems.map((item) => {
                   const itemKey = makeItemKey(item);
@@ -384,7 +397,7 @@ export function QuickSellPanel() {
                   );
                 })}
               </div>
-            ) : null}
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
