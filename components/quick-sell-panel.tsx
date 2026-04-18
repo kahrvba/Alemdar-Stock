@@ -59,7 +59,7 @@ export function QuickSellPanel() {
   const [scannedItems, setScannedItems] = useState<ScannedQuickSellItem[]>([]);
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isInputOpen, setIsInputOpen] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const blurTimerRef = useRef<number | null>(null);
@@ -196,12 +196,10 @@ export function QuickSellPanel() {
   }, [code]);
 
   useEffect(() => {
-    if (isInputOpen) {
-      inputRef.current?.focus();
-    }
+    inputRef.current?.focus();
 
     const handleWindowFocus = () => {
-      if (!document.hidden && isInputOpen) inputRef.current?.focus();
+      if (!document.hidden) inputRef.current?.focus();
     };
 
     window.addEventListener("focus", handleWindowFocus);
@@ -212,7 +210,7 @@ export function QuickSellPanel() {
       if (debounceTimerRef.current !== null) window.clearTimeout(debounceTimerRef.current);
       if (requestControllerRef.current) requestControllerRef.current.abort();
     };
-  }, [isInputOpen]);
+  }, []);
 
   const updateActiveSellQuantity = (direction: "inc" | "dec") => {
     if (!activeItem) return;
@@ -285,6 +283,7 @@ export function QuickSellPanel() {
 
       <input
         ref={inputRef}
+        autoFocus
         autoComplete="off"
         value={code}
         onChange={(event) => setCode(event.target.value)}
@@ -305,7 +304,7 @@ export function QuickSellPanel() {
           }, 0);
         }}
         placeholder="Scan QR/Barcode"
-        className={isInputOpen ? "mt-4 w-full h-11 rounded-xl border border-border/60 bg-background px-3 text-sm outline-none ring-0 transition focus:border-foreground/40" : "sr-only"}
+        className={showManualInput ? "mt-4 w-full h-11 rounded-xl border border-border/60 bg-background px-3 text-sm outline-none ring-0 transition focus:border-foreground/40" : "absolute -inset-full opacity-0 pointer-events-none"}
       />
 
       <div
@@ -322,6 +321,32 @@ export function QuickSellPanel() {
         ) : error ? (
           <p className="text-sm font-medium text-destructive">{error}</p>
         ) : null}
+
+        {scannedItems.length === 0 && !isSearching && !error && (
+          <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground mt-auto pt-4 border-t border-border/60">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-5 w-5 items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 animate-scan" aria-hidden="true">
+                  <rect x="3" y="6" width="18" height="12" rx="2" />
+                  <path d="M7 10h10" />
+                  <path d="M7 14h6" />
+                </svg>
+              </span>
+              <p>ready when you are</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowManualInput(true)}
+              className="h-9 w-9 rounded-lg border border-border/60 bg-primary/10 text-primary transition hover:bg-primary/20 flex items-center justify-center"
+              aria-label="Manual input"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {scannedItems.length > 0 && (
           <div className="pt-4 space-y-2 flex flex-col h-full">
@@ -380,52 +405,6 @@ export function QuickSellPanel() {
           </div>
         )}
 
-        {!activeItem && !error && !isSearching && scannedItems.length === 0 && (
-          <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground mt-auto pt-4 border-t border-border/60">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-5 w-5 items-center justify-center relative">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5 animate-scan"
-                  aria-hidden="true"
-                >
-                  <rect x="3" y="6" width="18" height="12" rx="2" />
-                  <path d="M7 10h10" />
-                  <path d="M7 14h6" />
-                </svg>
-              </span>
-              <p>ready when you are</p>
-            </div>
-            {!isInputOpen && (
-              <button
-                type="button"
-                onClick={() => setIsInputOpen(true)}
-                className="h-9 w-9 rounded-lg border border-border/60 bg-primary/10 text-primary transition hover:bg-primary/20 flex items-center justify-center shrink-0"
-                aria-label="Open input"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5"
-                >
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       </aside>
