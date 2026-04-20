@@ -32,6 +32,21 @@ export function FastBarcodeInserter() {
   const hasScannedRef = useRef(false);
   const { showToast } = useToast();
 
+  const extractScanText = (result: unknown) => {
+    const raw = result as { text?: unknown; getText?: unknown } | null;
+    if (!raw) return "";
+    if (typeof raw.text === "string") return raw.text.trim();
+    if (typeof raw.getText === "function") {
+      try {
+        const value = (raw.getText as () => unknown)();
+        return typeof value === "string" ? value.trim() : "";
+      } catch {
+        return "";
+      }
+    }
+    return "";
+  };
+
   const selectedItem = useMemo(
     () => (selectedKey ? items.find((item) => `${item.tableKey}:${item.id}` === selectedKey) : null),
     [items, selectedKey]
@@ -66,8 +81,7 @@ export function FastBarcodeInserter() {
         if (current && nextItems.some((item) => `${item.tableKey}:${item.id}` === current)) {
           return current;
         }
-        const first = nextItems[0];
-        return first ? `${first.tableKey}:${first.id}` : null;
+        return null;
       });
     } catch (searchError) {
       const message = searchError instanceof Error ? searchError.message : "Search failed";
@@ -95,10 +109,19 @@ export function FastBarcodeInserter() {
   }, [query]);
 
   useEffect(() => {
-    if (selectedItem) {
-      barcodeInputRef.current?.focus();
+    // While the user is changing the search query, don't keep an active selection/scanner open.
+    setSelectedKey(null);
+    if (isScannerOpen) {
+      void handleCloseScanner();
     }
-  }, [selectedItem?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  const handleSelectItem = (rowKey: string) => {
+    setSelectedKey(rowKey);
+    // Focus barcode input after user selection (avoid stealing focus while typing search).
+    window.setTimeout(() => barcodeInputRef.current?.focus(), 0);
+  };
 
   const handleOpenScanner = async () => {
     if (!selectedItem) {
@@ -208,7 +231,7 @@ export function FastBarcodeInserter() {
                 <button
                   key={rowKey}
                   type="button"
-                  onClick={() => setSelectedKey(rowKey)}
+                  onClick={() => handleSelectItem(rowKey)}
                   className={`w-full cursor-pointer rounded-lg border px-3 py-2 text-left transition ${
                     isActive
                       ? "border-foreground/40 bg-card"
@@ -250,6 +273,11 @@ export function FastBarcodeInserter() {
           </div>
         )}
       </div>
+      {!selectedItem && items.length > 0 && !isSearching ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Tip: Click a result to select it, then scan/insert the barcode.
+        </p>
+      ) : null}
 
       <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-end">
         <label className="flex flex-1 flex-col gap-1 text-sm text-muted-foreground">
@@ -300,7 +328,7 @@ export function FastBarcodeInserter() {
                   onUpdate={(scanError, result) => {
                     void scanError;
                     if (hasScannedRef.current) return;
-                    const text = (result as { text?: string } | null)?.text?.trim();
+                    const text = extractScanText(result);
                     if (!text) return;
                     hasScannedRef.current = true;
                     setBarcode(text);
