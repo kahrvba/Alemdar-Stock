@@ -35,24 +35,26 @@ export default function InvoiceTemplate({
   const kdvAmount = subtotal * kdvRate;
   const totalWithKdv = subtotal + kdvAmount;
   return (
-    <div className="invoice-container max-w-5xl mx-auto bg-white font-sans text-[11px] print:bg-white">
+    <div className="invoice-container mx-auto max-w-5xl bg-white px-3 font-sans text-[11px] print:bg-white sm:px-0">
       <div className="border border-gray-800 p-3">
         {/* Header */}
-        <div className="grid grid-cols-[200px_1fr_260px] items-start gap-2">
+        <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[200px_1fr_260px]">
           <div className="flex items-center gap-2">
             <div className="relative h-14 w-14 flex items-center justify-center">
               <Image src="/logo.png" alt="Logo" fill className="object-contain" />
             </div>
-            <div className="text-[11px] font-semibold whitespace-nowrap">ALEMDAR TEKNİK LTD</div>
+            <div className="text-[11px] font-semibold whitespace-normal sm:whitespace-nowrap">
+              ALEMDAR TEKNİK LTD
+            </div>
           </div>
           <div className="relative min-h-[80px]">
-            <div className="absolute left-1/2 top-20 -translate-x-1/2 text-center">
+            <div className="mt-2 text-center sm:absolute sm:left-1/2 sm:top-20 sm:-translate-x-1/2">
               <div className="text-base font-bold tracking-wide">FATURA</div>
               <div className="mt-1 text-xs">Telefon</div>
               <div className="text-xs font-semibold">+90 542 877 2005</div>
             </div>
           </div>
-          <div className="text-right text-[10px] leading-tight">
+          <div className="text-left text-[10px] leading-tight sm:text-right">
             <div className="text-xs font-semibold">ALEMDAR TEKNİK LTD</div>
             <div>Polis Sokak, No: 4 Suriariçi/Lefkoşa</div>
             <div>Tel: +90 542 877 2005</div>
@@ -89,8 +91,8 @@ export default function InvoiceTemplate({
         </div>
 
         {/* Client Info */}
-        <div className="mt-2 grid grid-cols-[260px_1fr_180px] items-start gap-2">
-          <div className="relative p-2 pt-4 min-h-[70px]">
+        <div className="mt-2 grid grid-cols-1 items-start gap-2 sm:grid-cols-[260px_1fr_180px]">
+          <div className="relative min-h-[70px] p-2 pt-4">
             <div className="absolute top-1 left-3 bg-white px-1 text-[10px]">Sayın</div>
             <div className="absolute left-0 top-0 h-3 w-3 border-l border-t border-gray-700" />
             <div className="absolute right-0 top-0 h-3 w-3 border-r border-t border-gray-700" />
@@ -98,49 +100,51 @@ export default function InvoiceTemplate({
             <div className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-gray-700" />
             <div className="pl-2 font-semibold">ALEMDAR TEKNİK</div>
           </div>
-          <div />
+          <div className="hidden sm:block" />
           <div className="text-right text-xs">
           </div>
         </div>
 
         {/* Products */}
-        <div className="mt-2 relative">
+        <div className="relative mt-2">
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[14px] font-semibold tracking-widest text-gray-200">
             ÖDENMİŞTİR
           </div>
-          <table className="w-full border-collapse text-[10px]">
-            <thead>
-              <tr className="bg-black text-white text-[10px] print:[-webkit-print-color-adjust:exact] print:[color-adjust:exact]">
-                <th className="border border-gray-700 px-2 py-1 w-[9%]">ADET</th>
-                <th className="border border-gray-700 px-2 py-1">A Ç I K L A M A</th>
-                <th className="border border-gray-700 px-2 py-1 w-[11%]">B.Fiyat</th>
-                <th className="border border-gray-700 px-2 py-1 w-[8%]">KDV</th>
-                <th className="border border-gray-700 px-2 py-1 w-[12%]">TUTAR</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p, idx) => (
-                <tr key={idx}>
-                  <td className="border border-gray-700 px-2 py-2 text-center">{p.quantity},00 ADET</td>
-                  <td className="border border-gray-700 px-2 py-2">{p.name}</td>
-                  <td className="border border-gray-700 px-2 py-2 text-right">{p.unitPrice.toFixed(2)}</td>
-                  <td className="border border-gray-700 px-2 py-2 text-center">16</td>
-                  <td className="border border-gray-700 px-2 py-2 text-right">{p.total.toFixed(2)}</td>
+          <div className="-mx-3 overflow-x-auto sm:mx-0">
+            <table className="w-full min-w-[520px] border-collapse text-[10px]">
+              <thead>
+                <tr className="bg-black text-white text-[10px] print:[-webkit-print-color-adjust:exact] print:[color-adjust:exact]">
+                  <th className="w-[9%] border border-gray-700 px-2 py-1">ADET</th>
+                  <th className="border border-gray-700 px-2 py-1">A Ç I K L A M A</th>
+                  <th className="w-[11%] border border-gray-700 px-2 py-1">B.Fiyat</th>
+                  <th className="w-[8%] border border-gray-700 px-2 py-1">KDV</th>
+                  <th className="w-[12%] border border-gray-700 px-2 py-1">TUTAR</th>
                 </tr>
-              ))}
-              <tr>
-                <td className="border border-gray-700 px-2 py-16" />
-                <td className="border border-gray-700 px-2 py-16" />
-                <td className="border border-gray-700 px-2 py-16" />
-                <td className="border border-gray-700 px-2 py-16" />
-                <td className="border border-gray-700 px-2 py-16" />
-              </tr>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {products.map((p, idx) => (
+                  <tr key={idx}>
+                    <td className="border border-gray-700 px-2 py-2 text-center">{p.quantity},00 ADET</td>
+                    <td className="border border-gray-700 px-2 py-2">{p.name}</td>
+                    <td className="border border-gray-700 px-2 py-2 text-right">{p.unitPrice.toFixed(2)}</td>
+                    <td className="border border-gray-700 px-2 py-2 text-center">16</td>
+                    <td className="border border-gray-700 px-2 py-2 text-right">{p.total.toFixed(2)}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td className="border border-gray-700 px-2 py-10 sm:py-16" />
+                  <td className="border border-gray-700 px-2 py-10 sm:py-16" />
+                  <td className="border border-gray-700 px-2 py-10 sm:py-16" />
+                  <td className="border border-gray-700 px-2 py-10 sm:py-16" />
+                  <td className="border border-gray-700 px-2 py-10 sm:py-16" />
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Totals */}
-        <div className="mt-2 grid grid-cols-[1fr_220px] gap-2">
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_220px]">
           <div className="border border-gray-700 bg-white px-2 py-2 text-[10px]">
             <div className="flex items-center gap-2">
               <span>Yazı ile Yalnız:</span>
@@ -169,7 +173,7 @@ export default function InvoiceTemplate({
         </div>
 
         {/* Footer */}
-        <div className="mt-2 grid grid-cols-2 items-end gap-2 text-[10px]">
+        <div className="mt-2 grid grid-cols-1 items-end gap-2 text-[10px] sm:grid-cols-2">
           <div className="flex items-end gap-2">
             <span>TESLİM ALAN</span>
             <span className="flex-1 border-b border-dotted border-gray-700" />

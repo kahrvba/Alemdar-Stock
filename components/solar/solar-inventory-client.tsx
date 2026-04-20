@@ -148,12 +148,12 @@ export function SolarInventoryClient({
     <>
     <div className="flex flex-col gap-12">
       <header className="flex flex-col items-start gap-4 text-left">
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
             <h1 className="text-lg font-semibold uppercase tracking-[0.35em] text-muted-foreground">
               Solar Inventory
             </h1>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
               {/* Excel Export Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

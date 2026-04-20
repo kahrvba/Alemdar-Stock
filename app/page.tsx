@@ -12,7 +12,7 @@ export default function Home() {
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="flex min-w-0 flex-col items-center gap-6">
             <div className="w-full">
-              <div className="flex items-center gap-4 text-sm font-semibold text-foreground">
+              <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-foreground">
                 <Link
                   href="/tools"
                   className="underline underline-offset-4 transition hover:opacity-80"

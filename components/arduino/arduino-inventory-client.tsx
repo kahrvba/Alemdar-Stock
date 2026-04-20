@@ -310,12 +310,12 @@ export function ArduinoInventoryClient({
     <>
     <div className="flex flex-col gap-12">
       <header className="flex flex-col items-start gap-4 text-left">
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
             <h1 className="text-lg font-semibold uppercase tracking-[0.35em] text-muted-foreground">
               Arduino Inventory
             </h1>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
               {/* Excel Export Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -549,7 +549,7 @@ export function ArduinoInventoryClient({
             }
           }}
         >
-          <div className="w-full max-w-3xl rounded-3xl border border-border/60 bg-card p-6 shadow-2xl">
+	          <div className="max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border/60 bg-card p-4 shadow-2xl sm:rounded-3xl sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
@@ -590,10 +590,10 @@ export function ArduinoInventoryClient({
             }
           }}
         >
-          <div
-            className="w-full max-w-2xl rounded-3xl border border-border/60 bg-card p-6 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
+	          <div
+	            className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border/60 bg-card p-4 shadow-2xl sm:rounded-3xl sm:p-6"
+	            onClick={(event) => event.stopPropagation()}
+	          >
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">

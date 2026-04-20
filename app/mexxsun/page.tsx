@@ -44,7 +44,7 @@ export default async function MexxsunPage({
   const nextPage = Math.min(totalPages, page + 1);
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-background px-6 py-16 text-foreground">
+    <main className="min-h-[calc(100vh-4rem)] bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12 lg:py-16">
       <div className="mx-auto w-full max-w-6xl">
         <MexxsunInventoryClient
           items={items}
@@ -59,4 +59,3 @@ export default async function MexxsunPage({
     </main>
   );
 }
-

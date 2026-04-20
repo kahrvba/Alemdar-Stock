@@ -32,7 +32,7 @@ export function SiteHeader({ initialVersion }: SiteHeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
+        <div className="mx-auto flex h-16 w-full min-w-0 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <CartButton />
             <ThemeToggle />
@@ -43,7 +43,7 @@ export function SiteHeader({ initialVersion }: SiteHeaderProps) {
               if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
               showOverlay();
             }}
-            className="text-sm font-semibold uppercase tracking-[0.35em] text-muted-foreground transition hover:text-foreground"
+            className="max-w-[60vw] truncate text-sm font-semibold uppercase tracking-[0.35em] text-muted-foreground transition hover:text-foreground sm:max-w-none"
           >
             {`VERSION ${initialVersion.appVersion}`}
           </Link>

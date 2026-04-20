@@ -2,49 +2,46 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/toast";
-
-type ToolSection = {
-  key: string;
-  label: string;
-};
+import BarcodeScannerComponent from "react-qr-barcode-scanner";
 
 type ToolItem = {
+  tableKey: string;
+  section: string;
   id: number;
   title: string;
-  barcode: string;
+  subtitle: string | null;
+  image: string | null;
+  price: string | null;
+  quantity: number;
+  href: string;
 };
 
 export function FastBarcodeInserter() {
-  const [sections] = useState<ToolSection[]>([
-    { key: "arduino", label: "Arduino" },
-    { key: "mainled", label: "Cable" },
-    { key: "sound", label: "Sound" },
-    { key: "batteries", label: "Batteries" },
-    { key: "fans", label: "Fans" },
-    { key: "others", label: "Others" },
-  ]);
-  const [section, setSection] = useState("arduino");
   const [query, setQuery] = useState("");
   const [barcode, setBarcode] = useState("");
   const [items, setItems] = useState<ToolItem[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
+  const [stopStream, setStopStream] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchDebounceRef = useRef<number | null>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const hasScannedRef = useRef(false);
   const { showToast } = useToast();
 
   const selectedItem = useMemo(
-    () => items.find((item) => item.id === selectedId) ?? null,
-    [items, selectedId]
+    () => (selectedKey ? items.find((item) => `${item.tableKey}:${item.id}` === selectedKey) : null),
+    [items, selectedKey]
   );
 
-  const runSearch = async (sectionValue: string, queryValue: string) => {
+  const runSearch = async (queryValue: string) => {
     const trimmed = queryValue.trim();
     if (!trimmed) {
       setItems([]);
-      setSelectedId(null);
+      setSelectedKey(null);
       setError(null);
       setIsSearching(false);
       return;
@@ -54,7 +51,7 @@ export function FastBarcodeInserter() {
     setError(null);
     try {
       const response = await fetch(
-        `/api/tools/fast-barcode?section=${encodeURIComponent(sectionValue)}&query=${encodeURIComponent(trimmed)}&limit=10`,
+        `/api/universal-search?query=${encodeURIComponent(trimmed)}`,
         { cache: "no-store" }
       );
       const data = (await response.json().catch(() => null)) as
@@ -65,15 +62,18 @@ export function FastBarcodeInserter() {
       }
       const nextItems = Array.isArray(data?.items) ? data.items : [];
       setItems(nextItems);
-      setSelectedId((current) => {
-        if (current && nextItems.some((item) => item.id === current)) return current;
-        return nextItems[0]?.id ?? null;
+      setSelectedKey((current) => {
+        if (current && nextItems.some((item) => `${item.tableKey}:${item.id}` === current)) {
+          return current;
+        }
+        const first = nextItems[0];
+        return first ? `${first.tableKey}:${first.id}` : null;
       });
     } catch (searchError) {
       const message = searchError instanceof Error ? searchError.message : "Search failed";
       setError(message);
       setItems([]);
-      setSelectedId(null);
+      setSelectedKey(null);
     } finally {
       setIsSearching(false);
     }
@@ -84,7 +84,7 @@ export function FastBarcodeInserter() {
       window.clearTimeout(searchDebounceRef.current);
     }
     searchDebounceRef.current = window.setTimeout(() => {
-      void runSearch(section, query);
+      void runSearch(query);
     }, 180);
 
     return () => {
@@ -92,7 +92,7 @@ export function FastBarcodeInserter() {
         window.clearTimeout(searchDebounceRef.current);
       }
     };
-  }, [query, section]);
+  }, [query]);
 
   useEffect(() => {
     if (selectedItem) {
@@ -100,8 +100,31 @@ export function FastBarcodeInserter() {
     }
   }, [selectedItem?.id]);
 
+  const handleOpenScanner = async () => {
+    if (!selectedItem) {
+      showToast("Select a product first", "error");
+      return;
+    }
+
+    setScannerError(null);
+    setStopStream(false);
+    hasScannedRef.current = false;
+    setIsScannerOpen(true);
+  };
+
+  const handleCloseScanner = async () => {
+    hasScannedRef.current = false;
+    // Stop the camera stream first (workaround for webcam freeze on unmount),
+    // then close the panel on the next tick.
+    setStopStream(true);
+    window.setTimeout(() => {
+      setIsScannerOpen(false);
+      setStopStream(false);
+    }, 0);
+  };
+
   const handleSave = async () => {
-    if (!selectedItem || !selectedId) {
+    if (!selectedItem || !selectedKey) {
       showToast("Select a product first", "error");
       return;
     }
@@ -118,8 +141,8 @@ export function FastBarcodeInserter() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          section,
-          productId: selectedId,
+          section: selectedItem.tableKey,
+          productId: selectedItem.id,
           barcode: trimmedBarcode,
         }),
       });
@@ -141,7 +164,7 @@ export function FastBarcodeInserter() {
       setBarcode("");
       setQuery("");
       setItems([]);
-      setSelectedId(null);
+      setSelectedKey(null);
       showToast("Barcode inserted", "success");
       barcodeInputRef.current?.focus();
     } catch (saveError) {
@@ -159,33 +182,13 @@ export function FastBarcodeInserter() {
         <h2 className="text-lg font-semibold text-foreground">Fast Barcode Inserter</h2>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3">
         <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-          Section
-          <select
-            value={section}
-            onChange={(event) => {
-              setSection(event.target.value);
-              setItems([]);
-              setSelectedId(null);
-              setError(null);
-            }}
-            className="h-10 cursor-pointer rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground outline-none focus:border-primary"
-          >
-            {sections.map((entry) => (
-              <option key={entry.key} value={entry.key}>
-                {entry.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-          Find Product
+          Find Product (All Sections)
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="ID, name, category..."
+            placeholder="ID, name, category, barcode..."
             className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground outline-none focus:border-primary"
           />
         </label>
@@ -199,12 +202,13 @@ export function FastBarcodeInserter() {
         ) : items.length > 0 ? (
           <div className="space-y-2">
             {items.map((item) => {
-              const isActive = item.id === selectedId;
+              const rowKey = `${item.tableKey}:${item.id}`;
+              const isActive = rowKey === selectedKey;
               return (
                 <button
-                  key={item.id}
+                  key={rowKey}
                   type="button"
-                  onClick={() => setSelectedId(item.id)}
+                  onClick={() => setSelectedKey(rowKey)}
                   className={`w-full cursor-pointer rounded-lg border px-3 py-2 text-left transition ${
                     isActive
                       ? "border-foreground/40 bg-card"
@@ -212,18 +216,13 @@ export function FastBarcodeInserter() {
                   }`}
                 >
                   <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                  <p className="text-xs text-muted-foreground">ID: {item.id}</p>
-                  {item.barcode.trim() ? (
-                    <div className="mt-1 flex items-center gap-1">
-                      <img
-                        src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='%23dc2626'/%3E%3Cpath d='M12 7v7' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='17.5' r='1.2' fill='white'/%3E%3C/svg%3E"
-                        alt="Has barcode"
-                        className="h-4 w-4"
-                      />
-                      <span className="text-[11px] font-semibold text-red-600">
-                        Barcode already exists
-                      </span>
-                    </div>
+                  <p className="text-xs text-muted-foreground">
+                    {item.section} • ID: {item.id}
+                  </p>
+                  {item.subtitle ? (
+                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                      {item.subtitle}
+                    </p>
                   ) : null}
                 </button>
               );
@@ -252,28 +251,88 @@ export function FastBarcodeInserter() {
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
-        <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+      <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-end">
+        <label className="flex flex-1 flex-col gap-1 text-sm text-muted-foreground">
           Barcode
-          <input
-            ref={barcodeInputRef}
-            value={barcode}
-            onChange={(event) => setBarcode(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                void handleSave();
-              }
-            }}
-            placeholder="Scan/paste barcode"
-            className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground outline-none focus:border-primary"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              ref={barcodeInputRef}
+              value={barcode}
+              onChange={(event) => setBarcode(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleSave();
+                }
+              }}
+              placeholder="Scan/paste barcode"
+              className="h-10 w-full flex-1 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground outline-none focus:border-primary"
+            />
+            <button
+              type="button"
+              onClick={() => void (isScannerOpen ? handleCloseScanner() : handleOpenScanner())}
+              disabled={!selectedItem || isSaving}
+              className="h-10 cursor-pointer rounded-xl border border-border/60 bg-background px-4 text-sm font-semibold text-foreground transition hover:bg-card disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isScannerOpen ? "Close" : "Scan"}
+            </button>
+          </div>
+
+          {isScannerOpen ? (
+            <div className="mt-2 rounded-xl border border-border/60 bg-background/80 p-2">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-foreground">Scanner</p>
+                <button
+                  type="button"
+                  onClick={() => void handleCloseScanner()}
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="h-[220px] overflow-hidden rounded-lg border border-border/60 bg-card">
+                <BarcodeScannerComponent
+                  width="100%"
+                  height={220}
+                  facingMode="environment"
+                  stopStream={stopStream}
+                  delay={250}
+                  onUpdate={(scanError, result) => {
+                    void scanError;
+                    if (hasScannedRef.current) return;
+                    const text = (result as { text?: string } | null)?.text?.trim();
+                    if (!text) return;
+                    hasScannedRef.current = true;
+                    setBarcode(text);
+                    setScannerError(null);
+                    showToast("Barcode scanned", "success");
+                    setStopStream(true);
+                    window.setTimeout(() => {
+                      setIsScannerOpen(false);
+                      setStopStream(false);
+                      barcodeInputRef.current?.focus();
+                      hasScannedRef.current = false;
+                    }, 0);
+                  }}
+                  onError={(cameraError: unknown) => {
+                    const message =
+                      cameraError instanceof Error ? cameraError.message : "Camera error";
+                    setScannerError(message);
+                  }}
+                />
+              </div>
+              {scannerError ? (
+                <p className="mt-2 text-xs text-destructive">{scannerError}</p>
+              ) : null}
+            </div>
+          ) : null}
         </label>
+
         <button
           type="button"
           onClick={() => void handleSave()}
           disabled={!selectedItem || isSaving}
-          className="mt-6 h-10 cursor-pointer rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-10 w-full cursor-pointer rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
         >
           {isSaving ? "Saving..." : "Insert Barcode"}
         </button>
@@ -281,7 +340,7 @@ export function FastBarcodeInserter() {
 
       {selectedItem ? (
         <p className="mt-3 text-xs text-muted-foreground">
-          Selected: #{selectedItem.id} {selectedItem.title}
+          Selected: {selectedItem.section} #{selectedItem.id} {selectedItem.title}
         </p>
       ) : null}
       {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
