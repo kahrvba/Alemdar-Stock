@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/toast";
-import BarcodeScannerComponent from "react-qr-barcode-scanner";
 
 type ToolItem = {
   tableKey: string;
@@ -23,29 +22,10 @@ export function FastBarcodeInserter() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scannerError, setScannerError] = useState<string | null>(null);
-  const [stopStream, setStopStream] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchDebounceRef = useRef<number | null>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
-  const hasScannedRef = useRef(false);
   const { showToast } = useToast();
-
-  const extractScanText = (result: unknown) => {
-    const raw = result as { text?: unknown; getText?: unknown } | null;
-    if (!raw) return "";
-    if (typeof raw.text === "string") return raw.text.trim();
-    if (typeof raw.getText === "function") {
-      try {
-        const value = (raw.getText as () => unknown)();
-        return typeof value === "string" ? value.trim() : "";
-      } catch {
-        return "";
-      }
-    }
-    return "";
-  };
 
   const selectedItem = useMemo(
     () => (selectedKey ? items.find((item) => `${item.tableKey}:${item.id}` === selectedKey) : null),
@@ -111,9 +91,6 @@ export function FastBarcodeInserter() {
   useEffect(() => {
     // While the user is changing the search query, don't keep an active selection/scanner open.
     setSelectedKey(null);
-    if (isScannerOpen) {
-      void handleCloseScanner();
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
@@ -121,29 +98,6 @@ export function FastBarcodeInserter() {
     setSelectedKey(rowKey);
     // Focus barcode input after user selection (avoid stealing focus while typing search).
     window.setTimeout(() => barcodeInputRef.current?.focus(), 0);
-  };
-
-  const handleOpenScanner = async () => {
-    if (!selectedItem) {
-      showToast("Select a product first", "error");
-      return;
-    }
-
-    setScannerError(null);
-    setStopStream(false);
-    hasScannedRef.current = false;
-    setIsScannerOpen(true);
-  };
-
-  const handleCloseScanner = async () => {
-    hasScannedRef.current = false;
-    // Stop the camera stream first (workaround for webcam freeze on unmount),
-    // then close the panel on the next tick.
-    setStopStream(true);
-    window.setTimeout(() => {
-      setIsScannerOpen(false);
-      setStopStream(false);
-    }, 0);
   };
 
   const handleSave = async () => {
@@ -296,64 +250,7 @@ export function FastBarcodeInserter() {
               placeholder="Scan/paste barcode"
               className="h-10 w-full flex-1 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground outline-none focus:border-primary"
             />
-            <button
-              type="button"
-              onClick={() => void (isScannerOpen ? handleCloseScanner() : handleOpenScanner())}
-              disabled={!selectedItem || isSaving}
-              className="h-10 cursor-pointer rounded-xl border border-border/60 bg-background px-4 text-sm font-semibold text-foreground transition hover:bg-card disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isScannerOpen ? "Close" : "Scan"}
-            </button>
           </div>
-
-          {isScannerOpen ? (
-            <div className="mt-2 rounded-xl border border-border/60 bg-background/80 p-2">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-foreground">Scanner</p>
-                <button
-                  type="button"
-                  onClick={() => void handleCloseScanner()}
-                  className="text-xs font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Close
-                </button>
-              </div>
-              <div className="h-[220px] overflow-hidden rounded-lg border border-border/60 bg-card">
-                <BarcodeScannerComponent
-                  width="100%"
-                  height={220}
-                  facingMode="environment"
-                  stopStream={stopStream}
-                  delay={250}
-                  onUpdate={(scanError, result) => {
-                    void scanError;
-                    if (hasScannedRef.current) return;
-                    const text = extractScanText(result);
-                    if (!text) return;
-                    hasScannedRef.current = true;
-                    setBarcode(text);
-                    setScannerError(null);
-                    showToast("Barcode scanned", "success");
-                    setStopStream(true);
-                    window.setTimeout(() => {
-                      setIsScannerOpen(false);
-                      setStopStream(false);
-                      barcodeInputRef.current?.focus();
-                      hasScannedRef.current = false;
-                    }, 0);
-                  }}
-                  onError={(cameraError: unknown) => {
-                    const message =
-                      cameraError instanceof Error ? cameraError.message : "Camera error";
-                    setScannerError(message);
-                  }}
-                />
-              </div>
-              {scannerError ? (
-                <p className="mt-2 text-xs text-destructive">{scannerError}</p>
-              ) : null}
-            </div>
-          ) : null}
         </label>
 
         <button
