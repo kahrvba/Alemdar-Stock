@@ -51,6 +51,7 @@ const formatPrice = (value: string | null) => {
 };
 
 const makeItemKey = (item: { tableKey: string; id: number }) => `${item.tableKey}:${item.id}`;
+const KDV_RATE = 0.16;
 
 const focusScannerInput = (input: HTMLInputElement | null) => {
   if (!input) return;
@@ -65,6 +66,8 @@ export function QuickSellPanel() {
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showManualInput, setShowManualInput] = useState(false);
+  const [lastInvoiceId, setLastInvoiceId] = useState<number | null>(null);
+  const [isPrintingInvoice, setIsPrintingInvoice] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const blurTimerRef = useRef<number | null>(null);
@@ -83,6 +86,16 @@ export function QuickSellPanel() {
   );
 
   const isAvailable = useMemo(() => (activeItem?.quantity ?? 0) > 0, [activeItem?.quantity]);
+  const subtotal = useMemo(
+    () =>
+      scannedItems.reduce((sum, item) => {
+        const unitPrice = Number(item.price) || 0;
+        return sum + unitPrice * item.sellQuantity;
+      }, 0),
+    [scannedItems]
+  );
+  const kdvAmount = useMemo(() => subtotal * KDV_RATE, [subtotal]);
+  const grandTotal = useMemo(() => subtotal + kdvAmount, [subtotal, kdvAmount]);
   const hasInvalidSellQuantity = useMemo(
     () =>
       scannedItems.some(
@@ -159,6 +172,7 @@ export function QuickSellPanel() {
         showToast("stock finished", "error");
       }
 
+      setLastInvoiceId(null);
       setActiveItemKey(incomingKey);
       setCode("");
       focusScannerInput(inputRef.current);
@@ -270,14 +284,70 @@ export function QuickSellPanel() {
         throw new Error(data?.error ?? "Checkout failed");
       }
 
-      showToast("Sold successfully", "success");
-      window.location.href = `/invoices/${data.invoiceId}`;
+      setLastInvoiceId(data.invoiceId);
+      setScannedItems([]);
+      setActiveItemKey(null);
+      setError(null);
+      setCode("");
+      focusScannerInput(inputRef.current);
+      showToast("Checkout completed", "success");
     } catch (sellError) {
       const message = sellError instanceof Error ? sellError.message : "Sell failed";
       showToast(message, "error");
     } finally {
       setIsSelling(false);
     }
+  };
+
+  const handlePrintInvoice = (invoiceId: number) => {
+    if (isPrintingInvoice) return;
+
+    setIsPrintingInvoice(true);
+    const frame = document.createElement("iframe");
+    frame.style.position = "fixed";
+    frame.style.right = "0";
+    frame.style.bottom = "0";
+    frame.style.width = "0";
+    frame.style.height = "0";
+    frame.style.border = "0";
+    frame.style.opacity = "0";
+    frame.style.pointerEvents = "none";
+    frame.setAttribute("aria-hidden", "true");
+    frame.src = `/invoices/${invoiceId}`;
+    document.body.appendChild(frame);
+
+    const cleanup = () => {
+      frame.remove();
+      setIsPrintingInvoice(false);
+    };
+
+    const startedAt = Date.now();
+    const maxWaitMs = 15000;
+
+    const tryPrint = () => {
+      const frameWindow = frame.contentWindow;
+      const frameDoc = frame.contentDocument;
+      const hasInvoice = !!frameDoc?.querySelector(".invoice-container");
+
+      if (frameWindow && hasInvoice) {
+        frameWindow.focus();
+        frameWindow.print();
+        window.setTimeout(cleanup, 800);
+        return;
+      }
+
+      if (Date.now() - startedAt > maxWaitMs) {
+        cleanup();
+        showToast("Could not load invoice for printing", "error");
+        return;
+      }
+
+      window.setTimeout(tryPrint, 250);
+    };
+
+    frame.onload = () => {
+      window.setTimeout(tryPrint, 250);
+    };
   };
 
   return (
@@ -356,7 +426,7 @@ export function QuickSellPanel() {
         {scannedItems.length > 0 && (
           <div className="pt-4 space-y-2 flex flex-col h-full">
             <div className="space-y-1.5 flex-1 overflow-y-auto">
-              {scannedItems.map((item, index) => {
+              {scannedItems.map((item) => {
                 const itemKey = makeItemKey(item);
                 const itemTotal = (Number(item.price) || 0) * item.sellQuantity;
 
@@ -394,23 +464,72 @@ export function QuickSellPanel() {
               })}
             </div>
 
-            <button
-              type="button"
-              onClick={() => void handleSell()}
-              disabled={
-                scannedItems.length === 0 ||
-                isSelling ||
-                !isAvailable ||
-                hasInvalidSellQuantity
-              }
-              className="w-full h-10 rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 mt-auto"
-            >
-              {isSelling ? "Processing..." : "Checkout"}
-            </button>
+            <div className="mt-auto space-y-3 pt-3 border-t border-border/60">
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span className="font-medium">{formatPrice(String(subtotal))}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>KDV ({Math.round(KDV_RATE * 100)}%)</span>
+                  <span className="font-medium">{formatPrice(String(kdvAmount))}</span>
+                </div>
+                <div className="flex items-center justify-between text-base font-bold text-foreground">
+                  <span>Total</span>
+                  <span>{formatPrice(String(grandTotal))}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScannedItems([]);
+                    setActiveItemKey(null);
+                    setError(null);
+                    setCode("");
+                    setLastInvoiceId(null);
+                    focusScannerInput(inputRef.current);
+                  }}
+                  disabled={isSelling || scannedItems.length === 0}
+                  className="h-10 rounded-xl border border-border/60 bg-background text-sm font-semibold text-foreground transition hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void handleSell()}
+                  disabled={
+                    scannedItems.length === 0 ||
+                    isSelling ||
+                    !isAvailable ||
+                    hasInvalidSellQuantity
+                  }
+                  className="h-10 rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSelling ? "Processing..." : "Checkout"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
       </div>
+
+      {lastInvoiceId && (
+        <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+          <p className="text-sm font-semibold text-emerald-700">Checkout completed.</p>
+          <button
+            type="button"
+            onClick={() => handlePrintInvoice(lastInvoiceId)}
+            disabled={isPrintingInvoice}
+            className="mt-2 h-9 w-full rounded-lg border border-emerald-600/30 bg-emerald-600 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isPrintingInvoice ? "Opening printer..." : "Print invoice"}
+          </button>
+        </div>
+      )}
 
       </aside>
     </>
