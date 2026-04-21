@@ -11,7 +11,7 @@ import {
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-type FilterOption = "id" | "english_names" | "turkish_names" | "category";
+type FilterOption = "id" | "english_names" | "turkish_names" | "category" | "barcode";
 
 type AdaptersSearchProps = {
   onFilterChange?: (filters: { query: string; field: FilterOption | null }) => void;
@@ -236,6 +236,7 @@ export function AdaptersSearch({
       { value: "english_names", label: "English Name" },
       { value: "turkish_names", label: "Turkish Name" },
       { value: "category", label: "Category" },
+      { value: "barcode", label: "Barcode" },
     ],
     []
   );

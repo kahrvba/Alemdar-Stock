@@ -24,6 +24,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
     product.price && Number(product.price) > 0
       ? usdFormatter.format(Number(product.price))
       : "Contact for price";
+  const barcodeLabel = product.barcode?.trim() || "No barcode";
 
   return (
     <article
@@ -65,9 +66,12 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
           ) : null}
         </div>
         <div className="mt-auto flex flex-col gap-3 text-sm text-muted-foreground">
-          <div className="grid grid-cols-2 items-center gap-3 min-w-0">
+          <div className="grid grid-cols-[auto,1fr,auto] items-center gap-3 min-w-0">
             <span className="shrink-0 rounded-full bg-emerald-500/15 px-4 py-1 font-semibold text-emerald-600 dark:text-emerald-300 text-center">
               Qty: {Math.max(0, product.quantity ?? 0)}
+            </span>
+            <span className="flex min-h-[2.5rem] items-center justify-center rounded-full bg-foreground/90 px-5 text-xs font-semibold uppercase tracking-[0.35em] text-background text-center leading-tight">
+              {barcodeLabel}
             </span>
             <span className="shrink-0 rounded-full bg-primary px-4 py-1 text-base font-semibold text-primary-foreground text-center">
               {priceLabel}

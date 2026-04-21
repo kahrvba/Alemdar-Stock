@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
-const CHARGER_SEARCH_FIELDS = ['id', 'english_names', 'turkish_names', 'category'] as const;
+const CHARGER_SEARCH_FIELDS = ['id', 'english_names', 'turkish_names', 'category', 'barcode'] as const;
 type ChargersSearchField = (typeof CHARGER_SEARCH_FIELDS)[number];
 
 const COMPACT_REGEX = '[[:space:]/_.-]+';
 const CHARGER_SEARCHABLE_EXPR =
-  "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, ''))";
+  "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))";
 const CHARGER_SEARCHABLE_COMPACT_EXPR =
   `REGEXP_REPLACE(${CHARGER_SEARCHABLE_EXPR}, '${COMPACT_REGEX}', '', 'g')`;
 
@@ -15,6 +15,7 @@ const toCompact = (value: string) => value.replace(/[ /_.-]+/g, '');
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
+  const barcode = searchParams.get('barcode');
   const query = searchParams.get('query')?.trim();
   const field = searchParams.get('field');
   const pageParam = searchParams.get('page');
@@ -55,6 +56,15 @@ export async function GET(req: Request) {
          WHERE id = ANY($1)
          ORDER BY id ASC`,
         [ids]
+      );
+      items = result.rows ?? [];
+      total = items.length;
+      currentPage = 1;
+      currentPageSize = total || pageSize;
+    } else if (barcode) {
+      const result = await client.query(
+        'SELECT *, COALESCE(quantity, 0) as quantity FROM public.chargers WHERE barcode = $1 ORDER BY id ASC',
+        [barcode]
       );
       items = result.rows ?? [];
       total = items.length;
@@ -150,7 +160,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const client = await pool.connect();
   try {
-    const { english_names, turkish_names, category, quantity, price, image_filename, description } = await req.json();
+    const { english_names, turkish_names, category, barcode, quantity, price, image_filename, description } = await req.json();
     
     // Start a transaction
     await client.query('BEGIN');
@@ -166,8 +176,8 @@ export async function POST(req: Request) {
     }
 
     const result = await client.query(
-      'INSERT INTO public.chargers (id, english_names, turkish_names, category, quantity, price, image_filename, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
-      [newId, english_names, turkish_names, category, quantity, price, image_filename, description]
+      'INSERT INTO public.chargers (id, english_names, turkish_names, category, barcode, quantity, price, image_filename, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+      [newId, english_names, turkish_names, category, barcode, quantity, price, image_filename, description]
     );
 
     if (!result.rows[0]?.id) {
@@ -189,7 +199,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const client = await pool.connect();
   try {
-    const { id, english_names, turkish_names, category, quantity, price, image_filename, description } = await req.json();
+    const { id, english_names, turkish_names, category, barcode, quantity, price, image_filename, description } = await req.json();
 
     await client.query('BEGIN');
     
@@ -199,12 +209,13 @@ export async function PUT(req: Request) {
          english_names=COALESCE($1, english_names), 
          turkish_names=COALESCE($2, turkish_names), 
          category=COALESCE($3, category), 
-         quantity=COALESCE($4, quantity), 
-         price=COALESCE($5, price), 
-         image_filename=COALESCE($6, image_filename),
-         description=COALESCE($7, description)
-       WHERE id=$8`,
-      [english_names, turkish_names, category, quantity, price, image_filename, description, id]
+         barcode=COALESCE($4, barcode), 
+         quantity=COALESCE($5, quantity), 
+         price=COALESCE($6, price), 
+         image_filename=COALESCE($7, image_filename),
+         description=COALESCE($8, description)
+       WHERE id=$9`,
+      [english_names, turkish_names, category, barcode, quantity, price, image_filename, description, id]
     );
 
     await client.query('COMMIT');

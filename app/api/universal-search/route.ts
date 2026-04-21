@@ -182,7 +182,7 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     priceExpr: "price::text",
     quantityExpr: "COALESCE(quantity, 0)",
     searchableExpr:
-      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, ''))",
+      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))",
   },
   {
     tableKey: "chargers",
@@ -195,7 +195,7 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     priceExpr: "price::text",
     quantityExpr: "COALESCE(quantity, 0)",
     searchableExpr:
-      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, ''))",
+      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))",
   },
 ];
 

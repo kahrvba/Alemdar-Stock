@@ -122,18 +122,20 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
     sectionLabel: "Adapters",
     tableName: "public.adapters",
     nameExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
-    barcodeExpr: "NULL",
+    barcodeExpr: "barcode",
     priceExpr: "price",
-    codeMatchExpr: "FALSE",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   chargers: {
     tableKey: "chargers",
     sectionLabel: "Chargers",
     tableName: "public.chargers",
     nameExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
-    barcodeExpr: "NULL",
+    barcodeExpr: "barcode",
     priceExpr: "price",
-    codeMatchExpr: "FALSE",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
 };
 

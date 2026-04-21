@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { HoverZoom } from "@/components/ui/hover-zoom";
 import { useNavigationOverlay } from "@/components/navigation-overlay-provider";
@@ -21,46 +21,12 @@ type CardProps = {
 };
 
 const CardComponent = ({ card, index, hovered, setHovered }: CardProps) => {
-  const { push } = useRouter();
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const hasLink = Boolean(card.href);
   const { showOverlay } = useNavigationOverlay();
 
-  return (
-    <div
-      onMouseEnter={() => setHovered(index)}
-      onMouseLeave={() => setHovered(null)}
-      onClick={() => {
-        if (card.href) {
-          showOverlay();
-          push(card.href);
-        }
-      }}
-      onKeyDown={(event) => {
-        if (!card.href) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          showOverlay();
-          push(card.href);
-        }
-      }}
-      onMouseMove={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        setTooltipPosition({
-          x: event.clientX - rect.left,
-          y: event.clientY - rect.top,
-        });
-      }}
-      className={cn(
-        "relative h-44 w-full overflow-hidden rounded-lg bg-card transition-all duration-300 ease-out sm:h-52 lg:h-60",
-        hovered !== null && hovered !== index && "blur-sm scale-[0.98]",
-        hasLink
-          ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-          : "cursor-pointer"
-      )}
-      role={hasLink ? "button" : undefined}
-      tabIndex={hasLink ? 0 : undefined}
-    >
+  const cardContent = (
+    <>
       <HoverZoom className="absolute inset-0">
         <Image
           src={card.src}
@@ -89,6 +55,54 @@ const CardComponent = ({ card, index, hovered, setHovered }: CardProps) => {
           {card.title}
         </div>
       </div>
+    </>
+  );
+
+  if (card.href) {
+    return (
+      <Link
+        href={card.href}
+        onMouseEnter={() => setHovered(index)}
+        onMouseLeave={() => setHovered(null)}
+        onClick={() => {
+          showOverlay();
+        }}
+        onMouseMove={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          setTooltipPosition({
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top,
+          });
+        }}
+        className={cn(
+          "relative block h-44 w-full overflow-hidden rounded-lg bg-card transition-all duration-300 ease-out sm:h-52 lg:h-60",
+          hovered !== null && hovered !== index && "blur-sm scale-[0.98]",
+          "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+        )}
+      >
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(index)}
+      onMouseLeave={() => setHovered(null)}
+      onMouseMove={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        setTooltipPosition({
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top,
+        });
+      }}
+      className={cn(
+        "relative h-44 w-full overflow-hidden rounded-lg bg-card transition-all duration-300 ease-out sm:h-52 lg:h-60",
+        hovered !== null && hovered !== index && "blur-sm scale-[0.98]",
+        "cursor-pointer"
+      )}
+    >
+      {cardContent}
     </div>
   );
 };
