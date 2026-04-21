@@ -5,13 +5,12 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { CartButton } from "@/components/ui/cart";
 import StaggeredMenu from "@/components/StaggeredMenu";
 import { useNavigationOverlay } from "@/components/navigation-overlay-provider";
-import type { DeploymentVersion } from "@/lib/app-version";
 
 type SiteHeaderProps = {
-  initialVersion: DeploymentVersion;
+  appVersion: string;
 };
 
-export function SiteHeader({ initialVersion }: SiteHeaderProps) {
+export function SiteHeader({ appVersion }: SiteHeaderProps) {
   const menuItems = [
     { label: "Arduino", ariaLabel: "Arduino Section", link: "/arduino" },
     { label: "Adapters", ariaLabel: "Adapters Section", link: "/adapters" },
@@ -45,7 +44,7 @@ export function SiteHeader({ initialVersion }: SiteHeaderProps) {
             }}
             className="max-w-[60vw] truncate text-sm font-semibold uppercase tracking-[0.35em] text-muted-foreground transition hover:text-foreground sm:max-w-none"
           >
-            {`VERSION ${initialVersion.appVersion}`}
+            {`VERSION ${appVersion}`}
           </Link>
         </div>
       </header>

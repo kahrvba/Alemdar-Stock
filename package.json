@@ -1,6 +1,6 @@
 {
   "name": "new_alemdar",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "private": true,
   "scripts": {
     "dev": "rm -rf .next &&  next dev --turbopack",

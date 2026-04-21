@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
-import { DeploymentRefreshGuard } from "@/components/deployment-refresh-guard";
 import { NavigationOverlayProvider } from "@/components/navigation-overlay-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { CartProvider } from "@/components/ui/cart";
-import { getDeploymentVersion } from "@/lib/app-version";
+import { getAppVersion } from "@/lib/app-version";
 
 export const metadata: Metadata = {
   title: "Alemdar Teknik LTD",
@@ -18,7 +17,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const deploymentVersionPromise = getDeploymentVersion();
+  const appVersionPromise = getAppVersion();
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -30,7 +29,7 @@ export default function RootLayout({
           <ToastProvider>
             <CartProvider>
               <NavigationOverlayProvider>
-                <ResolvedLayoutContent deploymentVersionPromise={deploymentVersionPromise}>
+                <ResolvedLayoutContent appVersionPromise={appVersionPromise}>
                   {children}
                 </ResolvedLayoutContent>
               </NavigationOverlayProvider>
@@ -44,17 +43,16 @@ export default function RootLayout({
 
 async function ResolvedLayoutContent({
   children,
-  deploymentVersionPromise,
+  appVersionPromise,
 }: {
   children: React.ReactNode;
-  deploymentVersionPromise: ReturnType<typeof getDeploymentVersion>;
+  appVersionPromise: ReturnType<typeof getAppVersion>;
 }) {
-  const deploymentVersion = await deploymentVersionPromise;
+  const appVersion = await appVersionPromise;
 
   return (
     <>
-      <SiteHeader initialVersion={deploymentVersion} />
-      <DeploymentRefreshGuard initialVersion={deploymentVersion} />
+      <SiteHeader appVersion={appVersion} />
       <main>{children}</main>
     </>
   );
