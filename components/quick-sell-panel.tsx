@@ -52,6 +52,11 @@ const formatPrice = (value: string | null) => {
 
 const makeItemKey = (item: { tableKey: string; id: number }) => `${item.tableKey}:${item.id}`;
 
+const focusScannerInput = (input: HTMLInputElement | null) => {
+  if (!input) return;
+  input.focus({ preventScroll: true });
+};
+
 export function QuickSellPanel() {
   const [code, setCode] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -156,7 +161,7 @@ export function QuickSellPanel() {
 
       setActiveItemKey(incomingKey);
       setCode("");
-      inputRef.current?.focus();
+      focusScannerInput(inputRef.current);
     } catch (lookupError) {
       if (controller.signal.aborted) return;
       if (requestToken !== latestRequestTokenRef.current) return;
@@ -196,10 +201,10 @@ export function QuickSellPanel() {
   }, [code]);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    focusScannerInput(inputRef.current);
 
     const handleWindowFocus = () => {
-      if (!document.hidden) inputRef.current?.focus();
+      if (!document.hidden) focusScannerInput(inputRef.current);
     };
 
     window.addEventListener("focus", handleWindowFocus);
@@ -299,7 +304,7 @@ export function QuickSellPanel() {
               active instanceof HTMLSelectElement ||
               (active instanceof HTMLElement && active.isContentEditable);
             if (!userTypingElsewhere) {
-              inputRef.current?.focus();
+              focusScannerInput(inputRef.current);
             }
           }, 0);
         }}
