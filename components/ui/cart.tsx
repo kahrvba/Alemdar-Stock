@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Act
 import Image from "next/image";
 import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import type { ArduinoProduct } from "@/lib/services/arduino";
+import { CART_INVENTORY_TO_SOURCE_TABLE } from "@/lib/invoice-undo";
+import { useCurrencyRates } from "@/components/currency-rates-provider";
 import { useToast } from "./toast";
 
 type InventoryType = "arduino" | "sound" | "solar" | "mexxsun" | "cable" | "battery" | "tv" | "filaments" | "fans" | "others" | "electric" | "adapters" | "chargers";
@@ -54,6 +56,7 @@ export function useCart() {
 
 const CART_STORAGE_KEY = "arduino_cart";
 const DEFAULT_INVENTORY_TYPE: InventoryType = "arduino";
+const KDV_RATE = 0.16;
 
 const INVENTORY_ENDPOINTS: Record<InventoryType, string> = {
   arduino: "/api/arduino",
@@ -218,12 +221,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 function CartSidebar() {
   const { items, isOpen, closeCart, removeFromCart, updateQuantity, totalItems, totalPrice, clearCart } = useCart();
   const { showToast } = useToast();
+  const { formatFromUSD, formatMultiFromUSD, isLoadingRates } = useCurrencyRates();
   const [isProcessing, setIsProcessing] = useState(false);
-  const usdFormatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  });
+  const kdvAmount = totalPrice * KDV_RATE;
+  const totalWithKdv = totalPrice + kdvAmount;
 
   const handleRemove = (cartItem: CartItem) => {
     const inventoryType = getInventoryType(cartItem.product);
@@ -559,6 +560,7 @@ function CartSidebar() {
         invoiceNumber: String(newInvoiceNumber),
         date: new Date().toISOString(),
         products: verificationResults.map((line) => ({
+          sourceTableKey: CART_INVENTORY_TO_SOURCE_TABLE[line.inventoryType],
           productId: line.cartItem.product.id,
           name: getProductDisplayName(line.inventoryType, line.freshProduct, line.cartItem),
           barcode:
@@ -570,7 +572,7 @@ function CartSidebar() {
           total: line.lineTotal,
         })),
         subtotal: computedSubtotal,
-        total: computedSubtotal,
+        total: computedSubtotal + computedSubtotal * KDV_RATE,
       };
 
       const response = await fetch('/api/invoices', {
@@ -735,9 +737,15 @@ function CartSidebar() {
                             </button>
                           </div>
                           <span className="text-sm font-semibold text-foreground">
-                            {usdFormatter.format(itemTotal)}
+                            {formatFromUSD(itemTotal, "USD")}
                           </span>
                         </div>
+                        <p className="text-sm text-muted-foreground">
+                          {(() => {
+                            const converted = formatMultiFromUSD(itemTotal);
+                            return `${converted.TRY} • ${converted.EUR} • ${converted.GBP}`;
+                          })()}
+                        </p>
                       </div>
                     </div>
                   );
@@ -749,12 +757,35 @@ function CartSidebar() {
           {/* Footer */}
           {items.length > 0 && (
             <div className="border-t border-border/60 p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <span className="text-lg font-semibold text-foreground">Total</span>
-                <span className="text-2xl font-bold text-primary">
-                  {usdFormatter.format(totalPrice)}
-                </span>
+              <div className="mb-4 space-y-1">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>{formatFromUSD(totalPrice, "USD")}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>KDV ({Math.round(KDV_RATE * 100)}%)</span>
+                  <span>{formatFromUSD(kdvAmount, "USD")}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-semibold text-foreground">Total</span>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold text-primary">
+                      {formatFromUSD(totalWithKdv, "USD")}
+                    </span>
+                    <p className="text-sm text-muted-foreground">
+                      {(() => {
+                        const converted = formatMultiFromUSD(totalWithKdv);
+                        return `${converted.TRY} • ${converted.EUR} • ${converted.GBP}`;
+                      })()}
+                    </p>
+                  </div>
+                </div>
               </div>
+              {isLoadingRates && (
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Loading live TRY/EUR/GBP rates...
+                </p>
+              )}
               <div className="flex flex-col gap-2">
                 <button
                   type="button"

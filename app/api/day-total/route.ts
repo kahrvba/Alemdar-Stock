@@ -21,7 +21,8 @@ export async function POST(req: Request) {
       `SELECT COALESCE(SUM(total_amount), 0) AS total
        FROM public.invoices
        WHERE date_created >= CURRENT_DATE
-         AND date_created < CURRENT_DATE + INTERVAL '1 day'`
+         AND date_created < CURRENT_DATE + INTERVAL '1 day'
+         AND COALESCE(status, 'completed') <> 'canceled'`
     );
 
     const rawTotal = result.rows[0]?.total;
@@ -38,4 +39,3 @@ export async function POST(req: Request) {
     client.release();
   }
 }
-

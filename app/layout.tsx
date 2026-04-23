@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { NavigationOverlayProvider } from "@/components/navigation-overlay-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { CartProvider } from "@/components/ui/cart";
+import { CurrencyRatesProvider } from "@/components/currency-rates-provider";
 import { getAppVersion } from "@/lib/app-version";
 
 export const metadata: Metadata = {
@@ -27,13 +28,15 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <ToastProvider>
-            <CartProvider>
-              <NavigationOverlayProvider>
-                <ResolvedLayoutContent appVersionPromise={appVersionPromise}>
-                  {children}
-                </ResolvedLayoutContent>
-              </NavigationOverlayProvider>
-            </CartProvider>
+            <CurrencyRatesProvider>
+              <CartProvider>
+                <NavigationOverlayProvider>
+                  <ResolvedLayoutContent appVersionPromise={appVersionPromise}>
+                    {children}
+                  </ResolvedLayoutContent>
+                </NavigationOverlayProvider>
+              </CartProvider>
+            </CurrencyRatesProvider>
           </ToastProvider>
         </ThemeProvider>
       </body>

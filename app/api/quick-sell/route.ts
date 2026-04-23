@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
+import type { InvoiceSourceTableKey } from "@/lib/invoice-undo";
 
 type TableConfig = {
-  tableKey: string;
+  tableKey: InvoiceSourceTableKey;
   sectionLabel: string;
   tableName: string;
   nameExpr: string;
@@ -148,6 +149,8 @@ function toFiniteNumber(value: unknown) {
   }
   return 0;
 }
+
+const KDV_RATE = 0.16;
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -384,7 +387,8 @@ export async function POST(req: Request) {
     const latestInvoiceValue = latestInvoiceRes.rows[0]?.invoice_number ?? "0";
     const latestInvoiceNumber = Number.parseInt(String(latestInvoiceValue), 10) || 0;
     const nextInvoiceNumber = latestInvoiceNumber + 1;
-    const totalAmount = verifiedLines.reduce((sum, line) => sum + line.lineTotal, 0);
+    const subtotalAmount = verifiedLines.reduce((sum, line) => sum + line.lineTotal, 0);
+    const totalAmount = subtotalAmount + subtotalAmount * KDV_RATE;
 
     const invoiceRes = await client.query<{ id: number }>(
       `INSERT INTO public.invoices (invoice_number, date_created, total_amount, status)
@@ -400,8 +404,8 @@ export async function POST(req: Request) {
 
     for (const line of verifiedLines) {
       await client.query(
-        `INSERT INTO public.invoice_items (invoice_id, product_id, product_name, quantity, unit_price, total_price, barcode)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        `INSERT INTO public.invoice_items (invoice_id, product_id, product_name, quantity, unit_price, total_price, barcode, source_table_key)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           invoiceId,
           line.productId,
@@ -410,6 +414,7 @@ export async function POST(req: Request) {
           line.unitPrice,
           line.lineTotal,
           line.barcode,
+          line.tableKey,
         ]
       );
     }

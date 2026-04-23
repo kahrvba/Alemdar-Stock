@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCurrencyRates } from "@/components/currency-rates-provider";
 import { useToast } from "@/components/ui/toast";
 
 const scanAnimation = `
@@ -39,17 +40,6 @@ type ScannedQuickSellItem = QuickSellItem & {
   sellQuantity: number;
 };
 
-const formatPrice = (value: string | null) => {
-  if (!value) return "-";
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return value;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(numeric);
-};
-
 const makeItemKey = (item: { tableKey: string; id: number }) => `${item.tableKey}:${item.id}`;
 const KDV_RATE = 0.16;
 
@@ -68,6 +58,7 @@ export function QuickSellPanel() {
   const [showManualInput, setShowManualInput] = useState(false);
   const [lastInvoiceId, setLastInvoiceId] = useState<number | null>(null);
   const [isPrintingInvoice, setIsPrintingInvoice] = useState(false);
+  const [isUndoingInvoice, setIsUndoingInvoice] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const blurTimerRef = useRef<number | null>(null);
@@ -76,6 +67,7 @@ export function QuickSellPanel() {
   const latestRequestTokenRef = useRef(0);
   const lastLookupRef = useRef("");
   const { showToast } = useToast();
+  const { formatFromUSD, formatMultiFromUSD, isLoadingRates } = useCurrencyRates();
 
   const activeItem = useMemo(
     () =>
@@ -350,6 +342,33 @@ export function QuickSellPanel() {
     };
   };
 
+  const handleUndoInvoice = async (invoiceId: number) => {
+    if (isUndoingInvoice) return;
+
+    setIsUndoingInvoice(true);
+    try {
+      const response = await fetch(`/api/invoices/${invoiceId}/undo`, {
+        method: "POST",
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { success?: boolean; error?: string; errorCode?: string }
+        | null;
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error ?? "Undo failed");
+      }
+
+      setLastInvoiceId(null);
+      showToast("Invoice undone", "success");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Undo failed";
+      showToast(message, "error");
+    } finally {
+      setIsUndoingInvoice(false);
+    }
+  };
+
   return (
     <>
       <style>{scanAnimation}</style>
@@ -442,9 +461,17 @@ export function QuickSellPanel() {
                       </p>
                     </div>
 
-                    <span className="text-sm font-bold text-emerald-600 shrink-0 min-w-16 text-right">
-                      {formatPrice(String(itemTotal))}
-                    </span>
+                    <div className="shrink-0 min-w-24 text-right">
+                      <span className="text-sm font-bold text-emerald-600">
+                        {formatFromUSD(itemTotal, "USD")}
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        {(() => {
+                          const converted = formatMultiFromUSD(itemTotal);
+                          return `${converted.TRY} • ${converted.EUR} • ${converted.GBP}`;
+                        })()}
+                      </p>
+                    </div>
 
                     <button
                       type="button"
@@ -468,17 +495,28 @@ export function QuickSellPanel() {
               <div className="space-y-1 text-sm">
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Subtotal</span>
-                  <span className="font-medium">{formatPrice(String(subtotal))}</span>
+                  <span className="font-medium">{formatFromUSD(subtotal, "USD")}</span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>KDV ({Math.round(KDV_RATE * 100)}%)</span>
-                  <span className="font-medium">{formatPrice(String(kdvAmount))}</span>
+                  <span className="font-medium">{formatFromUSD(kdvAmount, "USD")}</span>
                 </div>
                 <div className="flex items-center justify-between text-base font-bold text-foreground">
                   <span>Total</span>
-                  <span>{formatPrice(String(grandTotal))}</span>
+                  <div className="text-right">
+                    <span>{formatFromUSD(grandTotal, "USD")}</span>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {(() => {
+                        const converted = formatMultiFromUSD(grandTotal);
+                        return `${converted.TRY} • ${converted.EUR} • ${converted.GBP}`;
+                      })()}
+                    </p>
+                  </div>
                 </div>
               </div>
+              {isLoadingRates && (
+                <p className="text-sm text-muted-foreground">Loading live TRY/EUR/GBP rates...</p>
+              )}
 
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -520,14 +558,24 @@ export function QuickSellPanel() {
       {lastInvoiceId && (
         <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
           <p className="text-sm font-semibold text-emerald-700">Checkout completed.</p>
-          <button
-            type="button"
-            onClick={() => handlePrintInvoice(lastInvoiceId)}
-            disabled={isPrintingInvoice}
-            className="mt-2 h-9 w-full rounded-lg border border-emerald-600/30 bg-emerald-600 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isPrintingInvoice ? "Opening printer..." : "Print invoice"}
-          </button>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handlePrintInvoice(lastInvoiceId)}
+              disabled={isPrintingInvoice || isUndoingInvoice}
+              className="h-9 rounded-lg border border-emerald-600/30 bg-emerald-600 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isPrintingInvoice ? "Opening printer..." : "Print invoice"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleUndoInvoice(lastInvoiceId)}
+              disabled={isUndoingInvoice || isPrintingInvoice}
+              className="h-9 rounded-lg border border-red-500/40 bg-red-600 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isUndoingInvoice ? "Undoing..." : "Undo invoice"}
+            </button>
+          </div>
         </div>
       )}
 
