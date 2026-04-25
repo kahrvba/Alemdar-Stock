@@ -434,3 +434,71 @@ export async function POST(req: Request) {
     client.release();
   }
 }
+
+export async function PATCH(req: Request) {
+  const body = (await req.json().catch(() => null)) as
+    | {
+        tableKey?: string;
+        productId?: number;
+      }
+    | null;
+
+  const tableKey = body?.tableKey?.trim() ?? "";
+  const productId = Number(body?.productId);
+
+  if (!tableKey || !Number.isFinite(productId) || productId <= 0) {
+    return NextResponse.json({ error: "Invalid quick sell payload" }, { status: 400 });
+  }
+
+  const config = TABLE_CONFIG[tableKey];
+  if (!config) {
+    return NextResponse.json({ error: "Unsupported inventory table" }, { status: 400 });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SET client_encoding = 'UTF8';");
+
+    const productRes = await client.query<{ id: number; quantity: number }>(
+      `SELECT id, COALESCE(quantity, 0) AS quantity
+       FROM ${config.tableName}
+       WHERE id = $1
+       FOR UPDATE`,
+      [productId]
+    );
+
+    const product = productRes.rows[0];
+    if (!product) {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    const previousQuantity = Number(product.quantity) || 0;
+    const nextQuantity = previousQuantity === 0 ? 1 : previousQuantity;
+
+    if (nextQuantity !== previousQuantity) {
+      await client.query(`UPDATE ${config.tableName} SET quantity = $2 WHERE id = $1`, [
+        productId,
+        nextQuantity,
+      ]);
+    }
+
+    await client.query("COMMIT");
+
+    return NextResponse.json({
+      success: true,
+      tableKey,
+      productId,
+      previousQuantity,
+      quantity: nextQuantity,
+      fixed: nextQuantity > previousQuantity,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("[quick-sell] fix stock failed:", error);
+    return NextResponse.json({ error: "Failed to fix stock" }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}

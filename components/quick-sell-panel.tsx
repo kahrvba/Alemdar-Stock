@@ -36,12 +36,19 @@ type QuickSellResolveResponse = {
   error?: string;
 };
 
+type QuickSellFixResponse = {
+  success?: boolean;
+  quantity?: number;
+  error?: string;
+};
+
 type ScannedQuickSellItem = QuickSellItem & {
   sellQuantity: number;
 };
 
 const makeItemKey = (item: { tableKey: string; id: number }) => `${item.tableKey}:${item.id}`;
 const KDV_RATE = 0.16;
+const QUICK_SELL_STORAGE_KEY = "quick_sell_checkout_state";
 
 const focusScannerInput = (input: HTMLInputElement | null) => {
   if (!input) return;
@@ -54,11 +61,13 @@ export function QuickSellPanel() {
   const [isSelling, setIsSelling] = useState(false);
   const [scannedItems, setScannedItems] = useState<ScannedQuickSellItem[]>([]);
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null);
+  const [hasLoadedStoredState, setHasLoadedStoredState] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showManualInput, setShowManualInput] = useState(false);
   const [lastInvoiceId, setLastInvoiceId] = useState<number | null>(null);
   const [isPrintingInvoice, setIsPrintingInvoice] = useState(false);
   const [isUndoingInvoice, setIsUndoingInvoice] = useState(false);
+  const [fixingItemKey, setFixingItemKey] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const blurTimerRef = useRef<number | null>(null);
@@ -95,6 +104,75 @@ export function QuickSellPanel() {
       ),
     [scannedItems]
   );
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(QUICK_SELL_STORAGE_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as
+        | {
+            items?: ScannedQuickSellItem[];
+            activeItemKey?: string | null;
+          }
+        | null;
+
+      const items = Array.isArray(parsed?.items)
+        ? parsed.items.filter(
+            (item) =>
+              item &&
+              typeof item.tableKey === "string" &&
+              Number.isFinite(Number(item.id)) &&
+              typeof item.title === "string" &&
+              Number.isFinite(Number(item.sellQuantity))
+          )
+        : [];
+
+      if (!items.length) return;
+
+      setScannedItems(items);
+      const loadedActiveKey = parsed?.activeItemKey ?? null;
+      const hasLoadedKey = !!loadedActiveKey && items.some((item) => makeItemKey(item) === loadedActiveKey);
+      setActiveItemKey(hasLoadedKey ? loadedActiveKey : makeItemKey(items[0]));
+    } catch (storageError) {
+      console.error("[quick-sell] failed to load persisted checkout list:", storageError);
+    } finally {
+      setHasLoadedStoredState(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedStoredState) return;
+    try {
+      if (scannedItems.length === 0) {
+        localStorage.removeItem(QUICK_SELL_STORAGE_KEY);
+        return;
+      }
+
+      localStorage.setItem(
+        QUICK_SELL_STORAGE_KEY,
+        JSON.stringify({
+          items: scannedItems,
+          activeItemKey,
+        })
+      );
+    } catch (storageError) {
+      console.error("[quick-sell] failed to persist checkout list:", storageError);
+    }
+  }, [activeItemKey, hasLoadedStoredState, scannedItems]);
+
+  useEffect(() => {
+    if (scannedItems.length === 0) {
+      if (activeItemKey !== null) {
+        setActiveItemKey(null);
+      }
+      return;
+    }
+
+    if (!activeItemKey || !scannedItems.some((item) => makeItemKey(item) === activeItemKey)) {
+      setActiveItemKey(makeItemKey(scannedItems[0]));
+    }
+  }, [activeItemKey, scannedItems]);
 
   const lookupProduct = async (rawCode: string) => {
     const trimmed = rawCode.trim();
@@ -291,6 +369,48 @@ export function QuickSellPanel() {
     }
   };
 
+  const handleFixZeroQuantity = async (item: ScannedQuickSellItem) => {
+    const itemKey = makeItemKey(item);
+    if (item.quantity > 0 || fixingItemKey === itemKey) return;
+
+    setFixingItemKey(itemKey);
+    try {
+      const response = await fetch("/api/quick-sell", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tableKey: item.tableKey,
+          productId: item.id,
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as QuickSellFixResponse | null;
+
+      if (!response.ok || !data?.success || !Number.isFinite(Number(data.quantity))) {
+        throw new Error(data?.error ?? "Failed to fix stock");
+      }
+
+      const fixedQuantity = Math.max(0, Number(data.quantity));
+      setScannedItems((current) =>
+        current.map((entry) =>
+          makeItemKey(entry) === itemKey
+            ? {
+                ...entry,
+                quantity: fixedQuantity,
+                sellQuantity: Math.max(1, Math.min(entry.sellQuantity, fixedQuantity || 1)),
+              }
+            : entry
+        )
+      );
+      showToast(`Stock fixed for ${item.title}`, "success");
+    } catch (fixError) {
+      const message = fixError instanceof Error ? fixError.message : "Failed to fix stock";
+      showToast(message, "error");
+    } finally {
+      setFixingItemKey(null);
+    }
+  };
+
   const handlePrintInvoice = (invoiceId: number) => {
     if (isPrintingInvoice) return;
 
@@ -401,13 +521,7 @@ export function QuickSellPanel() {
         className={showManualInput ? "mt-4 w-full h-11 rounded-xl border border-border/60 bg-background px-3 text-sm outline-none ring-0 transition focus:border-foreground/40" : "absolute -inset-full opacity-0 pointer-events-none"}
       />
 
-      <div
-        className={
-          activeItem || error || isSearching
-            ? "mt-4 rounded-xl border border-border/60 bg-background/60 p-3 min-h-96 flex flex-col"
-            : "mt-3 min-h-96 flex flex-col"
-        }
-      >
+      <div className="mt-4 min-h-96 flex flex-col">
         {isSearching ? (
           <div className="flex items-center justify-center py-2">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground" />
@@ -473,19 +587,31 @@ export function QuickSellPanel() {
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setScannedItems((current) => current.filter((entry) => makeItemKey(entry) !== itemKey));
-                        setActiveItemKey((current) => (current === itemKey ? null : current));
-                      }}
-                      className="h-7 w-7 rounded transition hover:opacity-80 flex items-center justify-center shrink-0"
-                      aria-label="Delete"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#ef4444" className="h-5 w-5">
-                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z"/>
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {item.quantity <= 0 && (
+                        <button
+                          type="button"
+                          onClick={() => void handleFixZeroQuantity(item)}
+                          disabled={isSelling || fixingItemKey === itemKey}
+                          className="h-7 rounded border border-amber-500/60 bg-amber-500/10 px-2 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {fixingItemKey === itemKey ? "Fixing..." : "Fix"}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScannedItems((current) => current.filter((entry) => makeItemKey(entry) !== itemKey));
+                          setActiveItemKey((current) => (current === itemKey ? null : current));
+                        }}
+                        className="h-7 w-7 rounded transition hover:opacity-80 flex items-center justify-center shrink-0"
+                        aria-label="Delete"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#ef4444" className="h-5 w-5">
+                          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 );
               })}
