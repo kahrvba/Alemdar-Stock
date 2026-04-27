@@ -324,6 +324,17 @@ export function MexxsunInventoryClient({
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
+                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+                  Barcode
+                  <input
+                    type="text"
+                    value={formState.barcode}
+                    onChange={(event) =>
+                      handleFormChange("barcode", event.target.value)
+                    }
+                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                </label>
                 <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Checkbox
                     checked={Boolean(formState.is_new)}

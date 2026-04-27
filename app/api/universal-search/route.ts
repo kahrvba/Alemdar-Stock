@@ -65,7 +65,7 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     priceExpr: "selling_price::text",
     quantityExpr: "COALESCE(quantity, 0)",
     searchableExpr:
-      "LOWER(COALESCE(name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(rating, ''))",
+      "LOWER(COALESCE(name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(rating, '') || ' ' || COALESCE(barcode, ''))",
   },
   {
     tableKey: "mexxsun",
@@ -78,7 +78,7 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     priceExpr: "selling_price::text",
     quantityExpr: "COALESCE(quantity, 0)",
     searchableExpr:
-      "LOWER(COALESCE(name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(rating, ''))",
+      "LOWER(COALESCE(name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(rating, '') || ' ' || COALESCE(barcode, ''))",
   },
   {
     tableKey: "sound",

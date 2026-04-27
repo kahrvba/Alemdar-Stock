@@ -3,6 +3,7 @@ export type MexxsunProduct = {
   name: string | null;
   rating: string | null;
   category: string | null;
+  barcode: string | null;
   is_new?: boolean | null;
   quantity: number | null;
   factory_price: number | string | null;
@@ -102,4 +103,3 @@ export async function fetchMexxsunProducts(
 
   return buildPaginatedResult(data, page);
 }
-

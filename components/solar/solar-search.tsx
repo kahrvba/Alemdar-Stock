@@ -11,7 +11,7 @@ import {
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-type FilterOption = "id" | "name" | "category" | "rating";
+type FilterOption = "id" | "name" | "category" | "rating" | "barcode";
 
 type SolarSearchProps = {
   onFilterChange?: (filters: { query: string; field: FilterOption | null }) => void;
@@ -236,6 +236,7 @@ export function SolarSearch({
       { value: "name", label: "Name" },
       { value: "category", label: "Category" },
       { value: "rating", label: "Rating" },
+      { value: "barcode", label: "Barcode" },
     ],
     []
   );
@@ -327,4 +328,3 @@ export function SolarSearch({
     </div>
   );
 }
-

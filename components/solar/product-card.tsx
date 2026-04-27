@@ -36,6 +36,7 @@ export function ProductCard({
     Number.isFinite(wholesalePrice) && wholesalePrice > 0
       ? usdFormatter.format(wholesalePrice)
       : "YOK";
+  const barcodeLabel = product.barcode?.trim() || "No barcode";
 
   return (
     <>
@@ -80,6 +81,7 @@ export function ProductCard({
           {product.rating ? (
             <p className="text-sm text-muted-foreground">Rating: {product.rating}</p>
           ) : null}
+          <p className="text-sm text-muted-foreground">Barcode: {barcodeLabel}</p>
         </div>
         <div className="mt-auto flex flex-col gap-3 text-sm text-muted-foreground">
           <div className="flex items-center justify-between gap-3">

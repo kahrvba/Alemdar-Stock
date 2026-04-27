@@ -38,18 +38,20 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
     sectionLabel: "Solar",
     tableName: "public.solardb",
     nameExpr: "COALESCE(name, CONCAT('Product #', id::text))",
-    barcodeExpr: "NULL",
+    barcodeExpr: "barcode",
     priceExpr: "selling_price",
-    codeMatchExpr: "FALSE",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   mexxsun: {
     tableKey: "mexxsun",
     sectionLabel: "Mexxsun",
     tableName: "public.mexxsun",
     nameExpr: "COALESCE(name, CONCAT('Product #', id::text))",
-    barcodeExpr: "NULL",
+    barcodeExpr: "barcode",
     priceExpr: "selling_price",
-    codeMatchExpr: "FALSE",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   sound: {
     tableKey: "sound",

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
-const SOLAR_SEARCH_FIELDS = ['id', 'name', 'category', 'rating'] as const;
+const SOLAR_SEARCH_FIELDS = ['id', 'name', 'category', 'rating', 'barcode'] as const;
 type SolarSearchField = (typeof SOLAR_SEARCH_FIELDS)[number];
 
 const COMPACT_REGEX = '[[:space:]/_.-]+';
 const SOLAR_SEARCHABLE_EXPR =
-  "LOWER(COALESCE(name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(rating, ''))";
+  "LOWER(COALESCE(name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(rating, '') || ' ' || COALESCE(barcode, ''))";
 const SOLAR_SEARCHABLE_COMPACT_EXPR =
   `REGEXP_REPLACE(${SOLAR_SEARCHABLE_EXPR}, '${COMPACT_REGEX}', '', 'g')`;
 
@@ -15,6 +15,7 @@ const toCompact = (value: string) => value.replace(/[ /_.-]+/g, '');
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
+  const barcode = searchParams.get('barcode');
   const query = searchParams.get('query')?.trim();
   const field = searchParams.get('field');
   const pageParam = searchParams.get('page');
@@ -37,7 +38,7 @@ export async function GET(req: Request) {
     let items = [];
     let total = 0;
     let currentPage = page;
-    const currentPageSize = pageSize;
+    let currentPageSize = pageSize;
 
     const ids = idsParam
       ? Array.from(
@@ -52,7 +53,7 @@ export async function GET(req: Request) {
 
     if (ids.length > 0) {
       const result = await client.query(
-        `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
+        `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
          FROM public.solardb
          WHERE id = ANY($1)
          ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC`,
@@ -65,7 +66,7 @@ export async function GET(req: Request) {
     if (id) {
       // Fetch a single product by ID
       const result = await client.query(
-        'SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new FROM public.solardb WHERE id = $1',
+        'SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new FROM public.solardb WHERE id = $1',
         [id]
       );
       client.release();
@@ -80,7 +81,7 @@ export async function GET(req: Request) {
     if (all) {
       // Return all products without pagination
       const result = await client.query(
-        `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
+        `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
          FROM public.solardb
          ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC`
       );
@@ -93,11 +94,22 @@ export async function GET(req: Request) {
       });
     }
 
-    // Remove barcode search since it doesn't exist in the schema
     const values: unknown[] = [];
     let whereClause = '';
 
-    if (query) {
+    if (barcode) {
+      const result = await client.query(
+        `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
+         FROM public.solardb
+         WHERE barcode = $1
+         ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC`,
+        [barcode]
+      );
+      items = result.rows ?? [];
+      total = items.length;
+      currentPage = 1;
+      currentPageSize = total || pageSize;
+    } else if (query) {
       const normalizedQuery = query.toLowerCase();
       const escapedLike = `%${escapeLike(normalizedQuery)}%`;
       const compactQuery = toCompact(normalizedQuery);
@@ -131,27 +143,29 @@ export async function GET(req: Request) {
       }
     }
 
-    const totalResult = await client.query(
-      `SELECT COUNT(*) FROM public.solardb ${whereClause}`,
-      values
-    );
-    total = Number(totalResult.rows[0]?.count ?? 0);
+    if (!barcode) {
+      const totalResult = await client.query(
+        `SELECT COUNT(*) FROM public.solardb ${whereClause}`,
+        values
+      );
+      total = Number(totalResult.rows[0]?.count ?? 0);
 
-    const totalPages = Math.max(1, Math.ceil(total / currentPageSize));
-    if (currentPage > totalPages) {
-      currentPage = totalPages;
+      const totalPages = Math.max(1, Math.ceil(total / currentPageSize));
+      if (currentPage > totalPages) {
+        currentPage = totalPages;
+      }
+
+      const offset = (currentPage - 1) * currentPageSize;
+      const result = await client.query(
+        `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
+         FROM public.solardb
+         ${whereClause}
+         ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC
+         LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+        [...values, currentPageSize, offset]
+      );
+      items = result.rows ?? [];
     }
-
-    const offset = (currentPage - 1) * currentPageSize;
-    const result = await client.query(
-      `SELECT id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, COALESCE(quantity, 0) as quantity, description, COALESCE(is_new, false) AS is_new
-       FROM public.solardb
-       ${whereClause}
-       ORDER BY COALESCE(is_new, false) DESC, CASE WHEN COALESCE(is_new, false) THEN -id ELSE id END ASC
-       LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-      [...values, currentPageSize, offset]
-    );
-    items = result.rows ?? [];
 
     client.release();
 
@@ -187,7 +201,7 @@ export async function POST(req: Request) {
   try {
     const { name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price,
       image_filename, 
-      category, quantity, description, is_new } = await req.json();
+      category, barcode, quantity, description, is_new } = await req.json();
     const normalizedName = typeof name === 'string' ? name.trim() : '';
     if (!normalizedName) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -213,8 +227,8 @@ export async function POST(req: Request) {
     
     // Insert with the generated ID
     const result = await client.query(
-      'INSERT INTO public.solardb (id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, quantity, description, is_new) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id',
-      [newId, normalizedName, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, quantity, description, isNewFlag]
+      'INSERT INTO public.solardb (id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, quantity, description, is_new) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id',
+      [newId, normalizedName, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, quantity, description, isNewFlag]
     );
 
     if (!result.rows[0]?.id) {
@@ -239,7 +253,7 @@ export async function PUT(req: Request) {
   try {
     const { id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price,
       image_filename, 
-      category, quantity, description, is_new } = await req.json();
+      category, barcode, quantity, description, is_new } = await req.json();
     const isNewFlag = typeof is_new === 'boolean' ? is_new : (is_new == null ? null : Boolean(is_new));
     
     if (!id) {
@@ -269,11 +283,12 @@ export async function PUT(req: Request) {
          cost_price=COALESCE($8, cost_price),
          image_filename=COALESCE($9, image_filename),
          category=COALESCE($10, category), 
-         quantity=COALESCE($11, quantity), 
-         description=COALESCE($12, description),
-         is_new=COALESCE($13, is_new)
-       WHERE id=$14`,
-      [name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, quantity, description, isNewFlag, id]
+         barcode=COALESCE($11, barcode),
+         quantity=COALESCE($12, quantity), 
+         description=COALESCE($13, description),
+         is_new=COALESCE($14, is_new)
+       WHERE id=$15`,
+      [name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, quantity, description, isNewFlag, id]
     );
 
     if (result.rowCount === 0) {
