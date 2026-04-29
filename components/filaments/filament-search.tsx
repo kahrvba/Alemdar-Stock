@@ -11,7 +11,7 @@ import {
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-type FilterOption = "id" | "name" | "brand" | "material" | "color";
+type FilterOption = "id" | "name" | "brand" | "material" | "color" | "barcode";
 
 type FilamentSearchProps = {
   onFilterChange?: (filters: { query: string; field: FilterOption | null }) => void;
@@ -223,6 +223,7 @@ export function FilamentSearch({
       { value: "brand", label: "Brand" },
       { value: "material", label: "Material" },
       { value: "color", label: "Color" },
+      { value: "barcode", label: "Barcode" },
     ],
     []
   );

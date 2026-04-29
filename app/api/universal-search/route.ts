@@ -117,7 +117,7 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     priceExpr: "price::text",
     quantityExpr: "COALESCE(quantity, 0)",
     searchableExpr:
-      "LOWER(COALESCE(name, '') || ' ' || COALESCE(brand, '') || ' ' || COALESCE(category, ''))",
+      "LOWER(COALESCE(name, '') || ' ' || COALESCE(brand, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))",
   },
   {
     tableKey: "filaments",
@@ -130,7 +130,7 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     priceExpr: "price::text",
     quantityExpr: "COALESCE(quantity, 0)",
     searchableExpr:
-      "LOWER(COALESCE(name, '') || ' ' || COALESCE(brand, '') || ' ' || COALESCE(material, '') || ' ' || COALESCE(color, '') || ' ' || COALESCE(variant, ''))",
+      "LOWER(COALESCE(name, '') || ' ' || COALESCE(brand, '') || ' ' || COALESCE(material, '') || ' ' || COALESCE(color, '') || ' ' || COALESCE(variant, '') || ' ' || COALESCE(barcode, ''))",
   },
   {
     tableKey: "fans",
@@ -169,7 +169,7 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     priceExpr: "price::text",
     quantityExpr: "COALESCE(quantity, 0)",
     searchableExpr:
-      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, ''))",
+      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))",
   },
   {
     tableKey: "adapters",

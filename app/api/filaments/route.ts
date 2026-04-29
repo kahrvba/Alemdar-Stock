@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-const FILAMENT_SEARCH_FIELDS = ["id", "name", "brand", "material", "color"] as const;
+const FILAMENT_SEARCH_FIELDS = ["id", "name", "brand", "material", "color", "barcode"] as const;
 type FilamentSearchField = (typeof FILAMENT_SEARCH_FIELDS)[number];
 
 const COMPACT_REGEX = "[[:space:]/_.-]+";
 const FILAMENT_SEARCHABLE_EXPR =
-  "LOWER(COALESCE(name, '') || ' ' || COALESCE(brand, '') || ' ' || COALESCE(material, '') || ' ' || COALESCE(color, '') || ' ' || COALESCE(variant, ''))";
+  "LOWER(COALESCE(name, '') || ' ' || COALESCE(brand, '') || ' ' || COALESCE(material, '') || ' ' || COALESCE(color, '') || ' ' || COALESCE(variant, '') || ' ' || COALESCE(barcode, ''))";
 const FILAMENT_SEARCHABLE_COMPACT_EXPR =
   `REGEXP_REPLACE(${FILAMENT_SEARCHABLE_EXPR}, '${COMPACT_REGEX}', '', 'g')`;
 
@@ -15,10 +15,14 @@ const toCompact = (value: string) => value.replace(/[ /_.-]+/g, "");
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
+  const barcode = searchParams.get("barcode");
   const query = searchParams.get("query")?.trim();
   const field = searchParams.get("field");
   const pageParam = searchParams.get("page");
   const pageSizeParam = searchParams.get("pageSize");
+  const all = searchParams.get("all") === "true";
+  const id = searchParams.get("id");
+  const idsParam = searchParams.get("ids");
 
   const page = Number.isFinite(Number(pageParam)) && Number(pageParam) > 0
     ? Math.floor(Number(pageParam))
@@ -36,6 +40,83 @@ export async function GET(req: Request) {
     let total = 0;
     let currentPage = page;
     const currentPageSize = pageSize;
+
+    const ids = idsParam
+      ? Array.from(
+          new Set(
+            idsParam
+              .split(",")
+              .map((value) => Number(value.trim()))
+              .filter((value) => Number.isFinite(value) && value > 0)
+          )
+        )
+      : [];
+
+    if (ids.length > 0) {
+      const result = await client.query(
+        `SELECT id, name, brand, material, barcode, variant, color, net_weight_kg, diameter_mm,
+                COALESCE(quantity, 0) as quantity, price, image_filename
+         FROM public.filaments
+         WHERE id = ANY($1)
+         ORDER BY id ASC`,
+        [ids]
+      );
+      client.release();
+      return NextResponse.json({ items: result.rows });
+    }
+
+    if (id) {
+      const result = await client.query(
+        `SELECT id, name, brand, material, barcode, variant, color, net_weight_kg, diameter_mm,
+                COALESCE(quantity, 0) as quantity, price, image_filename
+         FROM public.filaments
+         WHERE id = $1`,
+        [id]
+      );
+      client.release();
+      if (result.rows.length === 0) {
+        return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      }
+      return NextResponse.json(result.rows[0]);
+    }
+
+    if (all) {
+      const result = await client.query(
+        `SELECT id, name, brand, material, barcode, variant, color, net_weight_kg, diameter_mm,
+                COALESCE(quantity, 0) as quantity, price, image_filename
+         FROM public.filaments
+         ORDER BY id ASC`
+      );
+      const totalResult = await client.query("SELECT COUNT(*) FROM public.filaments");
+      client.release();
+      return NextResponse.json({
+        products: result.rows,
+        total: parseInt(totalResult.rows[0].count, 10),
+      });
+    }
+
+    if (barcode) {
+      const result = await client.query(
+        `SELECT id, name, brand, material, barcode, variant, color, net_weight_kg, diameter_mm,
+                COALESCE(quantity, 0) as quantity, price, image_filename
+         FROM public.filaments
+         WHERE barcode = $1
+         ORDER BY id ASC`,
+        [barcode]
+      );
+      items = result.rows ?? [];
+      total = items.length;
+      currentPage = 1;
+      const forcedPageSize = total || currentPageSize;
+      client.release();
+      return NextResponse.json({
+        items,
+        page: currentPage,
+        pageSize: forcedPageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil((total || 1) / forcedPageSize)),
+      });
+    }
 
     const values: unknown[] = [];
     let whereClause = "";
@@ -83,7 +164,7 @@ export async function GET(req: Request) {
 
     const offset = (currentPage - 1) * currentPageSize;
     const result = await client.query(
-      `SELECT id, name, brand, material, variant, color, net_weight_kg, diameter_mm,
+      `SELECT id, name, brand, material, barcode, variant, color, net_weight_kg, diameter_mm,
               COALESCE(quantity, 0) as quantity, price, image_filename
        FROM public.filaments ${whereClause}
        ORDER BY id ASC
@@ -110,7 +191,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const client = await pool.connect();
   try {
-    const { name, brand, material, variant, color, net_weight_kg, diameter_mm, quantity, price, image_filename } = await req.json();
+    const { name, brand, material, barcode, variant, color, net_weight_kg, diameter_mm, quantity, price, image_filename } = await req.json();
 
     if (!name || !brand || !material || !color) {
       return NextResponse.json({ error: "Name, brand, material, and color are required" }, { status: 400 });
@@ -118,8 +199,8 @@ export async function POST(req: Request) {
 
     const result = await client.query(
       `INSERT INTO public.filaments
-       (name, brand, material, variant, color, net_weight_kg, diameter_mm, quantity, price, image_filename)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       (name, brand, material, variant, color, net_weight_kg, diameter_mm, quantity, price, image_filename, barcode)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING id`,
       [
         name,
@@ -132,6 +213,7 @@ export async function POST(req: Request) {
         typeof quantity === "number" ? quantity : null,
         price ?? null,
         image_filename ?? null,
+        barcode ?? null,
       ]
     );
 
@@ -147,7 +229,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const client = await pool.connect();
   try {
-    const { id, name, brand, material, variant, color, net_weight_kg, diameter_mm, quantity, price, image_filename } = await req.json();
+    const { id, name, brand, material, barcode, variant, color, net_weight_kg, diameter_mm, quantity, price, image_filename } = await req.json();
 
     if (!id) {
       return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
@@ -159,18 +241,20 @@ export async function PUT(req: Request) {
          name = COALESCE($1, name),
          brand = COALESCE($2, brand),
          material = COALESCE($3, material),
-         variant = COALESCE($4, variant),
-         color = COALESCE($5, color),
-         net_weight_kg = COALESCE($6, net_weight_kg),
-         diameter_mm = COALESCE($7, diameter_mm),
-         quantity = COALESCE($8, quantity),
-         price = COALESCE($9, price),
-         image_filename = COALESCE($10, image_filename)
-       WHERE id = $11`,
+         barcode = COALESCE($4, barcode),
+         variant = COALESCE($5, variant),
+         color = COALESCE($6, color),
+         net_weight_kg = COALESCE($7, net_weight_kg),
+         diameter_mm = COALESCE($8, diameter_mm),
+         quantity = COALESCE($9, quantity),
+         price = COALESCE($10, price),
+         image_filename = COALESCE($11, image_filename)
+       WHERE id = $12`,
       [
         name,
         brand,
         material,
+        barcode,
         variant,
         color,
         net_weight_kg,

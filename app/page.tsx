@@ -4,7 +4,6 @@ import { UniversalSearch } from "@/components/ui/universal-search";
 import { QuickSellPanel } from "@/components/quick-sell-panel";
 import { TodayTotalPanel } from "@/components/today-total-panel";
 import Link from "next/link";
-import { Printer } from "lucide-react";
 
 export default function Home() {
   return (
@@ -14,13 +13,6 @@ export default function Home() {
           <div className="flex min-w-0 flex-col items-center gap-6">
             <div className="w-full">
               <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-foreground">
-                <Link
-                  href="/tzt-order"
-                  className="inline-flex items-center gap-2 bg-foreground px-3 py-2 text-background no-underline transition hover:opacity-90"
-                >
-                  <Printer className="size-4" aria-hidden="true" />
-                  TZT Order Print
-                </Link>
                 <Link
                   href="/tools"
                   className="underline underline-offset-4 transition hover:opacity-80"

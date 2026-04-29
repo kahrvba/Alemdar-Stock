@@ -8,6 +8,7 @@ import { PaginationControls } from "@/components/sound/pagination-controls";
 import { SoundSearch } from "@/components/sound/sound-search";
 import type { SoundProduct } from "@/lib/services/sound";
 import { cn } from "@/lib/utils";
+import { BarcodeFieldWithGenerate } from "@/components/ui/barcode-field-with-generate";
 import { useSoundInventory } from "@/hooks/use-sound-inventory";
 import { downloadSoundExcel, highlightSoundExcel } from "@/lib/excel-export";
 import { Button } from "@/components/ui/button";
@@ -277,17 +278,11 @@ export function SoundInventoryClient({
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Barcode
-                  <input
-                    type="text"
-                    value={formState.barcode}
-                    onChange={(event) =>
-                      handleFormChange("barcode", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
+                <BarcodeFieldWithGenerate
+                  value={formState.barcode ?? ""}
+                  onChange={(value) => handleFormChange("barcode", value)}
+                  disabled={isSaving || isUploading}
+                />
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                   Kodu
                   <input

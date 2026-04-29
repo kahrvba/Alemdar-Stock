@@ -16,6 +16,7 @@ export function useElectricInventory() {
     english_names: "",
     turkish_names: "",
     category: "",
+    barcode: "",
     quantity: 0,
     price: "",
     image_filename: "",
@@ -43,6 +44,7 @@ export function useElectricInventory() {
         english_names: editingProduct.english_names ?? "",
         turkish_names: editingProduct.turkish_names ?? "",
         category: editingProduct.category ?? "",
+        barcode: editingProduct.barcode ?? "",
         quantity: editingProduct.quantity ?? 0,
         price: editingProduct.price ? String(editingProduct.price) : "",
         image_filename: editingProduct.image_filename ?? "",
@@ -57,6 +59,7 @@ export function useElectricInventory() {
         english_names: "",
         turkish_names: "",
         category: "",
+        barcode: "",
         quantity: 0,
         price: "",
         image_filename: "",
@@ -164,6 +167,7 @@ export function useElectricInventory() {
           english_names: formState.english_names || null,
           turkish_names: formState.turkish_names || null,
           category: formState.category || null,
+          barcode: formState.barcode || null,
           quantity: Number(formState.quantity) || 0,
           price: formState.price ? String(formState.price) : null,
           image_filename: imageFilename,
@@ -206,6 +210,7 @@ export function useElectricInventory() {
           english_names: formState.english_names || null,
           turkish_names: formState.turkish_names || null,
           category: formState.category || null,
+          barcode: formState.barcode || null,
           quantity: Number(formState.quantity) || 0,
           price: formState.price ? String(formState.price) : null,
           image_filename: null,
@@ -254,7 +259,7 @@ export function useElectricInventory() {
   }, [formState, selectedImageFile, imagePreviewUrl, uploadSelectedImage, showToast, router]);
 
   const handleAddToCart = useCallback((product: ElectricProduct) => {
-    addToCart({ ...product, barcode: null, inventoryType: "electric" }, 1);
+    addToCart({ ...product, barcode: product.barcode ?? null, inventoryType: "electric" }, 1);
     showToast(
       `${product.english_names ?? `Product #${product.id}`} added to cart`,
       "success"

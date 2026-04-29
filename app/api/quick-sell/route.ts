@@ -78,18 +78,20 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
     sectionLabel: "TV Remotes",
     tableName: "public.tv_remotes",
     nameExpr: "COALESCE(name, CONCAT('Product #', id::text))",
-    barcodeExpr: "NULL",
+    barcodeExpr: "barcode",
     priceExpr: "price",
-    codeMatchExpr: "FALSE",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   filaments: {
     tableKey: "filaments",
     sectionLabel: "Filaments",
     tableName: "public.filaments",
     nameExpr: "COALESCE(name, CONCAT('Product #', id::text))",
-    barcodeExpr: "NULL",
+    barcodeExpr: "barcode",
     priceExpr: "price",
-    codeMatchExpr: "FALSE",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   fans: {
     tableKey: "fans",
@@ -116,9 +118,10 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
     sectionLabel: "Electric",
     tableName: "public.electric",
     nameExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
-    barcodeExpr: "NULL",
+    barcodeExpr: "barcode",
     priceExpr: "price",
-    codeMatchExpr: "FALSE",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
   adapters: {
     tableKey: "adapters",

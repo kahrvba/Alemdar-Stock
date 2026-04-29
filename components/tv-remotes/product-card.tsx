@@ -22,6 +22,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
     product.price && Number(product.price) > 0
       ? usdFormatter.format(Number(product.price))
       : "null";
+  const barcodeLabel = product.barcode?.trim() || "No barcode";
 
   return (
     <article
@@ -59,6 +60,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
           {product.description ? (
             <p className="text-sm text-muted-foreground">{product.description}</p>
           ) : null}
+          <p className="text-xs text-muted-foreground">Barcode: {barcodeLabel}</p>
         </div>
 
         {null}

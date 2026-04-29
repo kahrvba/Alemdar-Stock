@@ -3,6 +3,7 @@ export type FilamentProduct = {
   name: string;
   brand: string;
   material: string;
+  barcode: string | null;
   variant: string | null;
   color: string;
   net_weight_kg: number;

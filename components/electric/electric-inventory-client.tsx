@@ -8,6 +8,7 @@ import { PaginationControls } from "@/components/electric/pagination-controls";
 import { ElectricSearch } from "@/components/electric/electric-search";
 import type { ElectricProduct } from "@/lib/services/electric";
 import { cn } from "@/lib/utils";
+import { BarcodeFieldWithGenerate } from "@/components/ui/barcode-field-with-generate";
 import { useElectricInventory } from "@/hooks/use-electric-inventory";
 import { downloadExcel, highlightExcel } from "@/lib/excel-export";
 import { Button } from "@/components/ui/button";
@@ -325,6 +326,11 @@ export function ElectricInventoryClient({
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
+                <BarcodeFieldWithGenerate
+                  value={formState.barcode ?? ""}
+                  onChange={(value) => handleFormChange("barcode", value)}
+                  disabled={isSaving || isUploading}
+                />
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                   Quantity
                   <input

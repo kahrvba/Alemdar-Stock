@@ -24,7 +24,6 @@ export function SiteHeader({ appVersion }: SiteHeaderProps) {
     { label: "Electric", ariaLabel: "Electric Section", link: "/electric" },
     { label: "Others", ariaLabel: "Others Section", link: "/others" },
     { label: "Invoices", ariaLabel: "Invoices Section", link: "/invoices" },
-    { label: "TZT Order", ariaLabel: "TZT Order Print Page", link: "/tzt-order" },
   ];
 
   const { showOverlay } = useNavigationOverlay();

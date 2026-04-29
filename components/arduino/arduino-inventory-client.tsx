@@ -8,6 +8,7 @@ import { PaginationControls } from "@/components/arduino/pagination-controls";
 import { ArduinoSearch } from "@/components/arduino/arduino-search";
 import type { ArduinoProduct } from "@/lib/services/arduino";
 import { cn } from "@/lib/utils";
+import { BarcodeFieldWithGenerate } from "@/components/ui/barcode-field-with-generate";
 import { useArduinoInventory } from "@/hooks/use-arduino-inventory";
 import { downloadExcel, highlightExcel } from "@/lib/excel-export";
 import { WebSerialController } from "@/lib/webSerial";
@@ -727,17 +728,11 @@ export function ArduinoInventoryClient({
                     </Select>
                   </label>
                 </div>
-                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Barcode
-                  <input
-                    type="text"
-                    value={formState.barcode}
-                    onChange={(event) =>
-                      handleFormChange("barcode", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
+                <BarcodeFieldWithGenerate
+                  value={formState.barcode ?? ""}
+                  onChange={(value) => handleFormChange("barcode", value)}
+                  disabled={isSaving || isUploading}
+                />
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                   Quantity
                   <input

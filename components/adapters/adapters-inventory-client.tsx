@@ -8,6 +8,7 @@ import { PaginationControls } from "@/components/adapters/pagination-controls";
 import { AdaptersSearch } from "@/components/adapters/adapters-search";
 import type { AdapterProduct } from "@/lib/services/adapters";
 import { cn } from "@/lib/utils";
+import { BarcodeFieldWithGenerate } from "@/components/ui/barcode-field-with-generate";
 import { useAdaptersInventory } from "@/hooks/use-adapters-inventory";
 import { downloadExcel, highlightExcel } from "@/lib/excel-export";
 import { Button } from "@/components/ui/button";
@@ -325,17 +326,11 @@ export function AdaptersInventoryClient({
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-                  Barcode
-                  <input
-                    type="text"
-                    value={formState.barcode}
-                    onChange={(event) =>
-                      handleFormChange("barcode", event.target.value)
-                    }
-                    className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                </label>
+                <BarcodeFieldWithGenerate
+                  value={formState.barcode ?? ""}
+                  onChange={(value) => handleFormChange("barcode", value)}
+                  disabled={isSaving || isUploading}
+                />
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                   Quantity
                   <input

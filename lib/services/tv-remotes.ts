@@ -3,6 +3,7 @@ export type TvRemote = {
   name: string;
   brand: string;
   category: string;
+  barcode: string | null;
   description: string | null;
   specs: Record<string, unknown>;
   image_filename: string | null;

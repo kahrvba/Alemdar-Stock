@@ -3,6 +3,7 @@ export type ElectricProduct = {
   english_names: string | null;
   turkish_names: string | null;
   category: string | null;
+  barcode: string | null;
   quantity: number | null;
   price: string | null;
   image_filename: string | null;

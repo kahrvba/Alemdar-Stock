@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/tv-remotes/product-card";
 import { PaginationControls } from "@/components/tv-remotes/pagination-controls";
 import { TvRemoteSearch } from "@/components/tv-remotes/tv-remote-search";
 import { cn } from "@/lib/utils";
+import { BarcodeFieldWithGenerate } from "@/components/ui/barcode-field-with-generate";
 import type { TvRemote } from "@/lib/services/tv-remotes";
 import { useTvRemotesInventory } from "@/hooks/use-tv-remotes-inventory";
 
@@ -179,6 +180,11 @@ export function TvRemoteInventoryClient({
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
+                <BarcodeFieldWithGenerate
+                  value={formState.barcode ?? ""}
+                  onChange={(value) => handleFormChange("barcode", value)}
+                  disabled={isSaving || isUploading}
+                />
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                   Quantity
                   <input

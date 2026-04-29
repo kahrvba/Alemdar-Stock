@@ -11,7 +11,7 @@ import {
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-type FilterOption = "id" | "name" | "brand" | "category";
+type FilterOption = "id" | "name" | "brand" | "category" | "barcode";
 
 type TvRemoteSearchProps = {
   onFilterChange?: (filters: { query: string; field: FilterOption | null }) => void;
@@ -222,6 +222,7 @@ export function TvRemoteSearch({
       { value: "name", label: "Name" },
       { value: "brand", label: "Brand" },
       { value: "category", label: "Category" },
+      { value: "barcode", label: "Barcode" },
     ],
     []
   );

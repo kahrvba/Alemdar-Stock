@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/filaments/product-card";
 import { PaginationControls } from "@/components/filaments/pagination-controls";
 import { FilamentSearch } from "@/components/filaments/filament-search";
 import { cn } from "@/lib/utils";
+import { BarcodeFieldWithGenerate } from "@/components/ui/barcode-field-with-generate";
 import type { FilamentProduct } from "@/lib/services/filaments";
 import { useFilamentsInventory } from "@/hooks/use-filaments-inventory";
 
@@ -179,6 +180,11 @@ export function FilamentInventoryClient({
                     className="rounded-2xl border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                 </label>
+                <BarcodeFieldWithGenerate
+                  value={formState.barcode ?? ""}
+                  onChange={(value) => handleFormChange("barcode", value)}
+                  disabled={isSaving || isUploading}
+                />
                 <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                   Variant
                   <input
