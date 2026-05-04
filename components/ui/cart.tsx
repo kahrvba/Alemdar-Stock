@@ -534,61 +534,30 @@ function CartSidebar() {
         }
       }
 
-      for (const line of verificationResults) {
-        const { freshProduct, cartItem, inventoryType } = line;
-        const endpoint = INVENTORY_ENDPOINTS[inventoryType];
-        const currentStock = Number(freshProduct.quantity) || 0;
-        const requestedQuantity = Number(cartItem.quantity) || 0;
-        const newQuantity = Math.max(0, currentStock - requestedQuantity);
-
-        const updatedProduct = buildUpdatePayload(inventoryType, freshProduct, newQuantity);
-
-        const updateResponse = await fetch(endpoint, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedProduct),
-        });
-
-        if (!updateResponse.ok) {
-          throw new Error(
-            `Failed to update stock for ${getProductDisplayName(inventoryType, freshProduct, cartItem)}`
-          );
-        }
-      }
-
-      const latestInvoiceNumber = await fetchLatestInvoiceNumber();
-      const newInvoiceNumber = latestInvoiceNumber + 1;
-
-      const invoiceData = {
-        invoiceNumber: String(newInvoiceNumber),
-        date: new Date().toISOString(),
-        products: verificationResults.map((line) => ({
-          sourceTableKey: CART_INVENTORY_TO_SOURCE_TABLE[line.inventoryType],
-          productId: line.cartItem.product.id,
-          name: getProductDisplayName(line.inventoryType, line.freshProduct, line.cartItem),
-          barcode:
-            line.cartItem.product.barcode ??
-            line.freshProduct?.barcode ??
-            '',
-          quantity: line.cartItem.quantity,
-          unitPrice: line.unitPrice,
-          total: line.lineTotal,
-        })),
-        subtotal: computedSubtotal,
-        total: computedSubtotal + computedSubtotal * KDV_RATE,
-      };
-
-      const response = await fetch('/api/invoices', {
+      const response = await fetch('/api/quick-sell', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(invoiceData),
+        body: JSON.stringify({
+          items: verificationResults.map((line) => ({
+            tableKey: CART_INVENTORY_TO_SOURCE_TABLE[line.inventoryType],
+            productId: line.cartItem.product.id,
+            quantity: line.cartItem.quantity,
+          })),
+        }),
       });
 
+      const result = await response.json().catch(() => null) as
+        | { success?: boolean; invoiceId?: number; error?: string }
+        | null;
+
       if (!response.ok) {
-        throw new Error('Failed to create invoice');
+        throw new Error(result?.error ?? 'Failed to complete checkout');
       }
 
-      const result = await response.json();
+      if (!result?.success || !result.invoiceId) {
+        throw new Error(result?.error ?? 'Checkout failed');
+      }
+
       showToast('Invoice created successfully!', 'success');
       clearCart();
       closeCart();

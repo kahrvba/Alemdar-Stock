@@ -223,7 +223,7 @@ export async function PUT(req: Request) {
 
     await client.query('BEGIN');
     
-    await client.query(
+    const updateResult = await client.query(
       `UPDATE public.arduino 
        SET 
          english_names=COALESCE($1, english_names), 
@@ -236,9 +236,14 @@ export async function PUT(req: Request) {
          price=COALESCE($8, price), 
          image_filename=COALESCE($9, image_filename),
          description=COALESCE($10, description)
-       WHERE id=$11`,
+      WHERE id=$11`,
       [english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, image_filename, description, id]
     );
+
+    if ((updateResult.rowCount ?? 0) === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
 
     await client.query('COMMIT');
     return NextResponse.json({ message: 'Product updated successfully' });

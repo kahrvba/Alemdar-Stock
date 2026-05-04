@@ -197,7 +197,7 @@ export async function PUT(req: Request) {
 
     await client.query('BEGIN');
     
-    await client.query(
+    const updateResult = await client.query(
       `UPDATE public.mainled 
        SET 
          english_name=COALESCE($1, english_name), 
@@ -208,9 +208,14 @@ export async function PUT(req: Request) {
          price=COALESCE($6, price), 
          image_filename=COALESCE($7, image_filename),
          description=COALESCE($8, description)
-       WHERE id=$9`,
+      WHERE id=$9`,
       [english_name, turkish_name, category, barcode, quantity, price, image_filename, description, id]
     );
+
+    if ((updateResult.rowCount ?? 0) === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
 
     await client.query('COMMIT');
     return NextResponse.json({ message: 'Product updated successfully' });

@@ -23,6 +23,12 @@ const NavigationOverlayContext = createContext<NavigationOverlayContextValue | n
   null
 );
 
+const NOOP_NAVIGATION_OVERLAY_CONTEXT: NavigationOverlayContextValue = {
+  showOverlay: () => {
+    // No-op fallback while provider internals are suspended
+  },
+};
+
 export function useNavigationOverlay() {
   const context = useContext(NavigationOverlayContext);
   if (context === null) {
@@ -113,7 +119,13 @@ function NavigationOverlayProviderInner({ children }: { children: React.ReactNod
 
 export function NavigationOverlayProvider({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={children}>
+    <Suspense
+      fallback={
+        <NavigationOverlayContext.Provider value={NOOP_NAVIGATION_OVERLAY_CONTEXT}>
+          {children}
+        </NavigationOverlayContext.Provider>
+      }
+    >
       <NavigationOverlayProviderInner>{children}</NavigationOverlayProviderInner>
     </Suspense>
   );

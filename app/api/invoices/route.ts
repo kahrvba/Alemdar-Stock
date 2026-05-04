@@ -5,21 +5,17 @@ import { isInvoiceSourceTableKey } from "@/lib/invoice-undo";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 const KDV_RATE = 0.16;
+const INVOICE_NUMBER_LOCK_KEY = 820001;
 
 // POST: Create a new invoice and its items
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { invoiceNumber, date, products, total } = body;
+    const { date, products, total } = body;
 
     // Validate required fields
-    if (!invoiceNumber || !date || !Array.isArray(products) || products.length === 0 || typeof total !== 'number') {
+    if (!date || !Array.isArray(products) || products.length === 0 || typeof total !== 'number') {
       return NextResponse.json({ error: 'Missing or invalid required fields.' }, { status: 400 });
-    }
-
-    // Validate invoice number format
-    if (typeof invoiceNumber !== 'string' || invoiceNumber.trim() === '') {
-      return NextResponse.json({ error: 'Invalid invoice number.' }, { status: 400 });
     }
 
     // Validate date format
@@ -37,12 +33,20 @@ export async function POST(req: Request) {
       await client.query('BEGIN');
       await client.query("SET client_encoding = 'UTF8';");
       let computedSubtotal = 0;
+
+      await client.query("SELECT pg_advisory_xact_lock($1)", [INVOICE_NUMBER_LOCK_KEY]);
+      const latestInvoiceRes = await client.query<{ invoice_number: string }>(
+        "SELECT invoice_number FROM public.invoices ORDER BY id DESC LIMIT 1"
+      );
+      const latestInvoiceValue = latestInvoiceRes.rows[0]?.invoice_number ?? "0";
+      const latestInvoiceNumber = Number.parseInt(String(latestInvoiceValue), 10) || 0;
+      const nextInvoiceNumber = latestInvoiceNumber + 1;
       
       // Insert invoice
       const invoiceRes = await client.query(
         `INSERT INTO public.invoices (invoice_number, date_created, total_amount, status)
          VALUES ($1, $2, $3, $4) RETURNING id`,
-        [invoiceNumber.trim(), date, total, 'completed']
+        [String(nextInvoiceNumber), date, total, 'completed']
       );
       const invoiceId = invoiceRes.rows[0].id;
       

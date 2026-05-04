@@ -156,6 +156,7 @@ function toFiniteNumber(value: unknown) {
 }
 
 const KDV_RATE = 0.16;
+const INVOICE_NUMBER_LOCK_KEY = 820001;
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -279,7 +280,11 @@ export async function POST(req: Request) {
   for (const entry of rawItems) {
     const tableKey = entry?.tableKey?.trim() ?? "";
     const productId = Number(entry?.productId);
-    const quantity = Math.max(1, Number(entry?.quantity ?? 1));
+    const parsedQuantity = Number(entry?.quantity ?? 1);
+    const quantity =
+      Number.isFinite(parsedQuantity) && parsedQuantity > 0
+        ? Math.floor(parsedQuantity)
+        : 1;
 
     if (!tableKey || !Number.isFinite(productId) || productId <= 0) {
       return NextResponse.json({ error: "Invalid quick sell payload" }, { status: 400 });
@@ -385,6 +390,8 @@ export async function POST(req: Request) {
         line.newStock,
       ]);
     }
+
+    await client.query("SELECT pg_advisory_xact_lock($1)", [INVOICE_NUMBER_LOCK_KEY]);
 
     const latestInvoiceRes = await client.query<{ invoice_number: string }>(
       "SELECT invoice_number FROM public.invoices ORDER BY id DESC LIMIT 1"
