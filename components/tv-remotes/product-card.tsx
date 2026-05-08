@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { TvRemote } from "@/lib/services/tv-remotes";
 import { printProductLabel } from "@/lib/print-product-label";
+import { addProductToCompare } from "@/lib/product-compare";
 import { cn } from "@/lib/utils";
 
 type ProductCardProps = {
@@ -34,6 +35,16 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
         id {product.id}
       </span>
       <div className="relative h-72 w-full overflow-hidden rounded-t-3xl bg-muted">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            addProductToCompare(product as Record<string, unknown>);
+          }}
+          className="absolute right-3 top-3 z-20 rounded-md bg-background/90 px-2 py-1 text-xs font-semibold text-foreground shadow"
+        >
+          Compare
+        </button>
         {product.image_filename ? (
           <Image
             src={product.image_filename}

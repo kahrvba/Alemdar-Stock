@@ -7,6 +7,8 @@ import { ToastProvider } from "@/components/ui/toast";
 import { CartProvider } from "@/components/ui/cart";
 import { CurrencyRatesProvider } from "@/components/currency-rates-provider";
 import { getAppVersion } from "@/lib/app-version";
+import { ProductComparePanel } from "@/components/product-compare-panel";
+import { SectionLinksBar } from "@/components/section-links-bar";
 
 export const metadata: Metadata = {
   title: "Alemdar Teknik LTD",
@@ -52,11 +54,12 @@ async function ResolvedLayoutContent({
   appVersionPromise: ReturnType<typeof getAppVersion>;
 }) {
   const appVersion = await appVersionPromise;
-
   return (
     <>
       <SiteHeader appVersion={appVersion} />
+      <SectionLinksBar />
       <main>{children}</main>
+      <ProductComparePanel />
     </>
   );
 }

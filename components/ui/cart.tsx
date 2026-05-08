@@ -738,16 +738,25 @@ function CartSidebar() {
                   <span>KDV ({Math.round(KDV_RATE * 100)}%)</span>
                   <span>{formatFromUSD(kdvAmount, "USD")}</span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <span className="text-lg font-semibold text-foreground">Total</span>
-                  <div className="text-right">
+                  <div className="mt-1 text-right">
                     <span className="text-2xl font-bold text-primary">
-                      {formatFromUSD(totalWithKdv, "USD")}
+                      {formatFromUSD(totalWithKdv, "USD")} (card)
                     </span>
+                    <p className="text-2xl font-bold text-primary">
+                      {formatFromUSD(totalPrice, "USD")} (cash)
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {(() => {
                         const converted = formatMultiFromUSD(totalWithKdv);
-                        return `${converted.TRY} • ${converted.EUR} • ${converted.GBP}`;
+                        return `${converted.TRY} • ${converted.EUR} • ${converted.GBP} (card)`;
+                      })()}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {(() => {
+                        const converted = formatMultiFromUSD(totalPrice);
+                        return `${converted.TRY} • ${converted.EUR} • ${converted.GBP} (cash)`;
                       })()}
                     </p>
                   </div>

@@ -30,16 +30,28 @@ const formatPrice = (value: string) => {
   return `$${numeric.toFixed(2)}`;
 };
 
+const parsePriceNumber = (value: string) => {
+  const normalized = value.replace(/[^\d.,-]/g, "").replace(",", ".");
+  const numeric = Number(normalized);
+  if (!Number.isFinite(numeric)) return 0;
+  return numeric;
+};
+
 const buildPrintableProduct = (product: UnknownRecord) => {
   const id = firstNonEmpty(product, ["id"]);
   const name = firstNonEmpty(product, ["english_names", "english_name", "name", "model"]) || `Product #${id || "0"}`;
   const barcode = firstNonEmpty(product, ["barcode", "kodu"]) || id || "0";
-  const price = formatPrice(firstNonEmpty(product, ["selling_price", "price"]));
+  const rawPrice = firstNonEmpty(product, ["selling_price", "price"]);
+  const cashPriceNumber = parsePriceNumber(rawPrice);
+  const cardPriceNumber = cashPriceNumber * 1.16;
+  const cashPrice = formatPrice(rawPrice);
+  const cardPrice = `$${cardPriceNumber.toFixed(2)}`;
 
   return {
     id,
     barcode,
-    price,
+    cashPrice,
+    cardPrice,
     name,
   };
 };
@@ -87,7 +99,7 @@ export function printProductLabel(product: UnknownRecord) {
           margin: 0;
           position: absolute;
           left: 0.8mm;
-          top: 1mm;
+          top: 0.6mm;
           right: 0.8mm;
           height: 9mm;
           font-size: 3.7mm;
@@ -121,10 +133,21 @@ export function printProductLabel(product: UnknownRecord) {
         .price {
           position: absolute;
           right: 0.8mm;
-          top: 12.2mm;
+          top: 10.7mm;
           width: 24mm;
           text-align: right;
-          font-size: 5.5mm;
+          font-size: 4.2mm;
+          font-weight: 800;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        .price-card {
+          position: absolute;
+          right: 0.8mm;
+          top: 15.3mm;
+          width: 24mm;
+          text-align: right;
+          font-size: 4.2mm;
           font-weight: 800;
           line-height: 1;
           white-space: nowrap;
@@ -132,7 +155,7 @@ export function printProductLabel(product: UnknownRecord) {
         .number {
           position: absolute;
           right: 0.8mm;
-          top: 19.6mm;
+          top: 20.8mm;
           width: 24mm;
           text-align: right;
           font-size: 5.5mm;
@@ -147,7 +170,8 @@ export function printProductLabel(product: UnknownRecord) {
         <div class="name">${escapeHtml(printable.name)}</div>
         <img id="barcode" class="barcode" src="${barcodeSrc}" alt="Barcode" />
         <div class="barcode-value">${escapeHtml(printable.barcode)}</div>
-        <div class="price">${escapeHtml(printable.price)}</div>
+        <div class="price">${escapeHtml(`${printable.cashPrice} (cash)`)}</div>
+        <div class="price-card">${escapeHtml(`${printable.cardPrice} (card)`)}</div>
         <div class="number">${escapeHtml(`No ${printable.id}`)}</div>
       </section>
       <script>

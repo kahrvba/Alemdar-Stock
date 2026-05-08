@@ -627,14 +627,23 @@ export function QuickSellPanel() {
                   <span>KDV ({Math.round(KDV_RATE * 100)}%)</span>
                   <span className="font-medium">{formatFromUSD(kdvAmount, "USD")}</span>
                 </div>
-                <div className="flex items-center justify-between text-base font-bold text-foreground">
+                <div className="flex items-start justify-between text-base font-bold text-foreground">
                   <span>Total</span>
-                  <div className="text-right">
-                    <span>{formatFromUSD(grandTotal, "USD")}</span>
+                  <div className="mt-1 text-right">
+                    <span>{formatFromUSD(grandTotal, "USD")} (card)</span>
+                    <p>
+                      {formatFromUSD(subtotal, "USD")} (cash)
+                    </p>
                     <p className="text-sm font-medium text-muted-foreground">
                       {(() => {
                         const converted = formatMultiFromUSD(grandTotal);
-                        return `${converted.TRY} • ${converted.EUR} • ${converted.GBP}`;
+                        return `${converted.TRY} • ${converted.EUR} • ${converted.GBP} (card)`;
+                      })()}
+                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {(() => {
+                        const converted = formatMultiFromUSD(subtotal);
+                        return `${converted.TRY} • ${converted.EUR} • ${converted.GBP} (cash)`;
                       })()}
                     </p>
                   </div>

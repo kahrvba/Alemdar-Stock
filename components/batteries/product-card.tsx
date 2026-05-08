@@ -2,6 +2,7 @@ import Image from "next/image";
 import { BatteryProduct } from "@/lib/services/batteries";
 import { HoverZoom } from "@/components/ui/hover-zoom";
 import { printProductLabel } from "@/lib/print-product-label";
+import { addProductToCompare } from "@/lib/product-compare";
 import { cn } from "@/lib/utils";
 
 type BatteryProductExtended = BatteryProduct & {
@@ -60,6 +61,16 @@ export function ProductCard({
         id {product.id}
       </span>
       <div className="relative h-90 w-full overflow-hidden rounded-t-3xl bg-muted">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            addProductToCompare(product as Record<string, unknown>);
+          }}
+          className="absolute right-3 top-3 z-20 rounded-md bg-background/90 px-2 py-1 text-xs font-semibold text-foreground shadow"
+        >
+          Compare
+        </button>
         {imageSrc ? (
           <HoverZoom className="relative h-full w-full">
             <Image
