@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCurrencyRates } from "@/components/currency-rates-provider";
 import { useToast } from "@/components/ui/toast";
+import { BARCODE_COPIED_EVENT } from "@/components/ui/copy-barcode-button";
 
 const scanAnimation = `
   @keyframes scan {
@@ -293,8 +294,17 @@ export function QuickSellPanel() {
 
     window.addEventListener("focus", handleWindowFocus);
 
+    const handleBarcodeCopy = (event: Event) => {
+      const custom = event as CustomEvent<string>;
+      const copiedBarcode = custom.detail?.trim();
+      if (!copiedBarcode) return;
+      setCode(copiedBarcode);
+    };
+    window.addEventListener(BARCODE_COPIED_EVENT, handleBarcodeCopy as EventListener);
+
     return () => {
       window.removeEventListener("focus", handleWindowFocus);
+      window.removeEventListener(BARCODE_COPIED_EVENT, handleBarcodeCopy as EventListener);
       if (blurTimerRef.current !== null) window.clearTimeout(blurTimerRef.current);
       if (debounceTimerRef.current !== null) window.clearTimeout(debounceTimerRef.current);
       if (requestControllerRef.current) requestControllerRef.current.abort();

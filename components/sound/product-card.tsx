@@ -4,6 +4,7 @@ import { HoverZoom } from "@/components/ui/hover-zoom";
 import { printProductLabel } from "@/lib/print-product-label";
 import { addProductToCompare } from "@/lib/product-compare";
 import { cn } from "@/lib/utils";
+import { CopyBarcodeButton } from "@/components/ui/copy-barcode-button";
 
 type ProductCardProps = {
   product: SoundProduct;
@@ -24,6 +25,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
     product.price && Number(product.price) > 0
       ? usdFormatter.format(Number(product.price))
       : "null";
+  const barcodeLabel = product.barcode?.trim() || "No barcode";
 
   return (
     <article
@@ -74,6 +76,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
           ) : null}
         </div>
         <div className="mt-auto flex flex-col gap-3 text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">Barcode: {barcodeLabel}<CopyBarcodeButton barcode={typeof product.barcode === "string" ? product.barcode : ""} /></p>
           <div className="flex items-center justify-between gap-3">
             <span className="rounded-full bg-emerald-500/15 px-4 py-1 font-semibold text-emerald-600 dark:text-emerald-300">
               Qty: {Math.max(0, product.quantity ?? 0)}

@@ -4,6 +4,7 @@ import { HoverZoom } from "@/components/ui/hover-zoom";
 import { printProductLabel } from "@/lib/print-product-label";
 import { addProductToCompare } from "@/lib/product-compare";
 import { cn } from "@/lib/utils";
+import { CopyBarcodeButton } from "@/components/ui/copy-barcode-button";
 
 type BatteryProductExtended = BatteryProduct & {
   quantity?: number | null;
@@ -103,8 +104,7 @@ export function ProductCard({
               Qty: {quantityValue}
             </span>
             <span className="flex min-h-10 items-center justify-center rounded-full bg-foreground/90 px-5 text-xs font-semibold uppercase tracking-[0.35em] text-background text-center leading-tight">
-              {barcodeLabel}
-            </span>
+              {barcodeLabel} <CopyBarcodeButton barcode={typeof product.barcode === "string" ? product.barcode : ""} /></span>
             <span className="shrink-0 rounded-full bg-primary px-4 py-1 text-base font-semibold text-primary-foreground text-center">
               {priceLabel}
             </span>

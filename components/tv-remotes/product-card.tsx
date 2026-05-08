@@ -3,6 +3,7 @@ import type { TvRemote } from "@/lib/services/tv-remotes";
 import { printProductLabel } from "@/lib/print-product-label";
 import { addProductToCompare } from "@/lib/product-compare";
 import { cn } from "@/lib/utils";
+import { CopyBarcodeButton } from "@/components/ui/copy-barcode-button";
 
 type ProductCardProps = {
   product: TvRemote;
@@ -71,7 +72,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
           {product.description ? (
             <p className="text-sm text-muted-foreground">{product.description}</p>
           ) : null}
-          <p className="text-xs text-muted-foreground">Barcode: {barcodeLabel}</p>
+          <p className="text-xs text-muted-foreground">Barcode: {barcodeLabel}<CopyBarcodeButton barcode={typeof product.barcode === "string" ? product.barcode : ""} /></p>
         </div>
 
         {null}

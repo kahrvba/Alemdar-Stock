@@ -3,6 +3,7 @@ import { focusCardsData } from "@/components/ui/focus-cards-demo";
 import { UniversalSearch } from "@/components/ui/universal-search";
 import { QuickSellPanel } from "@/components/quick-sell-panel";
 import { TodayTotalPanel } from "@/components/today-total-panel";
+import { HomeDbLookup } from "@/components/home-db-lookup";
 import Link from "next/link";
 
 export default function Home() {
@@ -48,6 +49,7 @@ export default function Home() {
           </div>
           <div className="flex flex-col gap-16">
             <QuickSellPanel />
+            <HomeDbLookup />
             <TodayTotalPanel />
           </div>
         </div>

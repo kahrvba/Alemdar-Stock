@@ -5,6 +5,7 @@ import { HoverZoom } from "@/components/ui/hover-zoom";
 import { printProductLabel } from "@/lib/print-product-label";
 import { addProductToCompare } from "@/lib/product-compare";
 import { cn } from "@/lib/utils";
+import { CopyBarcodeButton } from "@/components/ui/copy-barcode-button";
 
 type ProductCardProps = {
   product: SolarProduct;
@@ -92,7 +93,7 @@ export function ProductCard({
           {product.rating ? (
             <p className="text-sm text-muted-foreground">Rating: {product.rating}</p>
           ) : null}
-          <p className="text-sm text-muted-foreground">Barcode: {barcodeLabel}</p>
+          <p className="text-xs text-muted-foreground">Barcode: {barcodeLabel}<CopyBarcodeButton barcode={typeof product.barcode === "string" ? product.barcode : ""} /></p>
         </div>
         <div className="mt-auto flex flex-col gap-3 text-sm text-muted-foreground">
           <div className="flex items-center justify-between gap-3">

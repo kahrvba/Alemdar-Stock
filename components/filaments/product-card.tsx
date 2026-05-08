@@ -3,6 +3,7 @@ import type { FilamentProduct } from "@/lib/services/filaments";
 import { printProductLabel } from "@/lib/print-product-label";
 import { addProductToCompare } from "@/lib/product-compare";
 import { cn } from "@/lib/utils";
+import { CopyBarcodeButton } from "@/components/ui/copy-barcode-button";
 
 type ProductCardProps = {
   product: FilamentProduct;
@@ -75,7 +76,7 @@ export function ProductCard({ product, onEdit, onDelete, onAddToCart, isDeleting
           {product.variant ? (
             <p className="text-xs text-muted-foreground">{product.variant}</p>
           ) : null}
-          <p className="text-xs text-muted-foreground">Barcode: {barcodeLabel}</p>
+          <p className="text-xs text-muted-foreground">Barcode: {barcodeLabel}<CopyBarcodeButton barcode={typeof product.barcode === "string" ? product.barcode : ""} /></p>
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-3 text-sm text-muted-foreground">
