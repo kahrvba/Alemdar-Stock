@@ -134,9 +134,9 @@ export function printProductLabel(product: UnknownRecord) {
           position: absolute;
           right: 0.8mm;
           top: 10.7mm;
-          width: 24mm;
+          width: 30mm;
           text-align: right;
-          font-size: 4.2mm;
+          font-size: 3.7mm;
           font-weight: 800;
           line-height: 1;
           white-space: nowrap;
@@ -145,9 +145,9 @@ export function printProductLabel(product: UnknownRecord) {
           position: absolute;
           right: 0.8mm;
           top: 15.3mm;
-          width: 24mm;
+          width: 30mm;
           text-align: right;
-          font-size: 4.2mm;
+          font-size: 3.7mm;
           font-weight: 800;
           line-height: 1;
           white-space: nowrap;
