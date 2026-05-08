@@ -49,6 +49,7 @@ type ScannedQuickSellItem = QuickSellItem & {
 
 const makeItemKey = (item: { tableKey: string; id: number }) => `${item.tableKey}:${item.id}`;
 const KDV_RATE = 0.16;
+const PERVANAH_DISCOUNT_RATE = 0.1;
 const QUICK_SELL_STORAGE_KEY = "quick_sell_checkout_state";
 
 const focusScannerInput = (input: HTMLInputElement | null) => {
@@ -57,6 +58,7 @@ const focusScannerInput = (input: HTMLInputElement | null) => {
 };
 
 export function QuickSellPanel() {
+  const [applyPervanahDiscount, setApplyPervanahDiscount] = useState(false);
   const [code, setCode] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
@@ -96,8 +98,16 @@ export function QuickSellPanel() {
       }, 0),
     [scannedItems]
   );
+  const discountedSubtotal = useMemo(() => {
+    if (!applyPervanahDiscount) return subtotal;
+    return subtotal * (1 - PERVANAH_DISCOUNT_RATE);
+  }, [applyPervanahDiscount, subtotal]);
   const kdvAmount = useMemo(() => subtotal * KDV_RATE, [subtotal]);
   const grandTotal = useMemo(() => subtotal + kdvAmount, [subtotal, kdvAmount]);
+  const discountedGrandTotal = useMemo(() => {
+    if (!applyPervanahDiscount) return grandTotal;
+    return grandTotal * (1 - PERVANAH_DISCOUNT_RATE);
+  }, [applyPervanahDiscount, grandTotal]);
   const hasInvalidSellQuantity = useMemo(
     () =>
       scannedItems.some(
@@ -503,7 +513,16 @@ export function QuickSellPanel() {
     <>
       <style>{scanAnimation}</style>
       <aside className="w-full rounded-2xl border border-border/60 bg-card/70 p-4 lg:sticky lg:top-20">
-        <p className="text-center text-lg font-bold text-foreground">checkout</p>
+        <div className="flex items-center justify-between">
+          <p className="text-lg font-bold text-foreground">checkout</p>
+          <button
+            type="button"
+            onClick={() => setApplyPervanahDiscount((current) => !current)}
+            className="text-sm font-semibold text-blue-600 underline underline-offset-4 dark:text-blue-400"
+          >
+            {applyPervanahDiscount ? "Pervanah off" : "Pervanah -10%"}
+          </button>
+        </div>
 
       <input
         ref={inputRef}
@@ -631,28 +650,34 @@ export function QuickSellPanel() {
               <div className="space-y-1 text-sm">
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Subtotal</span>
-                  <span className="font-medium">{formatFromUSD(subtotal, "USD")}</span>
+                  <span className="font-medium">{formatFromUSD(discountedSubtotal, "USD")}</span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>KDV ({Math.round(KDV_RATE * 100)}%)</span>
                   <span className="font-medium">{formatFromUSD(kdvAmount, "USD")}</span>
                 </div>
+                {applyPervanahDiscount ? (
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span>Pervanah</span>
+                    <span className="font-medium">-10%</span>
+                  </div>
+                ) : null}
                 <div className="flex items-start justify-between text-base font-bold text-foreground">
                   <span>Total</span>
                   <div className="mt-1 text-right">
-                    <span>{formatFromUSD(grandTotal, "USD")} (card)</span>
+                    <span>{formatFromUSD(discountedGrandTotal, "USD")} (card)</span>
                     <p>
-                      {formatFromUSD(subtotal, "USD")} (cash)
+                      {formatFromUSD(discountedSubtotal, "USD")} (cash)
                     </p>
                     <p className="text-sm font-medium text-muted-foreground">
                       {(() => {
-                        const converted = formatMultiFromUSD(grandTotal);
+                        const converted = formatMultiFromUSD(discountedGrandTotal);
                         return `${converted.TRY} • ${converted.EUR} • ${converted.GBP} (card)`;
                       })()}
                     </p>
                     <p className="text-sm font-medium text-muted-foreground">
                       {(() => {
-                        const converted = formatMultiFromUSD(subtotal);
+                        const converted = formatMultiFromUSD(discountedSubtotal);
                         return `${converted.TRY} • ${converted.EUR} • ${converted.GBP} (cash)`;
                       })()}
                     </p>
