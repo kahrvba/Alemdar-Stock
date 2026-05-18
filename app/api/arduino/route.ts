@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { normalizeImageFilename } from '@/lib/image-path';
 
 const ARDUINO_SEARCH_FIELDS = ['id', 'english_names', 'turkish_names', 'category', 'category_layer_1', 'category_layer_2', 'barcode'] as const;
 type ArduinoSearchField = (typeof ARDUINO_SEARCH_FIELDS)[number];
@@ -190,7 +191,7 @@ export async function POST(req: Request) {
 
     await client.query(
       'INSERT INTO public.arduino (id, english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, image_filename, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
-      [newId, english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, image_filename, description]
+      [newId, english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, normalizeImageFilename(image_filename), description]
     );
 
     await client.query('COMMIT');
@@ -237,7 +238,7 @@ export async function PUT(req: Request) {
          image_filename=COALESCE($9, image_filename),
          description=COALESCE($10, description)
       WHERE id=$11`,
-      [english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, image_filename, description, id]
+      [english_names, turkish_names, category, category_layer_1, category_layer_2, barcode, quantity, price, normalizeImageFilename(image_filename), description, id]
     );
 
     if ((updateResult.rowCount ?? 0) === 0) {

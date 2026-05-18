@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { normalizeImageFilename } from '@/lib/image-path';
 
 const CABLE_SEARCH_FIELDS = ['id', 'english_name', 'turkish_name', 'category', 'barcode'] as const;
 type CableSearchField = (typeof CABLE_SEARCH_FIELDS)[number];
@@ -176,7 +177,7 @@ export async function POST(req: Request) {
 
     await client.query(
       'INSERT INTO public.mainled (id, english_name, turkish_name, category, barcode, quantity, price, image_filename, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-      [newId, english_name, turkish_name, category, barcode, quantity, price, image_filename, description]
+      [newId, english_name, turkish_name, category, barcode, quantity, price, normalizeImageFilename(image_filename), description]
     );
 
     await client.query('COMMIT');
@@ -209,7 +210,7 @@ export async function PUT(req: Request) {
          image_filename=COALESCE($7, image_filename),
          description=COALESCE($8, description)
       WHERE id=$9`,
-      [english_name, turkish_name, category, barcode, quantity, price, image_filename, description, id]
+      [english_name, turkish_name, category, barcode, quantity, price, normalizeImageFilename(image_filename), description, id]
     );
 
     if ((updateResult.rowCount ?? 0) === 0) {

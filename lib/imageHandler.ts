@@ -1,70 +1,49 @@
-import { put } from '@vercel/blob';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 
-export type UploadSection = 'arduino' | 'mainproducts' | 'mainSideLeds' | 'solar' | 'mexxsun' | 'sound' | 'battery' | 'tv' | 'filaments' | 'fans' | 'others' | 'electric' | 'adapters' | 'chargers';
+export type UploadSection =
+  | 'arduino'
+  | 'mainproducts'
+  | 'mainSideLeds'
+  | 'solar'
+  | 'mexxsun'
+  | 'sound'
+  | 'battery'
+  | 'tv'
+  | 'filaments'
+  | 'fans'
+  | 'others'
+  | 'electric'
+  | 'adapters'
+  | 'chargers';
 
 interface UploadConfig {
   folder: string;
   tableName: string;
 }
 
+const ASSETS_ROOT = '/opt/assets';
+
 const sectionConfig: Record<UploadSection, UploadConfig> = {
-  'arduino': {
-    folder: 'arduinoproducts',
-    tableName: 'arduino'
-  },
-  'mainproducts': {
-    folder: 'mainproducts',
-    tableName: 'main'
-  },
-  'mainSideLeds': {
-    folder: 'mainSideLeds',
-    tableName: 'mainled'
-  },
-  'solar': {
-    folder: 'solarproducts',
-    tableName: 'solardb'
-  },
-  'mexxsun': {
-    folder: 'mexxsun',
-    tableName: 'mexxsun'
-  },
-  'sound': {
-    folder: 'soundproducts',
-    tableName: 'sound'
-  },
-  'battery': {
-    folder: 'batteries',
-    tableName: 'batteries'
-  },
-  'tv': {
-    folder: 'tv',
-    tableName: 'tv_remotes'
-  },
-  'filaments': {
-    folder: 'filaments',
-    tableName: 'filaments'
-  },
-  'fans': {
-    folder: 'fans',
-    tableName: 'fans'
-  },
-  'others': {
-    folder: 'others',
-    tableName: 'others'
-  },
-  'electric': {
-    folder: 'electric',
-    tableName: 'electric'
-  },
-  'adapters': {
-    folder: 'adapters',
-    tableName: 'adapters'
-  },
-  'chargers': {
-    folder: 'chargers',
-    tableName: 'chargers'
-  }
+  arduino: { folder: 'arduinoproducts', tableName: 'arduino' },
+  mainproducts: { folder: 'mainproducts', tableName: 'main' },
+  mainSideLeds: { folder: 'mainSideLeds', tableName: 'mainled' },
+  solar: { folder: 'solarproducts', tableName: 'solardb' },
+  mexxsun: { folder: 'mexxsun', tableName: 'mexxsun' },
+  sound: { folder: 'soundproducts', tableName: 'sound' },
+  battery: { folder: 'batteries', tableName: 'batteries' },
+  tv: { folder: 'tv', tableName: 'tv_remotes' },
+  filaments: { folder: 'filaments', tableName: 'filaments' },
+  fans: { folder: 'fans', tableName: 'fans' },
+  others: { folder: 'others', tableName: 'others' },
+  electric: { folder: 'electric', tableName: 'electric' },
+  adapters: { folder: 'adapters', tableName: 'adapters' },
+  chargers: { folder: 'chargers', tableName: 'chargers' },
 };
+
+function sanitizeFileName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_');
+}
 
 export async function handleImageUpload(
   file: File,
@@ -72,95 +51,50 @@ export async function handleImageUpload(
   section: UploadSection,
   pool: {
     connect: () => Promise<{
-      query: (
-        text: string,
-        params?: unknown[]
-      ) => Promise<{ rowCount: number; rows?: unknown[] }>;
+      query: (text: string, params?: unknown[]) => Promise<{ rowCount: number; rows?: unknown[] }>;
       release: () => void;
     }>;
   }
 ) {
-  console.log(`handleImageUpload called with id: ${id}, section: ${section}, file: ${file.name}`);
-
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.error('BLOB_READ_WRITE_TOKEN is not configured');
-    throw new Error('BLOB_READ_WRITE_TOKEN is not configured');
-  }
-
   const config = sectionConfig[section];
-  if (!config) {
-    console.error(`Invalid section: ${section}`);
-    throw new Error(`Invalid section: ${section}`);
-  }
+  if (!config) throw new Error(`Invalid section: ${section}`);
 
-  console.log(`Using config: folder=${config.folder}, tableName=${config.tableName}`);
+  const safeName = sanitizeFileName(file.name || 'upload.bin');
+  const fileName = `${id}-${safeName}`;
+  const fsDir = path.join(ASSETS_ROOT, config.folder);
+  const fsPath = path.join(fsDir, fileName);
+  const publicPath = `/assets/${config.folder}/${fileName}`;
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await mkdir(fsDir, { recursive: true });
+  await writeFile(fsPath, buffer);
 
   let client:
     | {
-        query: (
-          text: string,
-          params?: unknown[]
-        ) => Promise<{ rowCount: number; rows?: unknown[] }>;
+        query: (text: string, params?: unknown[]) => Promise<{ rowCount: number; rows?: unknown[] }>;
         release: () => void;
       }
     | undefined;
+
   try {
-    // Upload to Vercel Blob
-    console.log(`Uploading file to Vercel Blob: ${config.folder}/${id}-${file.name}`);
-    const blob = await put(`${config.folder}/${id}-${file.name}`, file, {
-      access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN
-    });
-
-    console.log('Blob upload successful:', blob);
-
-    // Get client connection
-    console.log('Connecting to database...');
     client = await pool.connect();
-
-    // Start transaction
-    console.log('Starting database transaction...');
     await client.query('BEGIN');
 
-    // Update database with the Blob URL
-    console.log(`Updating ${config.tableName} with blob URL for id ${id}`);
     const result = await client.query(
       `UPDATE public.${config.tableName} SET image_filename = $1 WHERE id = $2 RETURNING *`,
-      [blob.url, id]
+      [publicPath, id]
     );
 
-    console.log(`Database update result: ${result.rowCount} rows affected`);
-
-    if (result.rowCount === 0) {
-      console.error(`No record found with id ${id} in ${config.tableName}`);
+    if ((result.rowCount ?? 0) === 0) {
       throw new Error(`No record found with id ${id} in ${config.tableName}`);
     }
 
-    // Commit transaction
-    console.log('Committing transaction...');
     await client.query('COMMIT');
-
-    console.log(`Successfully updated ${config.tableName} with blob URL:`, {
-      id,
-      url: blob.url,
-      table: config.tableName
-    });
-
-    return { url: blob.url };
+    return { url: publicPath };
   } catch (error) {
-    console.error(`Error in handleImageUpload:`, error);
-
-    if (client) {
-      console.log('Rolling back transaction...');
-      await client.query('ROLLBACK');
-    }
-
-    console.error(`Upload error for ${section}:`, error);
+    if (client) await client.query('ROLLBACK');
     throw error;
   } finally {
-    if (client) {
-      console.log('Releasing database client...');
-      client.release();
-    }
+    if (client) client.release();
   }
 }

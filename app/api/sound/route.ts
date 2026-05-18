@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { normalizeImageFilename } from '@/lib/image-path';
 
 const SOUND_SEARCH_FIELDS = ['id', 'english_name', 'turkish_name', 'category', 'barcode', 'kodu'] as const;
 type SoundSearchField = (typeof SOUND_SEARCH_FIELDS)[number];
@@ -211,7 +212,7 @@ export async function POST(req: Request) {
     // Insert with the generated ID
     const result = await client.query(
       'INSERT INTO public.sound (id, english_name, turkish_name, barcode, kodu, price, image_filename, category, sub_category, quantity, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id',
-      [newId, english_name, turkish_name, barcode, kodu, price, image_filename, category, sub_category, quantity, description]
+      [newId, english_name, turkish_name, barcode, kodu, price, normalizeImageFilename(image_filename), category, sub_category, quantity, description]
     );
 
     if (!result.rows[0]?.id) {
@@ -266,7 +267,7 @@ export async function PUT(req: Request) {
          quantity=COALESCE($9, quantity), 
          description=COALESCE($10, description)
        WHERE id=$11`,
-      [english_name, turkish_name, barcode, kodu, price, image_filename, category, sub_category, quantity, description, id]
+      [english_name, turkish_name, barcode, kodu, price, normalizeImageFilename(image_filename), category, sub_category, quantity, description, id]
     );
 
     if (result.rowCount === 0) {

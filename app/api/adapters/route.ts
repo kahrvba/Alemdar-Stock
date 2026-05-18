@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { normalizeImageFilename } from '@/lib/image-path';
 
 const ADAPTER_SEARCH_FIELDS = ['id', 'english_names', 'turkish_names', 'category', 'barcode'] as const;
 type AdaptersSearchField = (typeof ADAPTER_SEARCH_FIELDS)[number];
@@ -177,7 +178,7 @@ export async function POST(req: Request) {
 
     const result = await client.query(
       'INSERT INTO public.adapters (id, english_names, turkish_names, category, barcode, quantity, price, image_filename, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
-      [newId, english_names, turkish_names, category, barcode, quantity, price, image_filename, description]
+      [newId, english_names, turkish_names, category, barcode, quantity, price, normalizeImageFilename(image_filename), description]
     );
 
     if (!result.rows[0]?.id) {
@@ -215,7 +216,7 @@ export async function PUT(req: Request) {
          image_filename=COALESCE($7, image_filename),
          description=COALESCE($8, description)
       WHERE id=$9`,
-      [english_names, turkish_names, category, barcode, quantity, price, image_filename, description, id]
+      [english_names, turkish_names, category, barcode, quantity, price, normalizeImageFilename(image_filename), description, id]
     );
 
     if ((updateResult.rowCount ?? 0) === 0) {

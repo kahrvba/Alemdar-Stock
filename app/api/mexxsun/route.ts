@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { normalizeImageFilename } from '@/lib/image-path';
 
 const MEXXSUN_SEARCH_FIELDS = ['id', 'name', 'category', 'rating', 'barcode'] as const;
 type MexxsunSearchField = (typeof MEXXSUN_SEARCH_FIELDS)[number];
@@ -228,7 +229,7 @@ export async function POST(req: Request) {
     // Insert with the generated ID
     const result = await client.query(
       'INSERT INTO public.mexxsun (id, name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, quantity, description, is_new) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id',
-      [newId, normalizedName, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, quantity, description, isNewFlag]
+      [newId, normalizedName, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, normalizeImageFilename(image_filename), category, barcode, quantity, description, isNewFlag]
     );
 
     if (!result.rows[0]?.id) {
@@ -288,7 +289,7 @@ export async function PUT(req: Request) {
          description=COALESCE($13, description),
          is_new=COALESCE($14, is_new)
        WHERE id=$15`,
-      [name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, image_filename, category, barcode, quantity, description, isNewFlag, id]
+      [name, rating, factory_price, wholesale_price, min_selling_price, selling_price, factor, cost_price, normalizeImageFilename(image_filename), category, barcode, quantity, description, isNewFlag, id]
     );
 
     if (result.rowCount === 0) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { normalizeImageFilename } from "@/lib/image-path";
 
 const TV_SEARCH_FIELDS = ["id", "name", "brand", "category", "barcode"] as const;
 type TvSearchField = (typeof TV_SEARCH_FIELDS)[number];
@@ -217,7 +218,7 @@ export async function POST(req: Request) {
         barcode ?? null,
         description ?? null,
         specs ?? {},
-        image_filename ?? null,
+        normalizeImageFilename(image_filename),
         typeof quantity === "number" ? quantity : null,
         price ?? null,
       ]
@@ -254,7 +255,7 @@ export async function PUT(req: Request) {
          quantity = COALESCE($8, quantity),
          price = COALESCE($9, price)
        WHERE id = $10`,
-      [name, brand, category, barcode, description, specs, image_filename, quantity, price, id]
+      [name, brand, category, barcode, description, specs, normalizeImageFilename(image_filename), quantity, price, id]
     );
 
     if (result.rowCount === 0) {

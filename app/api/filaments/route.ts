@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { normalizeImageFilename } from "@/lib/image-path";
 
 const FILAMENT_SEARCH_FIELDS = ["id", "name", "brand", "material", "color", "barcode"] as const;
 type FilamentSearchField = (typeof FILAMENT_SEARCH_FIELDS)[number];
@@ -212,7 +213,7 @@ export async function POST(req: Request) {
         diameter_mm ?? 1.75,
         typeof quantity === "number" ? quantity : null,
         price ?? null,
-        image_filename ?? null,
+        normalizeImageFilename(image_filename),
         barcode ?? null,
       ]
     );
@@ -261,7 +262,7 @@ export async function PUT(req: Request) {
         diameter_mm,
         quantity,
         price,
-        image_filename,
+        normalizeImageFilename(image_filename),
         id,
       ]
     );
