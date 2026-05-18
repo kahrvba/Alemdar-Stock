@@ -16,11 +16,27 @@ const EMERGENCY_COOKIE_NAME = "alemdar_emergency_access";
 
 const EXCLUDED_PATHS = ["/favicon.ico"];
 
+const STATIC_FILE_EXTENSIONS = [
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".avif",
+  ".gif",
+  ".svg",
+  ".ico",
+  ".jfif",
+];
+
 function isExcluded(url: URL) {
   const path = url.pathname;
   // allow Next internals and API calls to bypass the proxy
   if (path.startsWith("/_next/")) return true;
   if (path.startsWith("/api/")) return true;
+  if (path.startsWith("/assets/")) return true;
+  if (STATIC_FILE_EXTENSIONS.some((ext) => path.toLowerCase().endsWith(ext))) {
+    return true;
+  }
   if (EXCLUDED_PATHS.includes(path)) return true;
   return false;
 }

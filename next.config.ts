@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
     'fstream',
   ],
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
