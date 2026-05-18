@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 export type UploadSection =
   | 'arduino'
@@ -45,6 +46,12 @@ function sanitizeFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
+function splitExt(name: string) {
+  const ext = path.extname(name);
+  const base = ext ? name.slice(0, -ext.length) : name;
+  return { base, ext };
+}
+
 export async function handleImageUpload(
   file: File,
   id: string,
@@ -60,7 +67,9 @@ export async function handleImageUpload(
   if (!config) throw new Error(`Invalid section: ${section}`);
 
   const safeName = sanitizeFileName(file.name || 'upload.bin');
-  const fileName = `${id}-${safeName}`;
+  const { base, ext } = splitExt(safeName);
+  const unique = randomUUID().slice(0, 8);
+  const fileName = `${id}-${base}-${unique}${ext}`;
   const fsDir = path.join(ASSETS_ROOT, config.folder);
   const fsPath = path.join(fsDir, fileName);
   const publicPath = `/assets/${config.folder}/${fileName}`;
