@@ -15,7 +15,6 @@ const nextConfig: NextConfig = {
     'exceljs',
     'unzipper',
     'fstream',
-    'rimraf',
   ],
   images: {
     remotePatterns: [
