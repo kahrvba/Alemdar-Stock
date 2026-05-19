@@ -59,6 +59,20 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
       "LOWER(COALESCE(english_name, '') || ' ' || COALESCE(turkish_name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))",
   },
   {
+    tableKey: "spray_gum",
+    sectionLabel: "Spray & Gum",
+    routePath: "/spray-gum",
+    tableName: "public.spray_gum",
+    titleExpr: "english_name",
+    subtitleExpr: "COALESCE(turkish_name, category)",
+    imageExpr: "image_filename",
+    barcodeExpr: "barcode",
+    priceExpr: "price::text",
+    quantityExpr: "COALESCE(quantity, 0)",
+    searchableExpr:
+      "LOWER(COALESCE(english_name, '') || ' ' || COALESCE(turkish_name, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))",
+  },
+  {
     tableKey: "solardb",
     sectionLabel: "Solar",
     routePath: "/solar",

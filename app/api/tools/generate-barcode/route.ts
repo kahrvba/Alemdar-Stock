@@ -7,6 +7,7 @@ const BARCODE_LENGTH = 12;
 const TABLES_WITH_BARCODE = [
   "public.arduino",
   "public.mainled",
+  "public.spray_gum",
   "public.solardb",
   "public.mexxsun",
   "public.sound",

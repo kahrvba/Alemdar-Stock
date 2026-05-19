@@ -33,6 +33,16 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
     codeMatchExpr:
       "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
+  spray_gum: {
+    tableKey: "spray_gum",
+    sectionLabel: "Spray & Gum",
+    tableName: "public.spray_gum",
+    nameExpr: "COALESCE(english_name, turkish_name, CONCAT('Product #', id::text))",
+    barcodeExpr: "barcode",
+    priceExpr: "price",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
+  },
   solardb: {
     tableKey: "solardb",
     sectionLabel: "Solar",

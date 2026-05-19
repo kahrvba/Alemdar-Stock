@@ -18,6 +18,11 @@ export const focusCardsData = [
     href: "/cable",
   },
   {
+    title: "Spray & Gum Section",
+    src: "/spray_gum.webp",
+    href: "/spray-gum",
+  },
+  {
     title: "Chargers Section",
     src: "/chargers.jpg",
     href: "/chargers",

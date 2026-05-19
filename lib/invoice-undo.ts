@@ -1,6 +1,7 @@
 export const INVOICE_SOURCE_TABLES = {
   arduino: "public.arduino",
   mainled: "public.mainled",
+  spray_gum: "public.spray_gum",
   solardb: "public.solardb",
   mexxsun: "public.mexxsun",
   sound: "public.sound",
@@ -22,6 +23,7 @@ export const CART_INVENTORY_TO_SOURCE_TABLE: Record<string, InvoiceSourceTableKe
   solar: "solardb",
   mexxsun: "mexxsun",
   cable: "mainled",
+  spraygum: "spray_gum",
   battery: "batteries",
   tv: "tv_remotes",
   filaments: "filaments",

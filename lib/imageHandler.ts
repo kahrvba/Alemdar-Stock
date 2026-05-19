@@ -6,6 +6,7 @@ export type UploadSection =
   | 'arduino'
   | 'mainproducts'
   | 'mainSideLeds'
+  | 'sprayGum'
   | 'solar'
   | 'mexxsun'
   | 'sound'
@@ -29,6 +30,7 @@ const sectionConfig: Record<UploadSection, UploadConfig> = {
   arduino: { folder: 'arduinoproducts', tableName: 'arduino' },
   mainproducts: { folder: 'mainproducts', tableName: 'main' },
   mainSideLeds: { folder: 'mainSideLeds', tableName: 'mainled' },
+  sprayGum: { folder: 'spraygum', tableName: 'spray_gum' },
   solar: { folder: 'solarproducts', tableName: 'solardb' },
   mexxsun: { folder: 'mexxsun', tableName: 'mexxsun' },
   sound: { folder: 'soundproducts', tableName: 'sound' },

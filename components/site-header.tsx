@@ -16,6 +16,7 @@ export function SiteHeader({ appVersion }: SiteHeaderProps) {
     { label: "Adapters", ariaLabel: "Adapters Section", link: "/adapters" },
     { label: "Batteries", ariaLabel: "Batteries Section", link: "/batteries" },
     { label: "Cable", ariaLabel: "Cable Section", link: "/cable" },
+    { label: "Spray & Gum", ariaLabel: "Spray and Gum Section", link: "/spray-gum" },
     { label: "Chargers", ariaLabel: "Chargers Section", link: "/chargers" },
     { label: "Sound", ariaLabel: "Sound Section", link: "/sound" },
     { label: "Solar", ariaLabel: "Solar Section", link: "/solar" },

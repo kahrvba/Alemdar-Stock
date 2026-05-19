@@ -53,6 +53,21 @@ const SECTION_CONFIG: SectionConfig[] = [
     ],
   },
   {
+    key: "spray_gum",
+    label: "Spray & Gum",
+    endpoint: "/api/sprayGum",
+    fields: [
+      { key: "english_name", label: "English Name", type: "text", required: true },
+      { key: "turkish_name", label: "Turkish Name", type: "text" },
+      { key: "category", label: "Category", type: "text" },
+      { key: "barcode", label: "Barcode", type: "text" },
+      { key: "quantity", label: "Quantity", type: "number" },
+      { key: "price", label: "Price", type: "number" },
+      { key: "image_filename", label: "Image URL", type: "text" },
+      { key: "description", label: "Description", type: "textarea" },
+    ],
+  },
+  {
     key: "sound",
     label: "Sound",
     endpoint: "/api/sound",

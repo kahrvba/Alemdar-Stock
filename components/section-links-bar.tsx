@@ -8,6 +8,7 @@ const sectionLinks = [
   { href: "/adapters", label: "Adapters" },
   { href: "/batteries", label: "Batteries" },
   { href: "/cable", label: "Cable" },
+  { href: "/spray-gum", label: "Spray & Gum" },
   { href: "/chargers", label: "Chargers" },
   { href: "/sound", label: "Sound" },
   { href: "/solar", label: "Solar" },

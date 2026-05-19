@@ -26,6 +26,14 @@ const SECTION_CONFIG: Record<string, SectionConfig> = {
     baseSearchExpr:
       "LOWER(COALESCE(english_name, '') || ' ' || COALESCE(turkish_name, '') || ' ' || COALESCE(category, ''))",
   },
+  spray_gum: {
+    key: "spray_gum",
+    label: "Spray & Gum",
+    tableName: "public.spray_gum",
+    titleExpr: "COALESCE(english_name, turkish_name, CONCAT('Product #', id::text))",
+    baseSearchExpr:
+      "LOWER(COALESCE(english_name, '') || ' ' || COALESCE(turkish_name, '') || ' ' || COALESCE(category, ''))",
+  },
   solardb: {
     key: "solardb",
     label: "Solar",

@@ -8,7 +8,7 @@ import { CART_INVENTORY_TO_SOURCE_TABLE } from "@/lib/invoice-undo";
 import { useCurrencyRates } from "@/components/currency-rates-provider";
 import { useToast } from "./toast";
 
-type InventoryType = "arduino" | "sound" | "solar" | "mexxsun" | "cable" | "battery" | "tv" | "filaments" | "fans" | "others" | "electric" | "adapters" | "chargers";
+type InventoryType = "arduino" | "sound" | "solar" | "mexxsun" | "cable" | "spraygum" | "battery" | "tv" | "filaments" | "fans" | "others" | "electric" | "adapters" | "chargers";
 
 type CartProduct = ArduinoProduct & {
   inventoryType?: InventoryType;
@@ -64,6 +64,7 @@ const INVENTORY_ENDPOINTS: Record<InventoryType, string> = {
   solar: "/api/solar",
   mexxsun: "/api/mexxsun",
   cable: "/api/mainSideLeds",
+  spraygum: "/api/sprayGum",
   battery: "/api/batteries",
   tv: "/api/tv-remotes",
   filaments: "/api/filaments",
@@ -303,6 +304,7 @@ function CartSidebar() {
     switch (inventoryType) {
       case "sound":
       case "cable":
+      case "spraygum":
         return (
           freshProduct?.english_name ??
           cartItem.product.english_names ??
@@ -374,6 +376,7 @@ function CartSidebar() {
           description: freshProduct.description ?? null,
         };
       case "cable":
+      case "spraygum":
         return {
           id: freshProduct.id,
           english_name: freshProduct.english_name ?? null,
