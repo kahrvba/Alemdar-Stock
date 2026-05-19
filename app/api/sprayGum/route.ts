@@ -239,8 +239,14 @@ export async function DELETE(req: Request) {
     // Delete the record
     await client.query('DELETE FROM public.spray_gum WHERE id=$1', [id]);
     
-    // Update the sequence to the current maximum ID
-    await client.query(`SELECT setval('spray_gum_id_seq', COALESCE((SELECT MAX(id) FROM public.spray_gum), 0));`);
+    // Update the sequence to the current maximum ID (PG18-safe for empty table)
+    await client.query(`
+      SELECT setval(
+        'public.spray_gum_id_seq',
+        GREATEST(COALESCE((SELECT MAX(id) FROM public.spray_gum), 0), 1),
+        EXISTS (SELECT 1 FROM public.spray_gum)
+      );
+    `);
     
     await client.query('COMMIT');
     return NextResponse.json({ message: 'Product deleted successfully' });
