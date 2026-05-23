@@ -17,7 +17,8 @@ export type UploadSection =
   | 'others'
   | 'electric'
   | 'adapters'
-  | 'chargers';
+  | 'chargers'
+  | 'lamps';
 
 interface UploadConfig {
   folder: string;
@@ -42,6 +43,7 @@ const sectionConfig: Record<UploadSection, UploadConfig> = {
   electric: { folder: 'electric', tableName: 'electric' },
   adapters: { folder: 'adapters', tableName: 'adapters' },
   chargers: { folder: 'chargers', tableName: 'chargers' },
+  lamps: { folder: 'lamp', tableName: 'lamps' },
 };
 
 function sanitizeFileName(name: string): string {

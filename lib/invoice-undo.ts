@@ -13,6 +13,7 @@ export const INVOICE_SOURCE_TABLES = {
   electric: "public.electric",
   adapters: "public.adapters",
   chargers: "public.chargers",
+  lamps: "public.lamps",
 } as const;
 
 export type InvoiceSourceTableKey = keyof typeof INVOICE_SOURCE_TABLES;
@@ -32,6 +33,7 @@ export const CART_INVENTORY_TO_SOURCE_TABLE: Record<string, InvoiceSourceTableKe
   electric: "electric",
   adapters: "adapters",
   chargers: "chargers",
+  lamps: "lamps",
 };
 
 export function isInvoiceSourceTableKey(value: unknown): value is InvoiceSourceTableKey {

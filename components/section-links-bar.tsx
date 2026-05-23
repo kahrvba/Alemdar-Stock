@@ -16,6 +16,7 @@ const sectionLinks = [
   { href: "/fans", label: "Fans" },
   { href: "/electric", label: "Electric" },
   { href: "/others", label: "Others" },
+  { href: "/lamps", label: "Lamps" },
   { href: "/filaments", label: "Filaments" },
   { href: "/tv-remotes", label: "TV Remotes" },
   { href: "/invoices", label: "Invoices" },

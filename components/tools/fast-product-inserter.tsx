@@ -172,6 +172,21 @@ const SECTION_CONFIG: SectionConfig[] = [
     ],
   },
   {
+    key: "lamps",
+    label: "Lamps",
+    endpoint: "/api/lamps",
+    fields: [
+      { key: "english_names", label: "English Name", type: "text", required: true },
+      { key: "turkish_names", label: "Turkish Name", type: "text" },
+      { key: "category", label: "Category", type: "text" },
+      { key: "barcode", label: "Barcode", type: "text" },
+      { key: "quantity", label: "Quantity", type: "number" },
+      { key: "price", label: "Price", type: "number" },
+      { key: "image_filename", label: "Image URL", type: "text" },
+      { key: "description", label: "Description", type: "textarea" },
+    ],
+  },
+  {
     key: "solardb",
     label: "Solar",
     endpoint: "/api/solar",

@@ -19,6 +19,7 @@ const TABLES_WITH_BARCODE = [
   "public.electric",
   "public.adapters",
   "public.chargers",
+  "public.lamps",
 ] as const;
 
 const generateCandidate = () => {

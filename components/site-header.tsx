@@ -24,6 +24,7 @@ export function SiteHeader({ appVersion }: SiteHeaderProps) {
     { label: "Fans", ariaLabel: "Fans Section", link: "/fans" },
     { label: "Electric", ariaLabel: "Electric Section", link: "/electric" },
     { label: "Others", ariaLabel: "Others Section", link: "/others" },
+    { label: "Lamps", ariaLabel: "Lamps Section", link: "/lamps" },
     { label: "Invoices", ariaLabel: "Invoices Section", link: "/invoices" },
   ];
 
