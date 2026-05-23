@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   //force nextjs to bundle those, cuz i dont want to lose exceljs.
   // TODO: use xlsx instead of exceljs
   serverExternalPackages: [

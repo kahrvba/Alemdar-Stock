@@ -82,6 +82,11 @@ export const focusCardsData = [
     src: "/bulb.jpg",
     href: "/lamps",
   },
+  {
+    title: "Scrawesdriver Section",
+    src: "/Screwdriver.webp",
+    href: "/scrawesdriver",
+  },
 ] satisfies FocusCard[];
 
 export default function FocusCardsDemo() {

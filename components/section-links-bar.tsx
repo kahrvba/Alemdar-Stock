@@ -17,6 +17,7 @@ const sectionLinks = [
   { href: "/electric", label: "Electric" },
   { href: "/others", label: "Others" },
   { href: "/lamps", label: "Lamps" },
+  { href: "/scrawesdriver", label: "Scrawesdriver" },
   { href: "/filaments", label: "Filaments" },
   { href: "/tv-remotes", label: "TV Remotes" },
   { href: "/invoices", label: "Invoices" },

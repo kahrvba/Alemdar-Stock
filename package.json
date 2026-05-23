@@ -1,6 +1,6 @@
 {
   "name": "new_alemdar",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "private": true,
   "packageManager": "pnpm@10.15.0",
   "engines": {
@@ -8,7 +8,7 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "dev": "rm -rf .next &&  next dev --turbopack",
+    "dev": "next dev --turbopack",
     "build": "NEXT_TELEMETRY_DISABLED=1 next build",
     "start": "next start",
     "lint": "eslint",
@@ -23,6 +23,7 @@
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
+    "@vercel/blob": "^2.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "exceljs": "^4.4.0",

@@ -1,6 +1,6 @@
-import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { put } from '@vercel/blob';
 
 export type UploadSection =
   | 'arduino'
@@ -18,14 +18,13 @@ export type UploadSection =
   | 'electric'
   | 'adapters'
   | 'chargers'
-  | 'lamps';
+  | 'lamps'
+  | 'scrawesdriver';
 
 interface UploadConfig {
   folder: string;
   tableName: string;
 }
-
-const ASSETS_ROOT = '/opt/assets';
 
 const sectionConfig: Record<UploadSection, UploadConfig> = {
   arduino: { folder: 'arduinoproducts', tableName: 'arduino' },
@@ -44,6 +43,7 @@ const sectionConfig: Record<UploadSection, UploadConfig> = {
   adapters: { folder: 'adapters', tableName: 'adapters' },
   chargers: { folder: 'chargers', tableName: 'chargers' },
   lamps: { folder: 'lamp', tableName: 'lamps' },
+  scrawesdriver: { folder: 'scraws', tableName: 'scrawesdriver' },
 };
 
 function sanitizeFileName(name: string): string {
@@ -74,13 +74,21 @@ export async function handleImageUpload(
   const { base, ext } = splitExt(safeName);
   const unique = randomUUID().slice(0, 8);
   const fileName = `${id}-${base}-${unique}${ext}`;
-  const fsDir = path.join(ASSETS_ROOT, config.folder);
-  const fsPath = path.join(fsDir, fileName);
-  const publicPath = `/assets/${config.folder}/${fileName}`;
+  const blobPath = `${config.folder}/${fileName}`;
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await mkdir(fsDir, { recursive: true });
-  await writeFile(fsPath, buffer);
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!blobToken) {
+    throw new Error('BLOB_READ_WRITE_TOKEN is not configured');
+  }
+
+  const uploaded = await put(blobPath, file, {
+    access: 'public',
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    token: blobToken,
+  });
+
+  const publicPath = uploaded.url;
 
   let client:
     | {

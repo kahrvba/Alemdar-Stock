@@ -240,6 +240,20 @@ const SEARCH_SECTIONS: SearchSectionConfig[] = [
     searchableExpr:
       "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))",
   },
+  {
+    tableKey: "scrawesdriver",
+    sectionLabel: "Scrawesdriver",
+    routePath: "/scrawesdriver",
+    tableName: "public.scrawesdriver",
+    titleExpr: "english_names",
+    subtitleExpr: "COALESCE(turkish_names, category)",
+    imageExpr: "image_filename",
+    barcodeExpr: "barcode",
+    priceExpr: "price::text",
+    quantityExpr: "COALESCE(quantity, 0)",
+    searchableExpr:
+      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(barcode, ''))",
+  },
 ];
 
 const COMPACT_REGEX = "[[:space:]/_.-]+";

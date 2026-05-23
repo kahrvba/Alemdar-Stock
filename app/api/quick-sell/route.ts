@@ -163,6 +163,16 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
     codeMatchExpr:
       "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
   },
+  scrawesdriver: {
+    tableKey: "scrawesdriver",
+    sectionLabel: "Scrawesdriver",
+    tableName: "public.scrawesdriver",
+    nameExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
+    barcodeExpr: "barcode",
+    priceExpr: "price",
+    codeMatchExpr:
+      "(LOWER(COALESCE(barcode::text, '')) = $4 OR LOWER(REGEXP_REPLACE(COALESCE(barcode::text, ''), '[ /_.-]+', '', 'g')) = $3)",
+  },
 };
 
 function toFiniteNumber(value: unknown) {

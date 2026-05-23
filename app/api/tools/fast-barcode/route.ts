@@ -129,6 +129,14 @@ const SECTION_CONFIG: Record<string, SectionConfig> = {
     baseSearchExpr:
       "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, ''))",
   },
+  scrawesdriver: {
+    key: "scrawesdriver",
+    label: "Scrawesdriver",
+    tableName: "public.scrawesdriver",
+    titleExpr: "COALESCE(english_names, turkish_names, CONCAT('Product #', id::text))",
+    baseSearchExpr:
+      "LOWER(COALESCE(english_names, '') || ' ' || COALESCE(turkish_names, '') || ' ' || COALESCE(category, ''))",
+  },
 };
 
 const SECTIONS = Object.values(SECTION_CONFIG).map(({ key, label }) => ({ key, label }));
