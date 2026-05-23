@@ -42,6 +42,12 @@ function isExcluded(url: URL) {
 }
 
 function getClientIp(req: Request) {
+  const cfConnectingIp = req.headers.get("cf-connecting-ip")?.trim();
+  if (cfConnectingIp) return cfConnectingIp;
+
+  const xRealIp = req.headers.get("x-real-ip")?.trim();
+  if (xRealIp) return xRealIp;
+
   // @ts-expect-error: ip may exist on the request in some deployments
   const directIp = typeof req.ip === "string" ? req.ip : null;
   if (directIp) return directIp;
