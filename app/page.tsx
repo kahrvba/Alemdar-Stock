@@ -49,7 +49,7 @@ export default function Home() {
           </div>
           <div className="flex flex-col gap-16">
             <QuickSellPanel />
-            <HomeDbLookup />
+            {/* <HomeDbLookup /> */}
             <TodayTotalPanel />
           </div>
         </div>

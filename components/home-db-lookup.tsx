@@ -47,8 +47,8 @@ export function HomeDbLookup() {
 
       try {
         const response = await fetch(
-          `/api/universal-search?query=${encodeURIComponent(trimmedQuery)}&limit=120&perSectionLimit=20`,
-          { signal: controller.signal }
+          `/api/universal-search?query=${encodeURIComponent(trimmedQuery)}&limit=5&perSectionLimit=20`,
+          { signal: controller.signal },
         );
 
         if (!response.ok) {
@@ -63,7 +63,10 @@ export function HomeDbLookup() {
 
         const unique = filtered.filter(
           (item, index, arr) =>
-            index === arr.findIndex((x) => x.tableKey === item.tableKey && x.id === item.id)
+            index ===
+            arr.findIndex(
+              (x) => x.tableKey === item.tableKey && x.id === item.id,
+            ),
         );
 
         setResults(unique);
@@ -89,17 +92,17 @@ export function HomeDbLookup() {
   const hasResults = useMemo(() => results.length > 0, [results.length]);
 
   return (
-    <section className="w-full rounded-2xl border border-border/60 bg-card/70 p-3">
+    <section className="w-full rounded-2xl border overflow-hidden border-border/60 bg-card/70">
       <input
         type="text"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search by ID or name"
-        className="h-10 w-full rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground outline-none"
+        className="h-10 w-full bg-background px-3 text-sm text-foreground outline-none"
       />
 
       {trimmedQuery ? (
-        <div className="mt-2 max-h-64 overflow-y-auto">
+        <div className="max-h-64 border-t border-border/60  overflow-y-auto p-2">
           {isLoading ? (
             <p className="py-2 text-xs text-muted-foreground">Searching...</p>
           ) : error ? (
@@ -107,7 +110,10 @@ export function HomeDbLookup() {
           ) : hasResults ? (
             <div className="space-y-1">
               {results.map((item) => (
-                <div key={`${item.tableKey}-${item.id}`} className="text-sm text-foreground">
+                <div
+                  key={`${item.tableKey}-${item.id}`}
+                  className="text-sm text-foreground"
+                >
                   <div className="truncate font-medium">{item.title}</div>
                   <div className="text-xs text-muted-foreground">
                     {item.barcode?.trim() || "No barcode"}

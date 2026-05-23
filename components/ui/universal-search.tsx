@@ -1,10 +1,38 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Clock, Search, X } from "lucide-react";
 import { useNavigationOverlay } from "@/components/navigation-overlay-provider";
+
+const SEARCH_HISTORY_KEY = "universal-search:history";
+const SEARCH_HISTORY_LIMIT = 5;
+
+const readHistory = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(SEARCH_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((entry): entry is string => typeof entry === "string")
+      .slice(0, SEARCH_HISTORY_LIMIT);
+  } catch {
+    return [];
+  }
+};
+
+const writeHistory = (entries: string[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    const capped = entries.slice(0, SEARCH_HISTORY_LIMIT);
+    window.localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(capped));
+  } catch {
+    // ignore quota / serialization errors
+  }
+};
 
 type UniversalSearchItem = {
   tableKey: string;
@@ -39,9 +67,48 @@ export function UniversalSearch() {
   const [results, setResults] = useState<UniversalSearchItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
+  const [isFocused, setIsFocused] = useState(false);
   const { showOverlay } = useNavigationOverlay();
 
   const trimmedQuery = query.trim();
+
+  useEffect(() => {
+    setHistory(readHistory());
+  }, []);
+
+  const pushHistory = useCallback((entry: string) => {
+    const value = entry.trim();
+    if (!value) return;
+    const lower = value.toLowerCase();
+    setHistory((current) => {
+      const existingCovers = current.some((item) => {
+        const other = item.toLowerCase();
+        return other === lower || other.startsWith(lower);
+      });
+      if (existingCovers) return current;
+      const filtered = current.filter((item) => {
+        const other = item.toLowerCase();
+        return other !== lower && !lower.startsWith(other);
+      });
+      const next = [value, ...filtered].slice(0, SEARCH_HISTORY_LIMIT);
+      writeHistory(next);
+      return next;
+    });
+  }, []);
+
+  const removeHistoryEntry = useCallback((entry: string) => {
+    setHistory((current) => {
+      const next = current.filter((item) => item !== entry);
+      writeHistory(next);
+      return next;
+    });
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    setHistory([]);
+    writeHistory([]);
+  }, []);
 
   useEffect(() => {
     if (!trimmedQuery) {
@@ -58,7 +125,7 @@ export function UniversalSearch() {
       try {
         const response = await fetch(
           `/api/universal-search?query=${encodeURIComponent(trimmedQuery)}&limit=30`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
 
         if (!response.ok) {
@@ -66,7 +133,11 @@ export function UniversalSearch() {
         }
 
         const data = (await response.json()) as UniversalSearchResponse;
-        setResults(Array.isArray(data.items) ? data.items : []);
+        const items = Array.isArray(data.items) ? data.items : [];
+        setResults(items);
+        if (items.length > 0) {
+          pushHistory(trimmedQuery);
+        }
       } catch (fetchError) {
         if (controller.signal.aborted) return;
         const message =
@@ -84,9 +155,10 @@ export function UniversalSearch() {
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [trimmedQuery]);
+  }, [trimmedQuery, pushHistory]);
 
   const hasResults = useMemo(() => results.length > 0, [results.length]);
+  const hasHistory = history.length > 0;
 
   return (
     <section className="w-full max-w-5xl">
@@ -97,10 +169,58 @@ export function UniversalSearch() {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           placeholder="Search all sections by ID, name, category, brand, material..."
           className="h-12 w-full rounded-full border border-border/60 bg-muted/50 pl-11 pr-4 text-sm text-foreground outline-none transition focus:border-border focus:ring-2 focus:ring-border/40"
         />
       </div>
+
+      {!trimmedQuery && hasHistory && isFocused ? (
+        <div
+          onMouseDown={(event) => event.preventDefault()}
+          className="mt-3 rounded-2xl border border-border/60 bg-background/70 p-3"
+        >
+          <div className="mb-2 flex items-center justify-between px-1">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              Recent searches
+            </div>
+            <button
+              type="button"
+              onClick={clearHistory}
+              className="text-[11px] font-medium text-muted-foreground transition hover:text-foreground"
+            >
+              Clear
+            </button>
+          </div>
+          <ul className="flex flex-col gap-1">
+            {history.map((entry) => (
+              <li
+                key={entry}
+                className="group flex items-center gap-2 rounded-xl border border-transparent px-2 py-1.5 transition hover:border-border/60 hover:bg-card/70"
+              >
+                <button
+                  type="button"
+                  onClick={() => setQuery(entry)}
+                  className="flex flex-1 items-center gap-2 text-left text-sm text-foreground"
+                >
+                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="truncate">{entry}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeHistoryEntry(entry)}
+                  aria-label={`Remove ${entry} from history`}
+                  className="rounded-full p-1 text-muted-foreground opacity-0 transition hover:bg-muted hover:text-foreground group-hover:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {trimmedQuery ? (
         <div className="mt-3 rounded-2xl border border-border/60 bg-background/70 p-3">
@@ -109,7 +229,9 @@ export function UniversalSearch() {
               Searching all sections...
             </div>
           ) : error ? (
-            <div className="py-8 text-center text-sm text-destructive">{error}</div>
+            <div className="py-8 text-center text-sm text-destructive">
+              {error}
+            </div>
           ) : hasResults ? (
             <div className="grid max-h-[26rem] gap-3 overflow-y-auto pr-1 md:grid-cols-2">
               {results.map((item) => (
@@ -117,7 +239,13 @@ export function UniversalSearch() {
                   key={`${item.tableKey}-${item.id}`}
                   href={item.href}
                   onClick={(event) => {
-                    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    if (
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey ||
+                      event.altKey
+                    )
+                      return;
                     showOverlay();
                   }}
                   className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/70 p-2 transition hover:border-foreground/30 hover:bg-card"
@@ -150,7 +278,9 @@ export function UniversalSearch() {
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-[11px] text-muted-foreground">Qty: {Math.max(0, item.quantity ?? 0)}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Qty: {Math.max(0, item.quantity ?? 0)}
+                    </p>
                     {item.price ? (
                       <p className="text-xs font-semibold text-foreground">
                         {formatPrice(item.price)}
