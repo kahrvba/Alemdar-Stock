@@ -1,6 +1,6 @@
 {
   "name": "new_alemdar",
-  "version": "1.0.29",
+  "version": "1.0.30",
   "private": true,
   "packageManager": "pnpm@10.15.0",
   "engines": {
